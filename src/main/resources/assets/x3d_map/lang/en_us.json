@@ -1,0 +1,13 @@
+{
+  "itemGroup.x3d_map": "Example Mod Tab",
+  "block.x3d_map.example_block": "Example Block",
+  "item.x3d_map.example_item": "Example Item",
+
+  "x3d_map.configuration.title": "x3d map Configs",
+  "x3d_map.configuration.section.x3d_map.common.toml": "x3d map Configs",
+  "x3d_map.configuration.section.x3d_map.common.toml.title": "x3d map Configs",
+  "x3d_map.configuration.items": "Item List",
+  "x3d_map.configuration.logDirtBlock": "Log Dirt Block",
+  "x3d_map.configuration.magicNumberIntroduction": "Magic Number Text",
+  "x3d_map.configuration.magicNumber": "Magic Number"
+}
