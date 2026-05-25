@@ -4,7 +4,7 @@ import com.xkball.x3dmap.api.client.map.WorldMapExtensionStorage;
 import io.netty.buffer.ByteBuf;
 
 public class MinimapSettingsStorage implements WorldMapExtensionStorage {
-
+    
     public static final String EXTENSION_ID = "minimap_settings";
     private static final int VERSION = 1;
     
@@ -14,26 +14,26 @@ public class MinimapSettingsStorage implements WorldMapExtensionStorage {
     float camFov = 60.0f;
     float camCameraLength = 0.0f;
     private boolean dirty;
-
+    
     @Override
     public String extensionId() {
         return EXTENSION_ID;
     }
-
+    
     @Override
     public boolean dirty() {
         return dirty;
     }
-
+    
     @Override
     public void clearDirty() {
         dirty = false;
     }
-
+    
     public void markDirty() {
         dirty = true;
     }
-
+    
     @Override
     public void load(ByteBuf buf) {
         var version = buf.readInt();
@@ -46,12 +46,12 @@ public class MinimapSettingsStorage implements WorldMapExtensionStorage {
         camFov = buf.readFloat();
         camCameraLength = buf.readFloat();
         clearDirty();
-        if(MinimapExtension.INSTANCE != null){
+        if (MinimapExtension.INSTANCE != null) {
             MinimapExtension.INSTANCE.highDetailRange.set(this.highDetailRange);
             MinimapExtension.INSTANCE.rotateWithPlayer.set(this.rotateWithPlayer);
         }
     }
-
+    
     @Override
     public void save(ByteBuf buf) {
         buf.writeInt(VERSION);

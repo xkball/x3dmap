@@ -13,7 +13,7 @@ public class X3dMapNetwork {
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
         var register = event.registrar(X3dMap.MODID);
-        register.playToServer(RequestServerChunk.TYPE,RequestServerChunk.STREAM_CODEC,RequestServerChunk::handle);
-        register.playToClient(SentChunkToClient.TYPE,SentChunkToClient.STREAM_CODEC,SentChunkToClient::handle);
+        register.playToServer(RequestServerChunk.TYPE, RequestServerChunk.STREAM_CODEC, RequestServerChunk::handle);
+        register.playToClient(SentChunkToClient.TYPE, SentChunkToClient.STREAM_CODEC, SentChunkToClient::handle);
     }
 }

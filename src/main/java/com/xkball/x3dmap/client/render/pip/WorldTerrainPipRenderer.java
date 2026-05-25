@@ -4,16 +4,16 @@ import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.xkball.xklib.api.gui.widget.IGuiWidget;
-import com.xkball.xklibmc.utils.ClientUtils;
-import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.x3dmap.api.client.render.PictureInPictureRenderLayer;
 import com.xkball.x3dmap.client.render.pip.layers.CameraTargetRenderer;
 import com.xkball.x3dmap.client.render.pip.layers.GridRenderer;
 import com.xkball.x3dmap.client.render.pip.layers.PlayerOnMapRenderer;
 import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
 import com.xkball.x3dmap.client.terrain.LevelChunkStorage;
+import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklib.api.gui.widget.IGuiWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -40,11 +40,11 @@ import java.util.function.Supplier;
 @NonNullByDefault
 public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerrainPipRenderer.WorldTerrainState> {
     
-    private static final Set<Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer,WorldTerrainState>>> regRenderLayers = new HashSet<>();
+    private static final Set<Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>>> regRenderLayers = new HashSet<>();
     @SuppressWarnings("NotNullFieldNotInitialized")
     public static GpuBufferSlice projBuffer;
     
-    private final Map<String, PictureInPictureRenderLayer<WorldTerrainPipRenderer,WorldTerrainState>> renderLayers = new LinkedHashMap<>();
+    private final Map<String, PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>> renderLayers = new LinkedHashMap<>();
     public final ProjectionMatrixBuffer proj = new ProjectionMatrixBuffer("world_terrain_pip_proj");
     public Matrix4f projMatrix = new Matrix4f();
     public CameraRenderState cameraRenderState = new CameraRenderState();
@@ -53,21 +53,21 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         regRenderLayers(TerrainRenderer::new);
         regRenderLayers(GridRenderer::new);
         regRenderLayers(PlayerOnMapRenderer::new);
-        regRenderLayers( CameraTargetRenderer::new);
+        regRenderLayers(CameraTargetRenderer::new);
     }
     
-    public static void regRenderLayers(Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer,WorldTerrainState>> renderLayer) {
+    public static void regRenderLayers(Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>> renderLayer) {
         regRenderLayers.add(renderLayer);
     }
     
     public WorldTerrainPipRenderer(MultiBufferSource.BufferSource bufferSource) {
         super(bufferSource);
-        for(var s : regRenderLayers) {
+        for (var s : regRenderLayers) {
             var layer = s.get();
             this.renderLayers.put(layer.name(), layer);
         }
     }
-
+    
     @Override
     public Class<WorldTerrainState> getRenderStateClass() {
         return WorldTerrainState.class;
@@ -82,16 +82,16 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         projBuffer = proj.getBuffer(projMatrix);
         RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(projBuffer, ProjectionType.PERSPECTIVE);
-        ClientUtils.getCommandEncoder().clearColorTexture(RenderSystem.outputColorTextureOverride.texture(),0xff000000);
+        ClientUtils.getCommandEncoder().clearColorTexture(RenderSystem.outputColorTextureOverride.texture(), 0xff000000);
 //        poseStack.translate(-renderState.centerPos().getX(), 0, -renderState.centerPos().getZ());
         this.cameraRenderState.yRot = renderState.yRot;
         this.cameraRenderState.xRot = renderState.xRot;
         this.cameraRenderState.pos = new Vec3(cameraPos);
         this.cameraRenderState.blockPos = new BlockPos((int) cameraPos.x, (int) cameraPos.y, (int) cameraPos.z);
         this.cameraRenderState.projectionMatrix = projMatrix;
-        for(var layer : renderState.enabledLayers){
+        for (var layer : renderState.enabledLayers) {
             var renderer = renderLayers.get(layer);
-            if(renderer != null){
+            if (renderer != null) {
                 renderer.render(this, renderState, poseStack, RenderSystem.outputColorTextureOverride, RenderSystem.outputDepthTextureOverride);
             }
         }
@@ -133,23 +133,23 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         private final Frustum frustum;
         
         public WorldTerrainState(List<String> enabledLayers,
-                                 Vector3f cameraTarget,
-                                 BlockPos centerPos,
-                                 float fov,
-                                 float cameraLength,
-                                 float xRot,
-                                 float yRot,
-                                 int x0,
-                                 int x1,
-                                 int y0,
-                                 int y1,
-                                 float scale,
-                                 boolean cullNear,
-                                 int lodDistance,
-                                 boolean minimap,
-                                 int minimapHighDetailRangeChunks,
-                                 @Nullable ScreenRectangle scissorArea,
-                                 @Nullable ScreenRectangle bounds) {
+                Vector3f cameraTarget,
+                BlockPos centerPos,
+                float fov,
+                float cameraLength,
+                float xRot,
+                float yRot,
+                int x0,
+                int x1,
+                int y0,
+                int y1,
+                float scale,
+                boolean cullNear,
+                int lodDistance,
+                boolean minimap,
+                int minimapHighDetailRangeChunks,
+                @Nullable ScreenRectangle scissorArea,
+                @Nullable ScreenRectangle bounds) {
             this.enabledLayers = enabledLayers;
             this.cameraTarget = cameraTarget;
             this.centerPos = centerPos;
@@ -177,7 +177,7 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         }
         
         public Vector3f dirVec() {
-            return VanillaUtils.dirVec(xRot,yRot);
+            return VanillaUtils.dirVec(xRot, yRot);
         }
         
         public Vector3f cameraOffset() {
@@ -191,21 +191,21 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         public Matrix4f calculateProjMatrix(boolean revZ) {
             var aspect = (x1 - x0) / ((float) y1 - (float) y0);
             var cameraPos = cameraPos();
-            return new Matrix4f().perspective((float) Math.toRadians(fov), aspect, Math.max(1,cameraPos.y/10), Math.max(cameraLength * 3, 16000), revZ)
+            return new Matrix4f().perspective((float) Math.toRadians(fov), aspect, Math.max(1, cameraPos.y / 10), Math.max(cameraLength * 3, 16000), revZ)
                     .lookAt(cameraPos.x, cameraPos.y, cameraPos.z,
                             cameraTarget.x, cameraTarget.y, cameraTarget.z,
                             0, 1, 0);
         }
         
         public Vector2f projWorld2Screen(IGuiWidget widget, Vector3f worldPos) {
-            var p = this.projMatrix.transform(new Vector4f(worldPos,1f));
+            var p = this.projMatrix.transform(new Vector4f(worldPos, 1f));
             var x = p.x / p.w;
             var y = p.y / p.w;
             return new Vector2f((1 + x) / 2 * widget.getWidth() + widget.getX(), (1 - y) / 2 * widget.getHeight() + widget.getY());
         }
         
         public @Nullable Vector3f projScreen2World(IGuiWidget widget, LevelChunkStorage storage, float screenX, float screenY) {
-            if(widget.getWidth() <= 0 || widget.getHeight() <= 0) return null;
+            if (widget.getWidth() <= 0 || widget.getHeight() <= 0) return null;
             var origin = this.cameraPos();
             var ray = this.screenRay(widget, screenX, screenY);
             var baseDistance = Math.max(this.cameraLength + 100, 256);
@@ -213,9 +213,9 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
             var step = Math.max(baseDistance / 8, 16);
             var prevDistance = 0.0f;
             var prevDelta = this.rayTerrainDelta(storage, origin);
-            for(var distance = step; distance <= maxDistance; distance += step) {
+            for (var distance = step; distance <= maxDistance; distance += step) {
                 var delta = this.rayTerrainDelta(storage, this.rayPoint(origin, ray, distance));
-                if(prevDelta * delta <= 0) {
+                if (prevDelta * delta <= 0) {
                     return this.searchRayTerrainHit(storage, origin, ray, prevDistance, distance);
                 }
                 prevDistance = distance;
@@ -239,13 +239,12 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
             var low = nearDistance;
             var high = farDistance;
             var lowDelta = this.rayTerrainDelta(storage, this.rayPoint(origin, ray, low));
-            for(var i = 0; i < 32; i++) {
+            for (var i = 0; i < 32; i++) {
                 var mid = (low + high) * 0.5f;
                 var midDelta = this.rayTerrainDelta(storage, this.rayPoint(origin, ray, mid));
-                if(lowDelta * midDelta <= 0) {
+                if (lowDelta * midDelta <= 0) {
                     high = mid;
-                }
-                else {
+                } else {
                     low = mid;
                     lowDelta = midDelta;
                 }
@@ -260,7 +259,7 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         private Float rayTerrainDelta(LevelChunkStorage storage, Vector3f point) {
             var x = (int) Math.floor(point.x);
             var z = (int) Math.floor(point.z);
-            if(storage.getChunk(new ChunkPos(x >> 4, z >> 4)) == null) return point.y - 64;
+            if (storage.getChunk(new ChunkPos(x >> 4, z >> 4)) == null) return point.y - 64;
             return point.y - storage.getHeight(x, z);
         }
         
@@ -324,11 +323,11 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         public int lodDistance() {
             return lodDistance;
         }
-
+        
         public boolean minimap() {
             return minimap;
         }
-
+        
         public int minimapHighDetailRangeChunks() {
             return minimapHighDetailRangeChunks;
         }

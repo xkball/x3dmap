@@ -19,29 +19,23 @@
   "xklibmc.world_terrain.delete": "Delete",
   "xklibmc.world_terrain.delete_confirm_msg": "Delete all cached chunks?",
   "xklibmc.world_terrain.delete_irreversible": "This cannot be undone.",
-    "xklibmc.world_terrain.confirm_delete_title": "Confirm Delete",
+  "xklibmc.world_terrain.confirm_delete_title": "Confirm Delete",
   "xklibmc.world_terrain.open_config": "Open config file.",
-
   "xklibmc.waypoint.show_waypoints": "Show waypoints",
   "xklibmc.waypoint.add_waypoint": "Add waypoint. Left-click on map to place.",
   "xklibmc.waypoint.open_manager": "Open waypoint manager.",
-
   "xklibmc.screen.x3d_map": "x3D Map",
-
   "xklibmc.selection.toggle_mode": "Toggle selection mode. Left-drag on map to select chunks.",
   "xklibmc.selection.clear_selected": "Clear selected chunks.",
   "xklibmc.selection.rerender_chunks": "Re-render selected chunks from client data.",
   "xklibmc.selection.request_resend": "Request server to re-send selected chunks.",
   "xklibmc.selection.delete_chunks": "Delete selected chunks from client cache.",
-
   "xklibmc.minimap.open_settings": "Open minimap settings.",
   "xklibmc.minimap.config.title": "Minimap",
   "xklibmc.minimap.config.enable": "Enable Minimap",
   "xklibmc.minimap.config.high_detail": "High Detail Range",
   "xklibmc.minimap.config.rotate": "Rotate Map",
-
   "keys.xklibmc.open_map": "Open Map",
-
   "xklibmc.waypoint.name": "Name",
   "xklibmc.waypoint.show": "Show",
   "xklibmc.waypoint.hide": "Hide",
@@ -63,16 +57,13 @@
   "xklibmc.waypoint.title.detail": "Waypoint",
   "xklibmc.waypoint.title.manager": "Waypoint Manager",
   "xklibmc.waypoint.default_name": "Waypoint",
-
   "xklibmc.common.cancel": "Cancel",
-
   "xklibmc.compatibility.mode_active": "Compatibility mode is active.",
   "xklibmc.compatibility.reasons": "Reasons:",
   "xklibmc.compatibility.dont_show_again": "Don't show again",
   "xklibmc.compatibility.ok": "OK",
   "xklibmc.compatibility.warning_title": "Compatibility Mode Warning",
   "xklibmc.compatibility.warn": "In compatibility mode, severe frame drops or crashes may occur.",
-
   "xklibmc.map_info.button": "Map Info",
   "xklibmc.map_info.title": "Map Info",
   "xklibmc.map_info.line.0": "Instructions:",

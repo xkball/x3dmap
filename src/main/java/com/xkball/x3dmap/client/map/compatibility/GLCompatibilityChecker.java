@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GLCompatibilityChecker {
-
+    
     private static final Logger LOGGER = LogUtils.getLogger();
-
+    
     public static List<String> checkMissingExtensions() {
         var missing = new ArrayList<String>();
         try {

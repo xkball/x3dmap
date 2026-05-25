@@ -15,9 +15,9 @@ import java.util.function.Function;
 public class ChunkBatcher implements Runnable {
     private static final int MAX_PARALLEL_TASKS = 64;
     private static final Executor BATCHER_EXECUTOR = Executors.newSingleThreadExecutor(it -> new Thread(it, "ChunkBatcher"));
-
+    
     private static ChunkBatcher HANDLE;
-
+    
     public static void init(MinecraftServer server) {
         Preconditions.checkState(HANDLE == null);
         HANDLE = new ChunkBatcher(server);
@@ -27,30 +27,30 @@ public class ChunkBatcher implements Runnable {
         Preconditions.checkState(HANDLE != null);
         HANDLE = null;
     }
-
+    
     public static void scheduleIfNeeded(MinecraftServer server) {
         Preconditions.checkState(HANDLE != null);
-
+        
         if (HANDLE.needSchedule) {
             server.executeIfPossible(HANDLE);
         }
     }
-
+    
     public static void submitRequest(ChunkRequest request) {
         Preconditions.checkState(HANDLE != null);
         HANDLE.submit(request);
     }
-
+    
     private final Queue<ChunkRequest> pendingTasks = new LinkedList<>();
     private final MinecraftServer server;
-
+    
     private boolean needSchedule = false;
     private int activeCount = 0;
-
+    
     public ChunkBatcher(MinecraftServer server) {
         this.server = server;
     }
-
+    
     private void submit(ChunkRequest request) {
         if (!server.isSameThread()) {
             throw new ConcurrentModificationException("ChunkRequest is submitted off the thread");
@@ -65,7 +65,7 @@ public class ChunkBatcher implements Runnable {
             throw new ConcurrentModificationException("ChunkBatcher is ran off the thread");
         }
         needSchedule = false;
-
+        
         ChunkRequest request = pendingTasks.peek();
         if (request == null) {
             return; // Should not happen
@@ -97,7 +97,7 @@ public class ChunkBatcher implements Runnable {
         this.activeCount = i;
         request.position = j;
     }
-
+    
     public void onCompletion() {
         activeCount--;
         needSchedule = true;

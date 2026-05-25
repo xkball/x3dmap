@@ -11,49 +11,49 @@ import java.util.List;
 import java.util.UUID;
 
 public class WaypointStorage implements WorldMapExtensionStorage {
-
+    
     public static final String EXTENSION_ID = "waypoint";
     private static final int VERSION = 1;
     private final List<Waypoint> waypoints = new ArrayList<>();
     private boolean dirty;
     public Runnable onMarkDirty = null;
-
+    
     @Override
     public String extensionId() {
         return EXTENSION_ID;
     }
-
+    
     @Override
     public boolean dirty() {
         return this.dirty;
     }
-
+    
     @Override
     public void clearDirty() {
         this.dirty = false;
     }
-
+    
     public void markDirty() {
         this.dirty = true;
-        if(this.onMarkDirty != null) {
+        if (this.onMarkDirty != null) {
             this.onMarkDirty.run();
         }
     }
-
+    
     public List<Waypoint> waypoints() {
         return Collections.unmodifiableList(this.waypoints);
     }
-
+    
     public void add(Waypoint waypoint) {
         this.waypoints.add(waypoint);
         this.markDirty();
     }
-
+    
     public void remove(Waypoint waypoint) {
         this.waypoints.remove(waypoint);
         this.markDirty();
     }
-
+    
     @Override
     public void load(ByteBuf byteBuf) {
         this.waypoints.clear();
@@ -72,7 +72,7 @@ public class WaypointStorage implements WorldMapExtensionStorage {
         }
         this.clearDirty();
     }
-
+    
     @Override
     public void save(ByteBuf byteBuf) {
         byteBuf.writeInt(VERSION);
@@ -88,13 +88,13 @@ public class WaypointStorage implements WorldMapExtensionStorage {
             byteBuf.writeBoolean(waypoint.hidden());
         }
     }
-
+    
     private void writeString(ByteBuf byteBuf, String value) {
         var bytes = value.getBytes(StandardCharsets.UTF_8);
         byteBuf.writeInt(bytes.length);
         byteBuf.writeBytes(bytes);
     }
-
+    
     private String readString(ByteBuf byteBuf) {
         var length = byteBuf.readInt();
         var bytes = new byte[length];

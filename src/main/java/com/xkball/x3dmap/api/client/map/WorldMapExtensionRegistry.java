@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 public class WorldMapExtensionRegistry {
-
+    
     private static final Logger LOGGER = LogUtils.getLogger();
     private final List<WorldMapExtension> extensions = new ArrayList<>();
     private final List<WorldMapExtensionService> openedServices = new ArrayList<>();
     private boolean initialized;
-
+    
     public void init(WorldMapExtensionContext context) {
         if (this.initialized) {
             return;
@@ -33,11 +33,11 @@ public class WorldMapExtensionRegistry {
         }
         this.extensions.sort(Comparator.comparingInt(WorldMapExtension::order));
     }
-
+    
     public List<WorldMapExtension> extensions() {
         return Collections.unmodifiableList(this.extensions);
     }
-
+    
     public void onStorageLoaded(LevelChunkStorage storage) {
         for (var extension : this.extensions) {
             try {
@@ -47,7 +47,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void onStorageSaving(LevelChunkStorage storage) {
         for (var extension : this.extensions) {
             try {
@@ -57,7 +57,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void onStorageClosed(@Nullable LevelChunkStorage storage) {
         for (var extension : this.extensions) {
             try {
@@ -67,7 +67,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void onMapOpened(WorldMapExtensionService service) {
         this.openedServices.add(service);
         for (var extension : this.extensions) {
@@ -78,7 +78,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void onMapClosed(WorldMapExtensionService service) {
         this.openedServices.remove(service);
         for (var extension : this.extensions) {
@@ -89,7 +89,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void onMapEvent(WorldMapExtensionService service, WorldMapEvent event) {
         for (var extension : this.extensions) {
             try {
@@ -102,13 +102,13 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public void tick() {
         for (var service : List.copyOf(this.openedServices)) {
             this.tick(service);
         }
     }
-
+    
     public void tick(WorldMapExtensionService service) {
         for (var extension : this.extensions) {
             try {
@@ -118,7 +118,7 @@ public class WorldMapExtensionRegistry {
             }
         }
     }
-
+    
     public List<String> enabledLayers(WorldMapExtensionService service) {
         var layers = new ArrayList<String>();
         for (var extension : this.extensions) {

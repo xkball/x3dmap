@@ -1,5 +1,7 @@
 package com.xkball.x3dmap.client.map.minimap;
 
+import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
+import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
 import com.xkball.xklib.ui.layout.IntLayoutVariable;
@@ -8,29 +10,27 @@ import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.ui.XKLibBaseScreen;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
-import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
-import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.joml.Vector3f;
 
 @NonNullByDefault
 public class MinimapPreviewWidget extends ContainerWidget {
-
+    
     private static final WorldMapExtensionServiceImpl MINIMAP_SERVICE = new WorldMapExtensionServiceImpl("");
-
+    
     private boolean dragging;
     private WorldTerrainPipRenderer.WorldTerrainState lastState;
     
     private final IntLayoutVariable highDetailRange;
     private final BooleanLayoutVariable rotateWithPlayer;
-
+    
     public MinimapPreviewWidget(IntLayoutVariable highDetailRange, BooleanLayoutVariable rotateWithPlayer) {
         this.highDetailRange = highDetailRange;
         this.rotateWithPlayer = rotateWithPlayer;
         this.setOverflow(false);
     }
-
+    
     @Override
     public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
         if (graphics instanceof B3dGuiGraphics b3dGuiGraphics && lastState != null) {
@@ -44,19 +44,19 @@ public class MinimapPreviewWidget extends ContainerWidget {
             var player = Minecraft.getInstance().player;
             if (player != null) {
                 var yRot = rotateWithPlayer.get() ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
-                CompassRenderer.render(b3dGuiGraphics, x0+2, y0+2, x1, y1, yRot, 0, 24f);
+                CompassRenderer.render(b3dGuiGraphics, x0 + 2, y0 + 2, x1, y1, yRot, 0, 24f);
                 MinimapPlayerMarker.render(b3dGuiGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer.get());
             }
         }
         super.doRender(graphics, mouseX, mouseY, a);
     }
-
+    
     @Override
     public void resize(float offsetX, float offsetY) {
         super.resize(offsetX, offsetY);
         this.calculateNewPipState();
     }
-
+    
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
         var minimap = MinimapExtension.INSTANCE;
@@ -73,19 +73,19 @@ public class MinimapPreviewWidget extends ContainerWidget {
         this.calculateNewPipState();
         return true;
     }
-
+    
     @Override
     protected boolean onMouseClicked(IMouseButtonEvent event, boolean doubleClick) {
         dragging = true;
         return true;
     }
-
+    
     @Override
     protected boolean onMouseReleased(IMouseButtonEvent event) {
         dragging = false;
         return true;
     }
-
+    
     @Override
     protected boolean onMouseDragged(IMouseButtonEvent event, double dx, double dy) {
         if (!dragging) {
@@ -98,12 +98,12 @@ public class MinimapPreviewWidget extends ContainerWidget {
         this.calculateNewPipState();
         return true;
     }
-
+    
     @Override
     public boolean isFocusable() {
         return true;
     }
-
+    
     private void calculateNewPipState() {
         var minimap = MinimapExtension.INSTANCE;
         if (width == 0 || height == 0 || minimap == null) {

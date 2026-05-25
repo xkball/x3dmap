@@ -1,8 +1,8 @@
 package com.xkball.x3dmap.network.s2c;
 
-import com.xkball.xklibmc.annotation.NonNullByDefault;
-import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -16,7 +16,8 @@ import java.util.List;
 
 
 @NonNullByDefault
-public record SentChunkToClient(ChunkPos chunkPos, ClientboundLevelChunkPacketData data, ClientboundChunksBiomesPacket biomeData) implements CustomPacketPayload{
+public record SentChunkToClient(ChunkPos chunkPos, ClientboundLevelChunkPacketData data,
+                                ClientboundChunksBiomesPacket biomeData) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<SentChunkToClient> TYPE = new CustomPacketPayload.Type<>(VanillaUtils.modRL("sent_chunk_to_client"));
     
     public static final StreamCodec<RegistryFriendlyByteBuf, SentChunkToClient> STREAM_CODEC = new StreamCodec<>() {
@@ -26,7 +27,7 @@ public record SentChunkToClient(ChunkPos chunkPos, ClientboundLevelChunkPacketDa
             var pos = ChunkPos.STREAM_CODEC.decode(input);
             var data = new ClientboundLevelChunkPacketData(input, pos.x(), pos.z());
             var biome = ClientboundChunksBiomesPacket.STREAM_CODEC.decode(input);
-            return new SentChunkToClient(pos,  data, biome);
+            return new SentChunkToClient(pos, data, biome);
         }
         
         @Override
@@ -37,17 +38,17 @@ public record SentChunkToClient(ChunkPos chunkPos, ClientboundLevelChunkPacketDa
         }
     };
     
-    public SentChunkToClient(ChunkPos chunkPos, LevelChunk chunk){
+    public SentChunkToClient(ChunkPos chunkPos, LevelChunk chunk) {
         this(chunkPos, new ClientboundLevelChunkPacketData(chunk), ClientboundChunksBiomesPacket.forChunks(List.of(chunk)));
     }
     
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
-                var chunk = new LevelChunk(context.player().level(), this.chunkPos);
-                chunk.replaceWithPacketData(this.data.getReadBuffer(), this.data.getHeightmaps(), this.data.getBlockEntitiesTagsConsumer(this.chunkPos.x(), this.chunkPos.z()));
-                var data = biomeData.chunkBiomeData().getFirst();
-                chunk.replaceBiomes(data.getReadBuffer());
-                TerrainChunkManager.INSTANCE.submitUpdate(chunk, this.chunkPos, true);
+            var chunk = new LevelChunk(context.player().level(), this.chunkPos);
+            chunk.replaceWithPacketData(this.data.getReadBuffer(), this.data.getHeightmaps(), this.data.getBlockEntitiesTagsConsumer(this.chunkPos.x(), this.chunkPos.z()));
+            var data = biomeData.chunkBiomeData().getFirst();
+            chunk.replaceBiomes(data.getReadBuffer());
+            TerrainChunkManager.INSTANCE.submitUpdate(chunk, this.chunkPos, true);
         });
     }
     

@@ -1,3 +1,7 @@
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -113,13 +117,49 @@ configurations {
 }
 
 dependencies {
-    jarJar(implementation "com.xkball:xklib-3d:0.0.4")
-    jarJar(implementation "com.xkball:xklib-ap:0.0.4")
-    jarJar(implementation "com.xkball:xklib-ui:0.0.4")
-    jarJar(implementation "com.xkball:xklib-mc:0.0.4")
-    jarJar(implementation "dev.vfyjxf:taffy:1.1.4")
-    jarJar(implementation "org.antlr:antlr4-runtime:4.13.2")
-    jarJar(implementation "net.lenni0451:LambdaEvents:2.4.2")
+    jarJar(implementation "com.xkball:xklib-3d:$xklib_version"){
+        version {
+            strictly '[0.0.2, 1.0.0)'
+            prefer xklib_version
+        }
+    }
+
+    jarJar(implementation "com.xkball:xklib-ap:$xklib_version"){
+        version {
+            strictly '[0.0.2, 1.0.0)'
+            prefer xklib_version
+        }
+    }
+    jarJar(implementation "com.xkball:xklib-ui:$xklib_version"){
+        version {
+            strictly '[0.0.2, 1.0.0)'
+            prefer xklib_version
+        }
+    }
+    jarJar(implementation "com.xkball:xklib-mc:$xklib_version"){
+        version {
+            strictly '[0.0.2, 1.0.0)'
+            prefer xklib_version
+        }
+    }
+    jarJar(implementation "dev.vfyjxf:taffy:1.1.4"){
+        version {
+            strictly '[1.1.4, 2.0.0)'
+            prefer '1.1.4'
+        }
+    }
+    jarJar(implementation "org.antlr:antlr4-runtime:4.13.2"){
+        version {
+            strictly '[4.13.2, 5.0.0)'
+            prefer '4.13.2'
+        }
+    }
+    jarJar(implementation "net.lenni0451:LambdaEvents:2.4.2"){
+        version {
+            strictly '[2.4.2, 3.0.0)'
+            prefer '2.4.2'
+        }
+    }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -168,5 +208,55 @@ idea {
     module {
         downloadSources = true
         downloadJavadoc = true
+    }
+}
+
+base {
+    archivesName = mod_id
+    if(System.env.GITHUB_ACTIONS && System.env.NIGHTLY_BUILD){
+        var endfix = System.env.VERSION_IDENTIFIER + "-" + LocalDateTime.now(ZoneOffset.ofHours(8)).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME).replace(':','-')
+        archivesName="${archivesName.get()}-${version}-${endfix}-nightly"
+        version=''
+    }
+}
+
+jar{
+    doLast {
+        if (System.env.GITHUB_ACTIONS) {
+            File theFile = archiveFile.get().getAsFile()
+
+            def outputFile = new File(System.env.GITHUB_OUTPUT)
+            // Use the env-specific line separator for maximally possible compatibility
+            def newLine = System.getProperty('line.separator')
+
+            // Write out new env variable for later usage
+            outputFile << newLine << "artifact_name=${theFile.getName()}"
+            outputFile << newLine << "artifact_publish_name=${archiveBaseName.get()}.jar"
+            outputFile << newLine << "artifact_path=${theFile.absolutePath}"
+        }
+    }
+}
+
+build{
+    if (System.env.GITHUB_ACTIONS){
+        def outputFile = new File(System.env.GITHUB_OUTPUT)
+        def newLine = System.getProperty('line.separator')
+        String fileName = jar.archiveFileName.get()
+        fileName = fileName.substring(0,fileName.length()-4)
+        outputFile << newLine << "jar_name=${fileName}"
+    }
+}
+
+tasks.register("githubActionOutput",DefaultTask){
+    if (System.env.GITHUB_ACTIONS) {
+        File theFile = jar.archiveFile.get().getAsFile()
+        def outputFile = new File(System.env.GITHUB_OUTPUT)
+        // Use the env-specific line separator for maximally possible compatibility
+        def newLine = System.getProperty('line.separator')
+        def publishName = "${release_name}-${loader_name}-Minecraft${minecraft_version}-${version}.jar"
+        // Write out new env variable for later usage
+        outputFile << newLine << "artifact_name=${theFile.getName()}"
+        outputFile << newLine << "artifact_publish_name=${publishName}"
+        outputFile << newLine << "artifact_path=${theFile.absolutePath}"
     }
 }

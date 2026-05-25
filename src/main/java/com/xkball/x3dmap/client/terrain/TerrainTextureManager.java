@@ -9,8 +9,8 @@ import com.xkball.xklibmc.api.client.mixin.IExtendedGpuDevice;
 import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.ChunkPos;
-import org.slf4j.Logger;
 import org.lwjgl.system.MemoryUtil;
+import org.slf4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -32,11 +32,11 @@ public class TerrainTextureManager implements AutoCloseable {
         this.levelChunkStorage = levelChunkStorage;
     }
     
-    public boolean uploadChunk(ChunkStorage chunkStorage){
+    public boolean uploadChunk(ChunkStorage chunkStorage) {
         return this.uploadChunk(chunkStorage.chunkPos, chunkStorage.heightMap);
     }
     
-    public boolean uploadChunk(ChunkPos chunkPos, ChunkHeightMap heightMap){
+    public boolean uploadChunk(ChunkPos chunkPos, ChunkHeightMap heightMap) {
         var uploadInfo = this.getUploadInfo(chunkPos);
         var textures = this.getOrCreateTextures(uploadInfo.texturePos());
         ByteBuffer colorUploadBuffer = null;
@@ -48,10 +48,10 @@ public class TerrainTextureManager implements AutoCloseable {
                 for (int x = 0; x < CHUNK_SIZE; x++) {
                     var color = heightMap.getColor(x, z);
                     colorUploadBuffer.put((byte) ((color >> 16) & 0xFF));
-                    colorUploadBuffer.put((byte) ((color >> 8)  & 0xFF));
-                    colorUploadBuffer.put((byte) ( color        & 0xFF));
+                    colorUploadBuffer.put((byte) ((color >> 8) & 0xFF));
+                    colorUploadBuffer.put((byte) (color & 0xFF));
                     colorUploadBuffer.put((byte) ((color >> 24) & 0xFF));
-                    depthUploadBuffer.putInt(ARGB.alpha(color) == 0 ? levelChunkStorage.minHeight-1 : heightMap.get(x, z));
+                    depthUploadBuffer.putInt(ARGB.alpha(color) == 0 ? levelChunkStorage.minHeight - 1 : heightMap.get(x, z));
                 }
             }
             colorUploadBuffer.flip();
@@ -69,10 +69,10 @@ public class TerrainTextureManager implements AutoCloseable {
                     CHUNK_SIZE, CHUNK_SIZE
             );
         } finally {
-            if(colorUploadBuffer != null){
+            if (colorUploadBuffer != null) {
                 MemoryUtil.memFree(colorUploadBuffer);
             }
-            if(depthUploadBuffer != null){
+            if (depthUploadBuffer != null) {
                 MemoryUtil.memFree(depthUploadBuffer);
             }
         }
@@ -80,19 +80,19 @@ public class TerrainTextureManager implements AutoCloseable {
     }
     
     
-    public VirtualTextures getTextures(ChunkPos chunkPos){
+    public VirtualTextures getTextures(ChunkPos chunkPos) {
         return this.getOrCreateTextures(this.getTexturePos(chunkPos));
     }
     
-    public VirtualTextures getTextures(VirtualTexturePos pos){
+    public VirtualTextures getTextures(VirtualTexturePos pos) {
         return this.getOrCreateTextures(pos);
     }
     
-    private VirtualTextures getOrCreateTextures(VirtualTexturePos materialPos){
+    private VirtualTextures getOrCreateTextures(VirtualTexturePos materialPos) {
         return this.texturesMap.computeIfAbsent(materialPos, this::createTextures);
     }
     
-    private VirtualTextures createTextures(VirtualTexturePos materialPos){
+    private VirtualTextures createTextures(VirtualTexturePos materialPos) {
         @SuppressWarnings({"removal", "UnstableApiUsage"})
         var device = IExtendedGpuDevice.cast(ClientUtils.getGpuDevice().backend);
         var colorTexture = device.xklib$createSparseTexture(
@@ -101,27 +101,27 @@ public class TerrainTextureManager implements AutoCloseable {
         );
         var depthTexture = device.xklib$createSparseTexture(
                 "terrain_virtual_depth_" + materialPos.x() + "_" + materialPos.z(),
-                textureUsage, TextureFormat.RGBA8, VIRTUAL_TEXTURE_SIZE, VIRTUAL_TEXTURE_SIZE, 1, levelChunkStorage.minHeight-1
+                textureUsage, TextureFormat.RGBA8, VIRTUAL_TEXTURE_SIZE, VIRTUAL_TEXTURE_SIZE, 1, levelChunkStorage.minHeight - 1
         );
         LOGGER.info("Created virtual terrain textures for material ({},{})", materialPos.x(), materialPos.z());
         return new VirtualTextures(colorTexture, ClientUtils.getGpuDevice().createTextureView(colorTexture), depthTexture, ClientUtils.getGpuDevice().createTextureView(depthTexture));
     }
     
-    private VirtualTexturePos getTexturePos(ChunkPos chunkPos){
+    private VirtualTexturePos getTexturePos(ChunkPos chunkPos) {
         return new VirtualTexturePos(
                 Math.floorDiv(chunkPos.x(), CHUNKS_PER_AXIS),
                 Math.floorDiv(chunkPos.z(), CHUNKS_PER_AXIS)
         );
     }
     
-    public ChunkUploadInfo getUploadInfo(ChunkPos chunkPos){
+    public ChunkUploadInfo getUploadInfo(ChunkPos chunkPos) {
         var materialPos = this.getTexturePos(chunkPos);
         var localChunkX = Math.floorMod(chunkPos.x(), CHUNKS_PER_AXIS);
         var localChunkZ = Math.floorMod(chunkPos.z(), CHUNKS_PER_AXIS);
         return new ChunkUploadInfo(materialPos, localChunkX * CHUNK_SIZE, localChunkZ * CHUNK_SIZE);
     }
     
-    public void clearChunk(ChunkPos chunkPos){
+    public void clearChunk(ChunkPos chunkPos) {
         var uploadInfo = this.getUploadInfo(chunkPos);
         var textures = this.getTextures(uploadInfo.texturePos());
         var clearColor = MemoryUtil.memAlloc(CHUNK_SIZE * CHUNK_SIZE * BYTES_PER_PIXEL);
@@ -150,9 +150,9 @@ public class TerrainTextureManager implements AutoCloseable {
             MemoryUtil.memFree(clearDepth);
         }
     }
-
-    public void clear(){
-        for(var textures : this.texturesMap.values()){
+    
+    public void clear() {
+        for (var textures : this.texturesMap.values()) {
             textures.colorTextureView().close();
             textures.depthTextureView().close();
             textures.colorTexture().close();
@@ -166,10 +166,14 @@ public class TerrainTextureManager implements AutoCloseable {
         this.clear();
     }
     
-    public record VirtualTextures(GpuTexture colorTexture, GpuTextureView colorTextureView,  GpuTexture depthTexture, GpuTextureView depthTextureView){}
+    public record VirtualTextures(GpuTexture colorTexture, GpuTextureView colorTextureView, GpuTexture depthTexture,
+                                  GpuTextureView depthTextureView) {
+    }
     
-    public record VirtualTexturePos(int x, int z){}
+    public record VirtualTexturePos(int x, int z) {
+    }
     
-    public record ChunkUploadInfo(VirtualTexturePos texturePos, int destX, int destY){}
+    public record ChunkUploadInfo(VirtualTexturePos texturePos, int destX, int destY) {
+    }
     
 }

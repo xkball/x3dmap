@@ -19,29 +19,23 @@
   "xklibmc.world_terrain.delete": "删除地图",
   "xklibmc.world_terrain.delete_confirm_msg": "删除所有缓存的区块？",
   "xklibmc.world_terrain.delete_irreversible": "此操作不可撤销",
-    "xklibmc.world_terrain.confirm_delete_title": "确认删除",
+  "xklibmc.world_terrain.confirm_delete_title": "确认删除",
   "xklibmc.world_terrain.open_config": "打开配置文件",
-
   "xklibmc.waypoint.show_waypoints": "显示路径点",
   "xklibmc.waypoint.add_waypoint": "添加路径点，在地图上左键放置",
   "xklibmc.waypoint.open_manager": "打开路径点管理器",
-
   "xklibmc.screen.x3d_map": "x3D地图",
-
   "xklibmc.selection.toggle_mode": "选择部分地图区块，左键拖拽以选择区块",
   "xklibmc.selection.clear_selected": "清除已选择的区块",
   "xklibmc.selection.rerender_chunks": "从客户端数据重新渲染已选区块",
   "xklibmc.selection.request_resend": "请求服务器重新发送已选区块",
   "xklibmc.selection.delete_chunks": "从客户端缓存中删除已选区块",
-
   "xklibmc.minimap.open_settings": "打开小地图设置",
   "xklibmc.minimap.config.title": "小地图",
   "xklibmc.minimap.config.enable": "启用小地图",
   "xklibmc.minimap.config.high_detail": "高细节范围",
   "xklibmc.minimap.config.rotate": "旋转地图",
-
   "keys.xklibmc.open_map": "打开地图",
-
   "xklibmc.waypoint.name": "名称",
   "xklibmc.waypoint.show": "显示",
   "xklibmc.waypoint.hide": "隐藏",
@@ -63,16 +57,13 @@
   "xklibmc.waypoint.title.detail": "路径点",
   "xklibmc.waypoint.title.manager": "路径点管理器",
   "xklibmc.waypoint.default_name": "路径点",
-
   "xklibmc.common.cancel": "取消",
-
   "xklibmc.compatibility.mode_active": "兼容模式已启用。",
   "xklibmc.compatibility.reasons": "原因：",
   "xklibmc.compatibility.dont_show_again": "不再显示",
   "xklibmc.compatibility.ok": "确定",
   "xklibmc.compatibility.warning_title": "兼容模式警告",
   "xklibmc.compatibility.warn": "兼容模式下可能严重掉帧或崩溃。",
-
   "xklibmc.map_info.button": "地图信息",
   "xklibmc.map_info.title": "地图信息",
   "xklibmc.map_info.line.0": "操作说明:",

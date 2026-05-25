@@ -1,6 +1,11 @@
 package com.xkball.x3dmap.server;
 
-import net.minecraft.server.level.*;
+import net.minecraft.server.level.ChunkLevel;
+import net.minecraft.server.level.ChunkResult;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.Ticket;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -15,35 +20,35 @@ public abstract class ChunkRequest implements BiConsumer<ChunkPos, ChunkResult<C
     final ArrayList<ChunkPos> poses;
     final Ticket ticket;
     final ChunkStatus status;
-
+    
     protected final ServerPlayer player;
     protected final ServerLevel level;
-
+    
     int position = 0;
     int completion = 0;
-
+    
     public ChunkRequest(List<ChunkPos> poses, TicketType type, ChunkStatus status, ServerPlayer player, ServerLevel level) {
         this.poses = new ArrayList<>(poses);
         this.status = status;
         this.ticket = new Ticket(type, ChunkLevel.byStatus(status));
         this.player = player;
         this.level = level;
-
+        
         this.poses.sort(BY_REGION_AND_BY_POS);
     }
-
+    
     public Consumer<ChunkResult<ChunkAccess>> curry(ChunkPos pos) {
         return res -> accept(pos, res);
     }
-
+    
     private static int subRegionX(ChunkPos pos) {
         return pos.x() >> 3;
     }
-
+    
     private static int subRegionZ(ChunkPos pos) {
         return pos.z() >> 3;
     }
-
+    
     private static final Comparator<ChunkPos> BY_REGION_AND_BY_POS = Comparator
             .<ChunkPos>comparingInt(ChunkPos::getRegionX)
             .thenComparingInt(ChunkPos::getRegionZ)

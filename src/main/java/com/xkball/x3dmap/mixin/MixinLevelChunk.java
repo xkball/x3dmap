@@ -9,9 +9,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LevelChunk.class)
 public class MixinLevelChunk {
-
+    
     @Inject(method = "markUnsaved", at = @At("RETURN"))
-    public void onMarkDirty(CallbackInfo ci){
-        X3dMap.MARK_DIRTY_CALLBACK.accept((LevelChunk)(Object) this);
+    public void onMarkDirty(CallbackInfo ci) {
+        X3dMap.MARK_DIRTY_CALLBACK.accept((LevelChunk) (Object) this);
     }
 }

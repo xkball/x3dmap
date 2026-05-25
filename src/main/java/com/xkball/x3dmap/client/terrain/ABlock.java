@@ -11,8 +11,8 @@ public record ABlock(int x, int y, int z, int color, int mask) implements ISTD14
     
     private static final int PACKED_Y_MASK = (1 << BlockPos.PACKED_Y_LENGTH) - 1;
     
-    public ABlock(){
-        this(0,0,0,0,0b111111);
+    public ABlock() {
+        this(0, 0, 0, 0, 0b111111);
     }
     
     @Override
@@ -22,22 +22,22 @@ public record ABlock(int x, int y, int z, int color, int mask) implements ISTD14
     
     @Override
     public void writeToBuffer(Std140Builder builder) {
-        builder.putVec3(x,y,z);
+        builder.putVec3(x, y, z);
         builder.putInt(color);
     }
     
-    public record ABlockData(int x, int y, int z, int color, int mask){
+    public record ABlockData(int x, int y, int z, int color, int mask) {
         
         public static final StreamCodec<ByteBuf, ABlockData> STREAM_CODEC = new StreamCodec<>() {
             @Override
             public ABlockData decode(ByteBuf input) {
                 var p = input.readByte();
                 var x = p >> 4 & 0xF;
-                var z  = p & 0xF;
+                var z = p & 0xF;
                 var y = input.readShort() & PACKED_Y_MASK;
                 var c = input.readInt();
                 var mask = input.readByte();
-                return new ABlockData(x, y,z,c, mask);
+                return new ABlockData(x, y, z, c, mask);
             }
             
             @Override
@@ -51,8 +51,8 @@ public record ABlock(int x, int y, int z, int color, int mask) implements ISTD14
             }
         };
         
-        public ABlock toABlock(int px, int pz){
-            return new ABlock((this.x & 0xF) + px,this.y,(this.z & 0xF) + pz,this.color, mask & 0b111111);
+        public ABlock toABlock(int px, int pz) {
+            return new ABlock((this.x & 0xF) + px, this.y, (this.z & 0xF) + pz, this.color, mask & 0b111111);
         }
     }
 }

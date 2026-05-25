@@ -1,5 +1,9 @@
 package com.xkball.x3dmap.client.map.compatibility;
 
+import com.xkball.x3dmap.ClientConfig;
+import com.xkball.x3dmap.api.client.map.WorldMapExtension;
+import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
 import com.xkball.xklib.ui.render.IComponent;
@@ -9,10 +13,6 @@ import com.xkball.xklib.ui.widget.CheckBox;
 import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklib.ui.widget.container.WindowedContainer;
-import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.api.client.map.WorldMapExtension;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 
 import java.util.ArrayList;
 

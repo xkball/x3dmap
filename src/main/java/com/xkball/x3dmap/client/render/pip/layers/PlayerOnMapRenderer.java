@@ -17,17 +17,17 @@ public class PlayerOnMapRenderer implements PictureInPictureRenderLayer<WorldTer
     public void render(WorldTerrainPipRenderer pip, WorldTerrainPipRenderer.WorldTerrainState renderState, PoseStack poseStack, GpuTextureView texture, GpuTextureView depth) {
         var featureRenderDispatcher = Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher();
         var entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        var player =  Minecraft.getInstance().player;
+        var player = Minecraft.getInstance().player;
         var level = Minecraft.getInstance().level;
-        if(player != null && level != null) {
+        if (player != null && level != null) {
             var playerInfo = player.connection.getListedOnlinePlayers();
-            for(var p : playerInfo){
+            for (var p : playerInfo) {
                 var uuid = p.getProfile().id();
                 var entity = Minecraft.getInstance().level.getEntity(uuid);
-                if(entity == null) continue;
-                var playerState = entityRenderDispatcher.extractEntity(entity,0);
+                if (entity == null) continue;
+                var playerState = entityRenderDispatcher.extractEntity(entity, 0);
                 var playerPos = entity.position();
-                entityRenderDispatcher.submit(playerState,pip.cameraRenderState,playerPos.x,playerPos.y,playerPos.z,poseStack,featureRenderDispatcher.getSubmitNodeStorage());
+                entityRenderDispatcher.submit(playerState, pip.cameraRenderState, playerPos.x, playerPos.y, playerPos.z, poseStack, featureRenderDispatcher.getSubmitNodeStorage());
             }
         }
         featureRenderDispatcher.renderAllFeatures();

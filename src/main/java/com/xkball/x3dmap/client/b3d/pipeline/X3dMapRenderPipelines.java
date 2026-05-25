@@ -36,17 +36,17 @@ public class X3dMapRenderPipelines {
             .buildExtended();
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP_FULL_MESH = ExtendedRenderPipeline.builder()
-           .withLocation(VanillaUtils.modRL("world_terrain_pip_full_mesh"))
-           .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.TRIANGLES)
-           .withVertexShader(VanillaUtils.modRL("core/world_terrain_pip_full_mesh"))
-           .withFragmentShader(VanillaUtils.modRL("core/world_terrain_pip_full_mesh"))
-           .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-           .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-           .withUniform("PhongLight", UniformType.UNIFORM_BUFFER)
-           .bindUniform("PhongLight", PHONE_LIGHT)
-           .withDepthStencilState(DepthStencilState.DEFAULT)
-           .withCull(true)
-           .buildExtended();
+            .withLocation(VanillaUtils.modRL("world_terrain_pip_full_mesh"))
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.TRIANGLES)
+            .withVertexShader(VanillaUtils.modRL("core/world_terrain_pip_full_mesh"))
+            .withFragmentShader(VanillaUtils.modRL("core/world_terrain_pip_full_mesh"))
+            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+            .withUniform("PhongLight", UniformType.UNIFORM_BUFFER)
+            .bindUniform("PhongLight", PHONE_LIGHT)
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withCull(true)
+            .buildExtended();
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP_LOD = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("world_terrain_pip_lod"))
@@ -65,7 +65,7 @@ public class X3dMapRenderPipelines {
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withCull(true)
             .buildExtended();
-
+    
     public static final ExtendedRenderPipeline SELECTION_OVERLAY = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("selection_overlay"))
             .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.TRIANGLES)
@@ -81,5 +81,5 @@ public class X3dMapRenderPipelines {
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withCull(false)
             .buildExtended();
-
+    
 }

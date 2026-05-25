@@ -6,7 +6,7 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ClientConfig {
-
+    
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
@@ -16,7 +16,7 @@ public class ClientConfig {
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_INTERVAL;
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_COUNT;
     public static final ModConfigSpec.BooleanValue SHOW_MAP_INFO;
-
+    
     static {
         var builder = new ModConfigSpec.Builder();
         FORCE_COMPATIBILITY_MODE = builder

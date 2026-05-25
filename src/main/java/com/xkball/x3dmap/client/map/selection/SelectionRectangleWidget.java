@@ -6,28 +6,28 @@ import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
 
 public class SelectionRectangleWidget extends Widget {
-
+    
     private @Nullable Vector2f start;
     private @Nullable Vector2f end;
-
+    
     public SelectionRectangleWidget() {
         this.inlineStyle("size: 100% 100%;");
         this.setEnabled(false);
     }
-
+    
     public void setStart(@Nullable Vector2f start) {
         this.start = start;
     }
-
+    
     public void setEnd(@Nullable Vector2f end) {
         this.end = end;
     }
-
+    
     public void clear() {
         this.start = null;
         this.end = null;
     }
-
+    
     @Override
     public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.doRender(graphics, mouseX, mouseY, partialTick);

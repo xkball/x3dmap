@@ -1,10 +1,5 @@
 package com.xkball.x3dmap.client.map.selection;
 
-import com.xkball.xklib.XKLib;
-import com.xkball.xklib.ui.render.IComponent;
-import com.xkball.xklib.ui.widget.IconButton;
-import com.xkball.xklib.ui.widget.Widget;
-import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.api.client.map.WorldMapEvent;
 import com.xkball.x3dmap.api.client.map.WorldMapExtension;
@@ -13,6 +8,11 @@ import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.network.c2s.RequestServerChunk;
+import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklib.XKLib;
+import com.xkball.xklib.ui.render.IComponent;
+import com.xkball.xklib.ui.widget.IconButton;
+import com.xkball.xklib.ui.widget.Widget;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.joml.Vector2f;
@@ -24,26 +24,26 @@ import java.util.HashSet;
 import java.util.List;
 
 public class SelectionExtension implements WorldMapExtension {
-
+    
     public static final String EXTENSION_ID = "selection";
     private static @Nullable SelectionStorage currentStorage;
-
+    
     private final SelectionStorage storage = new SelectionStorage();
     private final SelectionRectangleWidget selectionRectWidget = new SelectionRectangleWidget();
     private boolean selecting;
     private boolean dragging;
     private Vector2f dragStartScreen;
     private Vector2f dragEndScreen;
-
+    
     public static @Nullable SelectionStorage currentStorage() {
         return currentStorage;
     }
-
+    
     @Override
     public String id() {
         return EXTENSION_ID;
     }
-
+    
     @Override
     public int order() {
         return 1;
@@ -73,11 +73,11 @@ public class SelectionExtension implements WorldMapExtension {
         service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_delete"), this::deleteSelection)
                 .withTooltip(IComponent.translatable("xklibmc.selection.delete_chunks")));
         service.addTopBar2Widget(new Widget().setCSSClassName("splitter"));
-
+        
         service.setInnerOverlayProvider(() -> this.selectionRectWidget);
         service.refreshInnerOverlay();
     }
-
+    
     @Override
     public void onMapClosed(WorldMapExtensionService service) {
         currentStorage = null;
@@ -86,7 +86,7 @@ public class SelectionExtension implements WorldMapExtension {
         this.dragging = false;
         this.selectionRectWidget.clear();
     }
-
+    
     @Override
     public void onMapEvent(WorldMapExtensionService service, WorldMapEvent event) {
         if (!this.selecting) {
@@ -114,7 +114,7 @@ public class SelectionExtension implements WorldMapExtension {
             released.consume();
         }
     }
-
+    
     private void finishSelection(WorldMapExtensionService service) {
         if (this.dragStartScreen == null || this.dragEndScreen == null) {
             return;
@@ -123,7 +123,7 @@ public class SelectionExtension implements WorldMapExtension {
         var y0 = Math.min(this.dragStartScreen.y, this.dragEndScreen.y);
         var x1 = Math.max(this.dragStartScreen.x, this.dragEndScreen.x);
         var y1 = Math.max(this.dragStartScreen.y, this.dragEndScreen.y);
-
+        
         var worldMin = new Vector3f(Float.MAX_VALUE, 0, Float.MAX_VALUE);
         var worldMax = new Vector3f(-Float.MAX_VALUE, 0, -Float.MAX_VALUE);
         var samples = 0;
@@ -144,36 +144,36 @@ public class SelectionExtension implements WorldMapExtension {
             this.selectionRectWidget.clear();
             return;
         }
-
+        
         var minChunkX = (int) Math.floor(worldMin.x) >> 4;
         var minChunkZ = (int) Math.floor(worldMin.z) >> 4;
         var maxChunkX = (int) Math.floor(worldMax.x) >> 4;
         var maxChunkZ = (int) Math.floor(worldMax.z) >> 4;
-
+        
         var toAdd = new HashSet<ChunkPos>();
         for (var cx = minChunkX; cx <= maxChunkX; cx++) {
             for (var cz = minChunkZ; cz <= maxChunkZ; cz++) {
                 toAdd.add(new ChunkPos(cx, cz));
             }
         }
-
+        
         this.storage.addAll(toAdd);
         this.selectionRectWidget.clear();
         service.refreshInnerOverlay();
     }
     
-    private void clearSelection(){
+    private void clearSelection() {
         this.selectionRectWidget.clear();
         this.storage.clear();
     }
-
+    
     private void clientRerender() {
         for (var chunkPos : this.storage.selectedChunks()) {
             TerrainChunkManager.INSTANCE.submitUpdate(chunkPos, true);
         }
         this.clearSelection();
     }
-
+    
     private void serverRerender() {
         if (!ServerConfig.ALLOW_SERVER_SENT_CHUNK.get() && !XKLib.IS_DEBUG) {
             return;
@@ -184,7 +184,7 @@ public class SelectionExtension implements WorldMapExtension {
         }
         this.clearSelection();
     }
-
+    
     private void deleteSelection() {
         var levelStorage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
         if (levelStorage != null) {

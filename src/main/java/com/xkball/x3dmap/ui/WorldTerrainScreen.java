@@ -1,21 +1,21 @@
 package com.xkball.x3dmap.ui;
 
+import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
+import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
+import com.xkball.x3dmap.client.map.mapinfo.MapInfoHelper;
+import com.xkball.x3dmap.ui.widget.WorldTerrainWidget;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.widget.container.WindowedContainer;
 import com.xkball.xklibmc.ui.XKLibBaseScreen;
-import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
-import com.xkball.x3dmap.client.map.mapinfo.MapInfoHelper;
-import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
-import com.xkball.x3dmap.ui.widget.WorldTerrainWidget;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 public class WorldTerrainScreen extends XKLibBaseScreen {
-
+    
     private final WindowedContainer windowLayer;
     private final WorldTerrainWidget worldTerrainWidget;
     private final WorldMapExtensionServiceImpl extensionService;
-
+    
     public WorldTerrainScreen() {
         super(Component.empty());
         this.windowLayer = new WindowedContainer();

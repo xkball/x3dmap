@@ -1,6 +1,12 @@
 package com.xkball.x3dmap.ui.widget;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.xkball.x3dmap.api.client.map.WorldMapEvent;
+import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.client.map.minimap.CompassRenderer;
+import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.api.gui.input.IKeyEvent;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
@@ -11,13 +17,7 @@ import com.xkball.xklib.ui.widget.container.AbsoluteContainer;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.ui.XKLibBaseScreen;
-import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
-import com.xkball.x3dmap.api.client.map.WorldMapEvent;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
-import com.xkball.x3dmap.client.map.minimap.CompassRenderer;
-import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.TaffyDimension;
 import net.minecraft.client.Minecraft;
@@ -43,7 +43,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     private static final String KEY_CAM_YROT = "cam_yrot";
     private static final String KEY_CAM_FOV = "cam_fov";
     private static final String KEY_CAM_CAMERA_LENGTH = "cam_camera_length";
-
+    
     private final Vector3f cameraTarget = new Vector3f();
     private BlockPos centerPos = BlockPos.ZERO;
     private float xRot = 89.0f;
@@ -87,7 +87,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         this.fixY.addCallback(_ -> this.setCameraY());
         this.yMode.addCallback(_ -> this.setCameraY());
     }
-
+    
     public void setExtensionService(WorldMapExtensionService extensionService) {
         this.extensionService = extensionService;
         this.xRot = this.extensionService.getFloatState(KEY_CAM_XROT, this.xRot);
@@ -96,31 +96,31 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         this.cameraLength = this.extensionService.getFloatState(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
     }
     
-    public void onMapClosed(WorldMapExtensionService service){
+    public void onMapClosed(WorldMapExtensionService service) {
         service.setFloatState(KEY_CAM_XROT, this.xRot);
         service.setFloatState(KEY_CAM_YROT, this.yRot);
         service.setFloatState(KEY_CAM_FOV, this.fov);
         service.setFloatState(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
     }
-
+    
     public void setExtensionOverlayProvider(String extensionId, Supplier<Widget> provider) {
         this.extensionOverlayProviders.put(extensionId, provider);
         this.refreshExtensionOverlay(extensionId);
     }
-
+    
     public void refreshExtensionOverlay(String extensionId) {
         this.extensionOverlay.clearChildren();
         for (var provider : this.extensionOverlayProviders.values()) {
             this.extensionOverlay.addChild(provider.get());
         }
     }
-
+    
     private void initCamera() {
         var mc = Minecraft.getInstance();
         var level = mc.level;
-        if(level == null) return;
+        if (level == null) return;
         var player = mc.player;
-        if(player == null) return;
+        if (player == null) return;
         var cam = mc.gameRenderer.getMainCamera();
         yRot = cam.yRot();
         centerPos = player.blockPosition();
@@ -129,9 +129,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         this.setCameraY();
     }
     
-    public void reLocateCamera(){
+    public void reLocateCamera() {
         var player = Minecraft.getInstance().player;
-        if(player == null) return;
+        if (player == null) return;
         this.cameraTarget.x = player.blockPosition().getX();
         this.cameraTarget.z = player.blockPosition().getZ();
     }
@@ -147,21 +147,21 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     @Override
     public void resize(float offsetX, float offsetY) {
         super.resize(offsetX, offsetY);
-        for(var overlay : this.extensionOverlay.getChildren()){
+        for (var overlay : this.extensionOverlay.getChildren()) {
             overlay.setStyle(s -> s.size = new TaffySize<>(TaffyDimension.length(this.getWidth()), TaffyDimension.length(this.getHeight())));
         }
     }
     
-    public void calculateNewPipState(){
-        if(width == 0 && height == 0){
+    public void calculateNewPipState() {
+        if (width == 0 && height == 0) {
             lastState = null;
             return;
         }
         var list = new ArrayList<String>();
-        if(terrain.get()) list.add("terrain");
-        if(grid.get()) list.add("grid");
-        if(player.get()) list.add("player");
-        if(cameraTarget_.get()) list.add("cameraTarget");
+        if (terrain.get()) list.add("terrain");
+        if (grid.get()) list.add("grid");
+        if (player.get()) list.add("player");
+        if (cameraTarget_.get()) list.add("cameraTarget");
         list.addAll(TerrainChunkManager.INSTANCE.worldMapExtensionRegistry.enabledLayers(this.extensionService));
         
         var scaleX = XKLibBaseScreen.tryGetScaleX();
@@ -174,57 +174,67 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
                 cameraLength,
                 xRot,
                 yRot,
-                (int) (x/scaleX),
-                (int) ((x + width)/scaleX),
-                (int) (y/scaleY),
-                (int) ((y + height)/scaleY),
+                (int) (x / scaleX),
+                (int) ((x + width) / scaleX),
+                (int) (y / scaleY),
+                (int) ((y + height) / scaleY),
                 1.0f,
                 depress_sphere.get(),
                 lodDistance.get(),
                 false,
                 0,
                 null,
-                new ScreenRectangle((int) (x/scaleX), (int) (y/scaleY), (int) (width/scaleX), (int) (height/scaleY))
+                new ScreenRectangle((int) (x / scaleX), (int) (y / scaleY), (int) (width / scaleX), (int) (height / scaleY))
         );
     }
     
     @Override
     public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
-        if(graphics instanceof B3dGuiGraphics b3dGuiGraphics && lastState != null) {
+        if (graphics instanceof B3dGuiGraphics b3dGuiGraphics && lastState != null) {
             var inner = b3dGuiGraphics.getInner();
             inner.submitPictureInPictureRenderState(lastState);
-            if(player.get()) this.renderPlayerHead(b3dGuiGraphics);
-            if(compass.get()) CompassRenderer.render(b3dGuiGraphics, x + 8, y + 10, x + width, y + height, yRot, 6, 24f);
-            if(debug.get()) {
+            if (player.get()) this.renderPlayerHead(b3dGuiGraphics);
+            if (compass.get())
+                CompassRenderer.render(b3dGuiGraphics, x + 8, y + 10, x + width, y + height, yRot, 6, 24f);
+            if (debug.get()) {
                 var y_ = y;
-                graphics.drawString("fov: " + fov,x,y_,-1); y_ += 10;
-                graphics.drawString("xRot: " + xRot,x,y_,-1); y_ += 10;
-                graphics.drawString("yRot: " + yRot,x,y_,-1); y_ += 10;
-                graphics.drawString("focus: " + this.isPrimaryFocused(),x,y_,-1); y_ += 10;
-                graphics.drawString("queue: " + TerrainChunkManager.INSTANCE.taskQueue.taskCount(),x,y_,-1); y_ += 10;
-                graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemAlloc()),x,y_,-1); y_ += 10;
+                graphics.drawString("fov: " + fov, x, y_, -1);
+                y_ += 10;
+                graphics.drawString("xRot: " + xRot, x, y_, -1);
+                y_ += 10;
+                graphics.drawString("yRot: " + yRot, x, y_, -1);
+                y_ += 10;
+                graphics.drawString("focus: " + this.isPrimaryFocused(), x, y_, -1);
+                y_ += 10;
+                graphics.drawString("queue: " + TerrainChunkManager.INSTANCE.taskQueue.taskCount(), x, y_, -1);
+                y_ += 10;
+                graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemAlloc()), x, y_, -1);
+                y_ += 10;
 //                graphics.drawString("memUsed: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemUsed()),x,y_,-1);
-                graphics.drawString("length: " + cameraLength,x,y_,-1); y_ += 10;
-                graphics.drawString("camTar: " + vec3fToString(cameraTarget), x, y_,-1); y_ += 10;
-                graphics.drawString("camPos: " + vec3fToString(dirVec().normalize(cameraLength + 100).add(cameraTarget)), x, y_,-1); y_ += 10;
+                graphics.drawString("length: " + cameraLength, x, y_, -1);
+                y_ += 10;
+                graphics.drawString("camTar: " + vec3fToString(cameraTarget), x, y_, -1);
+                y_ += 10;
+                graphics.drawString("camPos: " + vec3fToString(dirVec().normalize(cameraLength + 100).add(cameraTarget)), x, y_, -1);
+                y_ += 10;
             }
         }
         super.doRender(graphics, mouseX, mouseY, a);
     }
     
-    public void renderPlayerHead(B3dGuiGraphics guiGraphics){
+    public void renderPlayerHead(B3dGuiGraphics guiGraphics) {
         var level = Minecraft.getInstance().level;
         var player = Minecraft.getInstance().player;
-        if(level == null || player == null || lastState == null) return;
+        if (level == null || player == null || lastState == null) return;
         var playInfos = player.connection.getListedOnlinePlayers();
-        for(var p : playInfos){
+        for (var p : playInfos) {
             var uuid = p.getProfile().id();
             var entity = level.getEntity(uuid);
-            if(entity == null || !lastState.frustum().isVisible(entity.getBoundingBox())) continue;
-            var pos = lastState.projWorld2Screen(this, entity.position().toVector3f().add(0,2f,0));
+            if (entity == null || !lastState.frustum().isVisible(entity.getBoundingBox())) continue;
+            var pos = lastState.projWorld2Screen(this, entity.position().toVector3f().add(0, 2f, 0));
             var px = pos.x - 8;
             var py = pos.y - 10;
-            PlayerFaceExtractor.extractRenderState(guiGraphics.getInner(),p.getSkin(), (int) px, (int) py,16);
+            PlayerFaceExtractor.extractRenderState(guiGraphics.getInner(), p.getSkin(), (int) px, (int) py, 16);
             py -= 10;
             guiGraphics.drawCenteredString(p.getProfile().name(), pos.x, py, -1);
         }
@@ -235,12 +245,12 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     }
     
     public @Nullable Vector3f projScreen2World(float screenX, float screenY) {
-        if(lastState == null) return null;
+        if (lastState == null) return null;
         var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
-        if(storage == null) return null;
+        if (storage == null) return null;
         return lastState.projScreen2World(this, storage, screenX, screenY);
     }
-
+    
     public @Nullable Vector2f projWorld2Screen(Vector3f worldPos) {
         if (this.lastState == null) {
             return null;
@@ -260,11 +270,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         return String.format("( %.2f, %.2f, %.2f )", vec.x(), vec.y(), vec.z());
     }
     
-    private Vector3f dirVec(){
+    private Vector3f dirVec() {
         var x = (float) (Math.cos(Math.toRadians(xRot)) * Math.sin(Math.toRadians(yRot)));
         var y = (float) (Math.sin(Math.toRadians(xRot)));
         var z = (float) (Math.cos(Math.toRadians(xRot)) * Math.cos(Math.toRadians(yRot)));
-        return new Vector3f(x,y,z).normalize();
+        return new Vector3f(x, y, z).normalize();
     }
     
     @Override
@@ -281,7 +291,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         }
         return true;
     }
-
+    
     @Override
     protected boolean onMouseReleased(IMouseButtonEvent event) {
         if (this.dispatchMapEvent(new WorldMapEvent.MouseReleased(event))) {
@@ -297,7 +307,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         }
         return false;
     }
-
+    
     @Override
     protected boolean onMouseDragged(IMouseButtonEvent event, double dx, double dy) {
         if (this.dispatchMapEvent(new WorldMapEvent.MouseDragged(event, dx, dy))) {
@@ -307,7 +317,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
             if (!rotating) {
                 return false;
             }
-            float sens = 0.25f * Math.max(0.4f,fov/100);
+            float sens = 0.25f * Math.max(0.4f, fov / 100);
             xRot = xRot + (float) dy * sens;
             xRot = Math.clamp(xRot, -89.9f, 89.9f);
             yRot = yRot - (float) dx * sens;
@@ -350,11 +360,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         if (this.dispatchMapEvent(new WorldMapEvent.MouseScrolled(x, y, scrollX, scrollY))) {
             return true;
         }
-        if(fov > 90 - 1e-6) {
+        if (fov > 90 - 1e-6) {
             cameraLength -= (float) (scrollY * Math.log10(cameraLength + 10f));
             cameraLength = Math.max(cameraLength, 0);
         }
-        if(cameraLength < 1e-6){
+        if (cameraLength < 1e-6) {
             fov = (float) Math.clamp(fov - scrollY, 5, 90);
         }
         
@@ -375,7 +385,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         }
         return false;
     }
-
+    
     @Override
     protected boolean onKeyReleased(IKeyEvent event) {
         int key = event.key();
@@ -418,29 +428,28 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
             this.yRot = (this.yRot + 360) % 360;
         }
     }
-
-    private void moveCamera(float dx, float dz){
-        float speed = fov/120 * (1 + cameraLength / 100);
-        var dir = new  Vector2f(dx,dz).mul(speed);
+    
+    private void moveCamera(float dx, float dz) {
+        float speed = fov / 120 * (1 + cameraLength / 100);
+        var dir = new Vector2f(dx, dz).mul(speed);
         dir.mul(new Matrix2f().rotate((float) Math.toRadians(-yRot)));
         cameraTarget.add(dir.x, 0, dir.y);
         this.setCameraY();
     }
     
-    private void setCameraY(){
+    private void setCameraY() {
         var level = Minecraft.getInstance().level;
-        if(level != null){
-            if(yMode.get() == 0){
+        if (level != null) {
+            if (yMode.get() == 0) {
                 cameraTarget.y = level.getSeaLevel();
                 var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
                 if (storage != null) {
                     var h = storage.getHeight((int) cameraTarget.x, (int) cameraTarget.z);
-                    if(h != level.getMinY()){
+                    if (h != level.getMinY()) {
                         cameraTarget.y = h;
                     }
                 }
-            }
-            else{
+            } else {
                 cameraTarget.y = fixY.get();
             }
         }
@@ -449,14 +458,14 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     public void onFocusChanged(boolean focused) {
-        if(!focused) this.rotating = false;
+        if (!focused) this.rotating = false;
     }
     
     @Override
     public boolean isFocusable() {
         return true;
     }
-
+    
     private boolean dispatchMapEvent(WorldMapEvent.Input event) {
         if (this.extensionService == null) {
             return false;

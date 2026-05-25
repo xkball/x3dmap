@@ -15,7 +15,7 @@ public class TerrainChunkBuffer {
         this.gpuBuffer = gpuBuffer;
         var index = 0;
         while (index < blocks.size()) {
-            var aSize = 16*16;
+            var aSize = 16 * 16;
             var index2 = Math.min(index + aSize, blocks.size());
             var actualSize = index2 - index;
             var subList = blocks.subList(index, index2);

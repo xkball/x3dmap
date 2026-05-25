@@ -1,17 +1,22 @@
 package com.xkball.x3dmap.utils;
 
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DualQueueThreadPool {
-
+    
     private final BlockingQueue<Runnable> mainQueue = new LinkedBlockingQueue<>();
     private final BlockingQueue<Runnable> workerQueue = new LinkedBlockingQueue<>();
-
+    
     private final int workerCount;
     public final ExecutorService workers;
-
-    public DualQueueThreadPool(){
+    
+    public DualQueueThreadPool() {
         this(8);
     }
     
@@ -20,7 +25,7 @@ public class DualQueueThreadPool {
         this.workers = Executors.newFixedThreadPool(workerCount);
     }
     
-    public void clear(){
+    public void clear() {
         this.mainQueue.clear();
         this.workerQueue.clear();
     }
@@ -28,20 +33,20 @@ public class DualQueueThreadPool {
     public void submitMain(Runnable task) {
         mainQueue.offer(task);
     }
-
+    
     public void submitWorker(Runnable task) {
         workerQueue.offer(task);
     }
     
-    public int taskCount(){
+    public int taskCount() {
         return mainQueue.size() + workerQueue.size();
     }
     
     public void runFor10ms() {
-        if(this.mainQueue.isEmpty() && this.workerQueue.isEmpty()) return;
+        if (this.mainQueue.isEmpty() && this.workerQueue.isEmpty()) return;
         long startTime = System.nanoTime();
         long duration = TimeUnit.MILLISECONDS.toNanos(10);
-
+        
         AtomicBoolean running = new AtomicBoolean(true);
         CountDownLatch latch = new CountDownLatch(workerCount);
         
@@ -81,14 +86,14 @@ public class DualQueueThreadPool {
         }
         
         running.set(false);
-
+        
         try {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
-
+    
     public void shutdown() {
         workers.shutdown();
     }

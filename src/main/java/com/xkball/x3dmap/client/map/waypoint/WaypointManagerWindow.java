@@ -9,22 +9,22 @@ import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import java.util.function.Consumer;
 
 public class WaypointManagerWindow extends ContainerWidget {
-
+    
     private final WaypointStorage storage;
     private final Consumer<Waypoint> openDetail;
     private final Runnable changed;
-
+    
     public WaypointManagerWindow(WaypointStorage storage, Consumer<Waypoint> openDetail, Runnable changed) {
         this.storage = storage;
         this.openDetail = openDetail;
         this.changed = changed;
         this.storage.onMarkDirty = () -> this.submitTreeUpdate(this::rebuild);
         this.inlineStyle("""
-                flex-direction: column;
-                size: 100% 100%;
-                max-size: 180rpx 200rpx;
-                min-size: 180rpx 100rpx;
-                """)
+                        flex-direction: column;
+                        size: 100% 100%;
+                        max-size: 180rpx 200rpx;
+                        min-size: 180rpx 100rpx;
+                        """)
                 .asRootStyle("""
                         Label {
                             flex-shrink: 0;
@@ -82,7 +82,7 @@ public class WaypointManagerWindow extends ContainerWidget {
                         """);
         this.rebuild();
     }
-
+    
     private void rebuild() {
         this.clearChildren();
         this.addChild(this.header());
@@ -100,7 +100,7 @@ public class WaypointManagerWindow extends ContainerWidget {
         rows.addChild(this.emptyRow());
         this.addChild(rows);
     }
-
+    
     private Widget header() {
         return new ContainerWidget()
                 .inlineStyle("""
@@ -121,7 +121,7 @@ public class WaypointManagerWindow extends ContainerWidget {
                         .setCSSClassName("actions_cell")
                         .addChild(new Label(IComponent.translatable("xklibmc.waypoint.manager.actions")).inlineStyle("width: 100%; height: 100%; text-color: -1;")));
     }
-
+    
     private Widget row(Waypoint waypoint) {
         var teleport = new Button(IComponent.translatable("xklibmc.waypoint.manager.tp"), () -> WaypointActions.teleport(waypoint));
         teleport.setEnabled(WaypointActions.canTeleport());
@@ -145,11 +145,11 @@ public class WaypointManagerWindow extends ContainerWidget {
                         .addChild(new Button(IComponent.translatable("xklibmc.waypoint.edit"), () -> this.openDetail.accept(waypoint)))
                 );
     }
-
+    
     private Widget emptyRow() {
         return new ContainerWidget().inlineStyle("size: 100% 16rpx;");
     }
-
+    
     private int textColor(Waypoint waypoint) {
         return 0xFF000000 | (waypoint.color() & 0xFFFFFF);
     }

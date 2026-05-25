@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
+import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.render.IGUIGraphics;
@@ -11,27 +12,26 @@ import com.xkball.xklib.ui.widget.container.WindowedContainer;
 import com.xkball.xklibmc.ui.widget.ColorInputWidget;
 import com.xkball.xklibmc.ui.widget.NumberInputWidget;
 import com.xkball.xklibmc.ui.widget.ObjectInputWidget;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
 import net.minecraft.core.BlockPos;
 
 import java.util.UUID;
 
 public class WaypointDetailWindow extends ContainerWidget {
-
+    
     private final boolean temporary;
     private final Runnable changed;
     private final Runnable removeTemporary;
     private boolean temporaryResolved;
-
+    
     public WaypointDetailWindow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint, boolean temporary, Runnable changed, Runnable removeTemporary, Runnable closeWindow) {
         this.temporary = temporary;
         this.changed = changed;
         this.removeTemporary = removeTemporary;
         this.inlineStyle("""
-                flex-direction: column;
-                size: 100% 100%;
-                align-items: center;
-                """)
+                        flex-direction: column;
+                        size: 100% 100%;
+                        align-items: center;
+                        """)
                 .asRootStyle("""
                         Label {
                             text-color: -1;
@@ -149,7 +149,7 @@ public class WaypointDetailWindow extends ContainerWidget {
         this.addChild(editor);
         this.addChild(actions);
     }
-
+    
     @Override
     public void onRemove() {
         if (this.temporary && !this.temporaryResolved) {
@@ -159,20 +159,20 @@ public class WaypointDetailWindow extends ContainerWidget {
         }
         super.onRemove();
     }
-
+    
     private void markDirtyIfFormal(WaypointStorage storage, boolean temporary) {
         if (!temporary) {
             storage.markDirty();
         }
     }
-
+    
     private Widget createColorRow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint) {
         return new ContainerWidget()
                 .setCSSClassName("color_row")
                 .addChild(new ColorPreviewWidget(waypoint).setCSSClassName("color_preview"))
                 .addChild(new Button(IComponent.translatable("xklibmc.waypoint.edit"), () -> this.openColorWindow(service, storage, waypoint)).setCSSClassName("color_edit_btn"));
     }
-
+    
     private void openColorWindow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint) {
         var colorInput = new ColorInputWidget();
         colorInput.setValue(waypoint.color());
@@ -214,15 +214,15 @@ public class WaypointDetailWindow extends ContainerWidget {
                         }).setCSSClassName("color_action_btn")));
         holder[0] = service.addBlockingSubWindow(content, IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240));
     }
-
+    
     private static class ColorPreviewWidget extends Widget {
-
+        
         private final Waypoint waypoint;
-
+        
         private ColorPreviewWidget(Waypoint waypoint) {
             this.waypoint = waypoint;
         }
-
+        
         @Override
         public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
             super.doRender(graphics, mouseX, mouseY, a);

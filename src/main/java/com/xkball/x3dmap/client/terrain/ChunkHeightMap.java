@@ -32,7 +32,8 @@ public class ChunkHeightMap {
     public final int[] heightMap = new int[256];
     public final int[] color = new int[256];
     
-    public ChunkHeightMap() {}
+    public ChunkHeightMap() {
+    }
     
     public int get(int x, int z) {
         x &= 0xF;

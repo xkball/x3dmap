@@ -30,13 +30,13 @@ public class VanillaUtils {
     }
     
     //irrelevant vanilla(笑)
-    public static int getColor(int r,int g,int b,int a){
+    public static int getColor(int r, int g, int b, int a) {
         return a << 24 | r << 16 | g << 8 | b;
     }
     
-    public static byte[] gzip(byte[] bytes,int off, int len){
-        try(var byteOut = new ByteArrayOutputStream()){
-            try(GZIPOutputStream gzip = new GZIPOutputStream(byteOut)) {
+    public static byte[] gzip(byte[] bytes, int off, int len) {
+        try (var byteOut = new ByteArrayOutputStream()) {
+            try (GZIPOutputStream gzip = new GZIPOutputStream(byteOut)) {
                 gzip.write(bytes, off, len);
             }
             return byteOut.toByteArray();
@@ -46,15 +46,15 @@ public class VanillaUtils {
     }
     
     public static byte[] unGzip(byte[] bytes) {
-        try(GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(bytes))) {
+        try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(bytes))) {
             return gzip.readAllBytes();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
     
-    public static int mulColor(int a, int b){
-        var aa = (a >> 24 & 0xff ) / 255f;
+    public static int mulColor(int a, int b) {
+        var aa = (a >> 24 & 0xff) / 255f;
         var ar = (a >> 16 & 0xff) / 255f;
         var ag = (a >> 8 & 0xff) / 255f;
         var ab = (a & 0xff) / 255f;
@@ -65,7 +65,7 @@ public class VanillaUtils {
         return getColor((int) (ar * br * 255), (int) (ag * bg * 255), (int) (ab * bb * 255), (int) (aa * ba * 255));
     }
     
-    public static String memSize(long size){
+    public static String memSize(long size) {
         if (size == 0) return "0byte";
         String[] units = {"byte", "kb", "mb", "gb"};
         int i;
