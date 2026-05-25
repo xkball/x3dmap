@@ -1,0 +1,5 @@
+com.xkball.x3dmap.client.map.waypoint.WaypointExtension
+com.xkball.x3dmap.client.map.minimap.MinimapExtension
+com.xkball.x3dmap.client.map.uistate.WorldMapUiStateExtension
+com.xkball.x3dmap.client.map.selection.SelectionExtension
+com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension
