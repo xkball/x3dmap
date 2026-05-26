@@ -11,6 +11,8 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -50,5 +52,12 @@ public class X3dMap {
     @SubscribeEvent
     public static void onEndServerTick(ServerTickEvent.Post event) {
         ChunkBatcher.scheduleIfNeeded(event.getServer());
+    }
+    
+    @SubscribeEvent
+    public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        event.getEntity().sendSystemMessage(
+                Component.translatable("xklibmc.join.open_map_hint", Component.keybind("keys.xklibmc.open_map"))
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.client.map.selection;
 
+import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.api.client.map.WorldMapEvent;
 import com.xkball.x3dmap.api.client.map.WorldMapExtension;
@@ -68,8 +69,10 @@ public class SelectionExtension implements WorldMapExtension {
                 .withTooltip(IComponent.translatable("xklibmc.selection.clear_selected")));
         service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_renew"), this::clientRerender)
                 .withTooltip(IComponent.translatable("xklibmc.selection.rerender_chunks")));
-        service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_renew_server"), this::serverRerender)
-                .withTooltip(IComponent.translatable("xklibmc.selection.request_resend")));
+        if(ServerConfig.ALLOW_SERVER_SENT_CHUNK.get() || XKLib.IS_DEBUG){
+            service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_renew_server"), this::serverRerender)
+                    .withTooltip(IComponent.translatable("xklibmc.selection.request_resend")));
+        }
         service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_delete"), this::deleteSelection)
                 .withTooltip(IComponent.translatable("xklibmc.selection.delete_chunks")));
         service.addTopBar2Widget(new Widget().setCSSClassName("splitter"));

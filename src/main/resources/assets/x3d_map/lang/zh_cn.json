@@ -36,6 +36,7 @@
   "xklibmc.minimap.config.high_detail": "高细节范围",
   "xklibmc.minimap.config.rotate": "旋转地图",
   "keys.xklibmc.open_map": "打开地图",
+  "xklibmc.join.open_map_hint": "[x3dmap] 按 %s 打开地图。",
   "xklibmc.waypoint.name": "名称",
   "xklibmc.waypoint.show": "显示",
   "xklibmc.waypoint.hide": "隐藏",
