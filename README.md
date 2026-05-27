@@ -8,9 +8,9 @@ A 3D terrain map mod for Minecraft. Provides a rotatable, zoomable 3D world map 
 
 ## Demonstrate 效果展示
 
-![3D Map](https://github.com/xkball/x3dmap/blob/master/screenshots/3d_map.png)
-![Performance](https://github.com/xkball/x3dmap/blob/master/screenshots/3d_map_far.png)
-![Minimap](https://github.com/xkball/x3dmap/blob/master/screenshots/minimap.png)
+![3D Map](https://github.com/xkball/x3dmap/blob/master/img/3d_map.png)
+![Performance](https://github.com/xkball/x3dmap/blob/master/img/3d_map_far.png)
+![Minimap](https://github.com/xkball/x3dmap/blob/master/img/minimap.png)
 
 ## Feature List 功能列表
 
