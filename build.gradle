@@ -144,17 +144,19 @@ sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
 publishing {
-    repositories {
-        maven {
-            url = uri("https://xkball.com/repository")
+    if(project.hasProperty("xkball_maven_username") && project.hasProperty("xkball_maven_password")){
+        repositories {
+            maven {
+                url = uri("https://xkball.com/repository")
 
-            credentials {
-                username = xkball_maven_username
-                password = xkball_maven_password
-            }
+                credentials {
+                    username = project.findProperty("xkball_maven_username")
+                    password = project.findProperty("xkball_maven_password")
+                }
 
-            authentication {
-                basic(BasicAuthentication)
+                authentication {
+                    basic(BasicAuthentication)
+                }
             }
         }
     }
