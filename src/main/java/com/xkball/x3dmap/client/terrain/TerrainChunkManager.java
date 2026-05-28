@@ -491,11 +491,15 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         
         @Override
         public void close() {
-            for (var block : blocks) {
-                block.commandBuffer.close();
+            if(this.blocks != null) {
+                for (var block : blocks) {
+                    block.commandBuffer.close();
+                }
             }
-            for (var lod : lods) {
-                lod.commandBuffer.close();
+            if(this.lods != null) {
+                for (var lod : lods) {
+                    lod.commandBuffer.close();
+                }
             }
         }
     }
