@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.terrain;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionContext;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionRegistry;
@@ -33,6 +34,7 @@ import net.neoforged.neoforge.event.level.ChunkEvent;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -47,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @EventBusSubscriber(Dist.CLIENT)
 public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
+    private static final Logger LOGGER = LogUtils.getLogger();
     public static final TerrainChunkManager INSTANCE = new TerrainChunkManager();
     
     public final Map<ResourceKey<Level>, LevelChunkStorage> storageMap = new ConcurrentHashMap<>();
@@ -323,8 +326,8 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             if (dimNew != dim) return;
             var storage = this.storageMap.get(dimNew);
             if (storage == null) {
-                storage = new LevelChunkStorage(dimNew, level_.getMinY(), level_.getMaxY(), INSTANCE.compatibleMode);
-                this.storageMap.put(dimNew, storage);
+                LOGGER.debug("task in {} not in current dimension. did you just changed dimension?", chunkPos);
+                return;
             }
             var chunkOld = storage.getChunk(chunkPos);
             if (chunkOld != null && !force) return;
@@ -332,16 +335,15 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             if (chunk == null) chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunkPos);
             else chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunk, chunkPos, true);
             if (chunkStorage != null) {
-                LevelChunkStorage finalStorage = storage;
                 this.taskQueue.submitMain(() -> {
-                    finalStorage.putChunk(chunkStorage);
+                    storage.putChunk(chunkStorage);
                     if (!compatibleMode) {
                         chunkStorage.uploadGpu0();
                         chunkStorage.uploadToTexture();
                     } else {
                         for (int dx = 0; dx < 2; dx++) {
                             for (int dz = 0; dz < 2; dz++) {
-                                var cp = finalStorage.getChunk(new ChunkPos(chunkPos.x() - dx, chunkPos.z() - dz));
+                                var cp = storage.getChunk(new ChunkPos(chunkPos.x() - dx, chunkPos.z() - dz));
                                 if (cp == null) continue;
                                 cp.uploadGpuLodFullMesh();
                             }
