@@ -9,6 +9,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -36,10 +37,15 @@ public class X3dMapClient {
             KeyMapping.Category.MISC
     ));
     
+    //todo 很不优雅
+    public static boolean loading = false;
+    
     public X3dMapClient(ModContainer container) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
-        X3dMap.MARK_DIRTY_CALLBACK = c -> TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
+        X3dMap.MARK_DIRTY_CALLBACK = c -> {
+            TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
+        };
     }
     
     @SubscribeEvent
@@ -67,7 +73,7 @@ public class X3dMapClient {
         event.register(WorldTerrainPipRenderer.WorldTerrainState.class, WorldTerrainPipRenderer::new);
     }
     
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAbove(VanillaGuiLayers.CROSSHAIR, Identifier.fromNamespaceAndPath(X3dMap.MODID, "minimap"), MinimapHudRenderer::render);
     }

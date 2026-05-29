@@ -5,6 +5,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionContext;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionRegistry;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
@@ -16,6 +17,7 @@ import com.xkball.xklibmc.client.b3d.IndirectDrawCommand;
 import com.xkball.xklibmc.utils.ClientUtils;
 import com.xkball.xklibmc.utils.VanillaUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -31,6 +33,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.jspecify.annotations.Nullable;
@@ -65,6 +68,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
         if (!Minecraft.getInstance().isPaused() && Minecraft.getInstance().level != null) {
+            INSTANCE.tryLoadLevel(Minecraft.getInstance().level);
             INSTANCE.taskQueue.runFor10ms();
             INSTANCE.worldMapExtensionRegistry.tick();
             for (var s : INSTANCE.storageMap.values()) {
@@ -100,8 +104,29 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     @SubscribeEvent
     public static void onChunkLoad(ChunkEvent.Load event) {
         var level = event.getLevel();
-        if (!level.isClientSide()) return;
-        INSTANCE.submitUpdate(event.getChunk().getPos(), true);
+        if (!level.isClientSide() || X3dMapClient.loading) return;
+        INSTANCE.submitUpdate(event.getChunk().getPos(), false);
+    }
+    
+    @SubscribeEvent
+    public static void onClientLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        var level = Minecraft.getInstance().level;
+        if (level == null) return;
+        INSTANCE.setCloseOnExit();
+        CompatibilityExtension.initCompatibilityMode();
+        if (!INSTANCE.storageMap.containsKey(level.dimension())) {
+            INSTANCE.tryLoadLevel(level);
+        } else {
+            var s = INSTANCE.storageMap.get(level.dimension());
+            INSTANCE.worldMapExtensionRegistry.onStorageLoaded(s);
+            s.loadFile();
+        }
+    }
+    
+    @SubscribeEvent
+    public static void onClientLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        var level = Minecraft.getInstance().level;
+        INSTANCE.unloadLevel(level);
     }
     
     public void enqueueUpdate(ChunkPos chunkPos) {
@@ -120,31 +145,22 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     @SubscribeEvent
-    public static void onClientLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        var level = Minecraft.getInstance().level;
-        if (level == null) return;
-        INSTANCE.setCloseOnExit();
-        CompatibilityExtension.initCompatibilityMode();
-        if (!INSTANCE.storageMap.containsKey(level.dimension())) {
-            var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), INSTANCE.compatibleMode);
-            INSTANCE.worldMapExtensionRegistry.onStorageLoaded(s);
-            s.loadFile();
-            INSTANCE.storageMap.put(level.dimension(), s);
-        } else {
-            var s = INSTANCE.storageMap.get(level.dimension());
-            INSTANCE.worldMapExtensionRegistry.onStorageLoaded(s);
-            s.loadFile();
-        }
-    }
-    
-    @SubscribeEvent
-    public static void onClientLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-        var level = Minecraft.getInstance().level;
-        INSTANCE.unloadLevel(level);
+    public static void onLevelUnload(LevelEvent.Unload event) {
+        if(event.getLevel() instanceof ClientLevel level) INSTANCE.unloadLevel(level);
     }
     
     public TerrainChunkManager() {
         this.worldMapExtensionRegistry.init(new WorldMapExtensionContext(this, this.worldMapExtensionRegistry));
+    }
+    
+    public void tryLoadLevel(Level level) {
+        if (!this.storageMap.containsKey(level.dimension())) {
+            X3dMapClient.loading = true;
+            var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), this.compatibleMode);
+            this.worldMapExtensionRegistry.onStorageLoaded(s);
+            s.loadFile();
+            this.storageMap.put(level.dimension(), s);
+        }
     }
     
     public @Nullable LevelChunkStorage getCurrentLevelChunkStorage() {
@@ -221,7 +237,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         return new RenderInfo(gather2.finishGather(), gather.finishGather());
     }
     
-    //todo 不用mdi
     public RenderInfoCompatible gatherRenderInfoCompatibleMode(Frustum frustum, boolean cullNear, Vector3f camPos, Vector3f camTar, int baseLodDistance) {
         var level = Minecraft.getInstance().level;
         if (level == null) return RenderInfoCompatible.empty();

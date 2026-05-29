@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.terrain;
 import com.mojang.blaze3d.GraphicsWorkarounds;
 import com.mojang.blaze3d.vertex.UberGpuBuffer;
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionStorage;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.utils.ClientUtils;
@@ -133,6 +134,7 @@ public class LevelChunkStorage {
     }
     
     public void loadFile() {
+        X3dMapClient.loading = true;
         var dir = this.getDirectory().toFile();
         if (!dir.exists() || !dir.isDirectory()) return;
         var files = dir.listFiles();
@@ -180,6 +182,7 @@ public class LevelChunkStorage {
                         } else chunkStorage.uploadToTexture();
                     });
                 }
+                X3dMapClient.loading = false;
             });
         }, TerrainChunkManager.INSTANCE.taskQueue.workers);
         this.loadExtensionFiles();

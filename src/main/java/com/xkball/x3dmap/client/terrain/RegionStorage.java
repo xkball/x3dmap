@@ -105,7 +105,7 @@ public class RegionStorage {
         var x0 = this.regionPos.x();
         var z0 = this.regionPos.z();
         LOGGER.info("Saving map at {}, chunk from ({},{}) to ({},{})",
-                levelStorage.dimension, x0 << REGION_SHIFT, z0 << REGION_SHIFT,
+                levelStorage.dimension.identifier(), x0 << REGION_SHIFT, z0 << REGION_SHIFT,
                 (x0 << REGION_SHIFT) + REGION_SIZE, (z0 << REGION_SHIFT) + REGION_SIZE);
         
         long[] oldOffsets = null;
@@ -229,7 +229,7 @@ public class RegionStorage {
             return null;
         }
         LOGGER.info("Loading map at {}, chunk from ({},{}) to ({},{})",
-                levelStorage.dimension, x << REGION_SHIFT, z << REGION_SHIFT,
+                levelStorage.dimension.identifier(), x << REGION_SHIFT, z << REGION_SHIFT,
                 (x << REGION_SHIFT) + REGION_SIZE, (z << REGION_SHIFT) + REGION_SIZE);
         try {
             long[] offsets = new long[REGION_SIZE * REGION_SIZE];

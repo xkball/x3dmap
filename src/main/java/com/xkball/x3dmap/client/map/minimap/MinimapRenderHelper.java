@@ -18,7 +18,7 @@ public final class MinimapRenderHelper {
     public static List<String> buildEnabledLayers(WorldMapExtensionServiceImpl service) {
         var layers = new ArrayList<String>();
         if (service.getBooleanState("terrain", true)) layers.add("terrain");
-        if (service.getBooleanState("player", true)) layers.add("player");
+//        if (service.getBooleanState("player", true)) layers.add("player");
         if (service.getBooleanState("camera_target", false)) layers.add("cameraTarget");
         layers.addAll(TerrainChunkManager.INSTANCE.worldMapExtensionRegistry.enabledLayers(service));
         return layers;
