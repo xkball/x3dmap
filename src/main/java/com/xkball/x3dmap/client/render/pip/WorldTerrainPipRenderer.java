@@ -15,7 +15,6 @@ import com.xkball.xklib.api.gui.widget.IGuiWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -38,8 +37,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 @NonNullByDefault
-public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerrainPipRenderer.WorldTerrainState> {
-    
+public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPipRenderer.WorldTerrainState> {
+
     private static final Set<Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>>> regRenderLayers = new HashSet<>();
     @SuppressWarnings("NotNullFieldNotInitialized")
     public static GpuBufferSlice projBuffer;
@@ -48,7 +47,7 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
     public final ProjectionMatrixBuffer proj = new ProjectionMatrixBuffer("world_terrain_pip_proj");
     public Matrix4f projMatrix = new Matrix4f();
     public CameraRenderState cameraRenderState = new CameraRenderState();
-    
+
     static {
         regRenderLayers(TerrainRenderer::new);
         regRenderLayers(GridRenderer::new);
@@ -83,6 +82,7 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(projBuffer, ProjectionType.PERSPECTIVE);
         ClientUtils.getCommandEncoder().clearColorTexture(RenderSystem.outputColorTextureOverride.texture(), 0xff000000);
+        ClientUtils.getCommandEncoder().clearDepthTexture(RenderSystem.outputDepthTextureOverride.texture(), 1.0);
 //        poseStack.translate(-renderState.centerPos().getX(), 0, -renderState.centerPos().getZ());
         this.cameraRenderState.yRot = renderState.yRot;
         this.cameraRenderState.xRot = renderState.xRot;
@@ -131,7 +131,7 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         private final @Nullable ScreenRectangle bounds;
         private final Matrix4f projMatrix;
         private final Frustum frustum;
-        
+
         public WorldTerrainState(List<String> enabledLayers,
                 Vector3f cameraTarget,
                 BlockPos centerPos,
@@ -345,6 +345,6 @@ public class WorldTerrainPipRenderer extends PictureInPictureRenderer<WorldTerra
         public Matrix4f projMatrix() {
             return projMatrix;
         }
-        
+
     }
 }

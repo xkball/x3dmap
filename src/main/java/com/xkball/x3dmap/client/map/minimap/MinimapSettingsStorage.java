@@ -8,7 +8,7 @@ public class MinimapSettingsStorage implements WorldMapExtensionStorage {
     public static final String EXTENSION_ID = "minimap_settings";
     private static final int VERSION = 1;
     
-    int highDetailRange = 8;
+    int highDetailRange = 0;
     boolean rotateWithPlayer = false;
     float camXRot = 89.0f;
     float camFov = 60.0f;

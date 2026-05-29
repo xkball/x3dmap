@@ -23,7 +23,7 @@ public class MinimapExtension implements WorldMapExtension {
     
     public static final String EXTENSION_ID = "minimap";
     
-    public final IntLayoutVariable highDetailRange = new IntLayoutVariable(8);
+    public final IntLayoutVariable highDetailRange = new IntLayoutVariable(0);
     public final BooleanLayoutVariable rotateWithPlayer = new BooleanLayoutVariable(false);
     public final BooleanLayoutVariable minimapEnabled = new BooleanLayoutVariable(true);
     private WindowedContainer.@Nullable SubWindow configWindow;

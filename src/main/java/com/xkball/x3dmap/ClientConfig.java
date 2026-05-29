@@ -12,6 +12,7 @@ public class ClientConfig {
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
     public static final ModConfigSpec.IntValue MINIMAP_SIZE;
     public static final ModConfigSpec.IntValue MINIMAP_PADDING;
+    public static final ModConfigSpec.IntValue MINIMAP_RENDER_INTERVAL;
     public static final ModConfigSpec.IntValue AUTO_SAVE_INTERVAL;
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_INTERVAL;
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_COUNT;
@@ -31,6 +32,9 @@ public class ClientConfig {
         MINIMAP_PADDING = builder
                 .comment("Minimap padding from screen edge as percentage of screen height. Default: 5.")
                 .defineInRange("minimapPadding", 5, 0, 25);
+        MINIMAP_RENDER_INTERVAL = builder
+                .comment("Interval in frames between minimap re-renders. Higher values improve performance at the cost of update latency. Default: 4.")
+                .defineInRange("minimapRenderInterval", 10, 1, 200);
         AUTO_SAVE_INTERVAL = builder
                 .comment("Interval in ticks for auto-saving map data. Default: 1200 (60s).")
                 .defineInRange("autoSaveInterval", 1200, 20, 72000);
