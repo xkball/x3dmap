@@ -104,8 +104,8 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     @SubscribeEvent
     public static void onChunkLoad(ChunkEvent.Load event) {
         var level = event.getLevel();
-        if (!level.isClientSide() || X3dMapClient.loading) return;
-        INSTANCE.submitUpdate(event.getChunk().getPos(), false);
+        if (!level.isClientSide()) return;
+        INSTANCE.enqueueUpdate(event.getChunk().getPos());
     }
     
     @SubscribeEvent
@@ -137,6 +137,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     private void processUpdateQueue(int count) {
+        if(X3dMapClient.loading) return;
         for (int i = 0; i < count && !updateQueue.isEmpty(); i++) {
             var chunkPos = updateQueue.pollFirst();
             updateChunkSet.remove(chunkPos);
@@ -155,7 +156,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public void tryLoadLevel(Level level) {
         if (!this.storageMap.containsKey(level.dimension())) {
-            X3dMapClient.loading = true;
             var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), this.compatibleMode);
             this.worldMapExtensionRegistry.onStorageLoaded(s);
             s.loadFile();
@@ -350,7 +350,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             if (chunk == null) chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunkPos);
             else chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunk, chunkPos, true);
             if (chunkStorage != null) {
-                this.taskQueue.submitMain(() -> {
+                this.submitTaskOnMainThread(() -> {
                     storage.putChunk(chunkStorage);
                     if (!compatibleMode) {
                         chunkStorage.uploadGpu0();

@@ -134,11 +134,11 @@ public class LevelChunkStorage {
     }
     
     public void loadFile() {
-        X3dMapClient.loading = true;
         var dir = this.getDirectory().toFile();
         if (!dir.exists() || !dir.isDirectory()) return;
         var files = dir.listFiles();
-        if (files == null) return;
+        if (files == null || files.length == 0) return;
+        X3dMapClient.loading = true;
         var taskList = new ArrayList<CompletableFuture<Void>>();
         for (var file : files) {
             taskList.add(CompletableFuture.runAsync(() -> {
@@ -147,7 +147,7 @@ public class LevelChunkStorage {
                     return;
                 }
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
-                    this.regionMap.putIfAbsent(regionStorage.regionPos, regionStorage);
+                    this.regionMap.put(regionStorage.regionPos, regionStorage);
                     if (TerrainChunkManager.INSTANCE.canRegionResident(regionStorage.regionPos)) {
                         for (var chunkStorage : regionStorage.chunks()) {
                             TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
@@ -182,7 +182,7 @@ public class LevelChunkStorage {
                         } else chunkStorage.uploadToTexture();
                     });
                 }
-                X3dMapClient.loading = false;
+                TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> X3dMapClient.loading = false);
             });
         }, TerrainChunkManager.INSTANCE.taskQueue.workers);
         this.loadExtensionFiles();

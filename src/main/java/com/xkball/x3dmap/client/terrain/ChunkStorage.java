@@ -173,8 +173,7 @@ public class ChunkStorage {
         blockDataBuffer.flip();
         var blockDataGpuBuffer = this.levelStorage.gpuBufferBlockData;
         blockDataGpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
-        blockDataGpuBuffer.addAllocation(this.chunkPos, (_) -> {
-        }, blockDataBuffer);
+        blockDataGpuBuffer.addAllocation(this.chunkPos, (_) -> {}, blockDataBuffer);
         blockDataGpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
         var blockDataAlloc = blockDataGpuBuffer.getAllocation(this.chunkPos);
         var blockDataBaseIndex = (int) (Objects.requireNonNull(blockDataAlloc).getOffsetFromHeap() / 16);
@@ -187,7 +186,7 @@ public class ChunkStorage {
                     list.add(blockDataBaseIndex + i);
                 }
             }
-            
+            if(list.isEmpty()) continue;
             var buffer = MemoryUtil.memAlloc(list.size() * 4);
             for (var index : list) {
                 buffer.putInt(index);
@@ -198,8 +197,7 @@ public class ChunkStorage {
             }, buffer);
             if (!success) {
                 gpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
-                gpuBuffer.addAllocation(this.chunkPos, (_) -> {
-                }, buffer);
+                gpuBuffer.addAllocation(this.chunkPos, (_) -> {}, buffer);
             }
             MemoryUtil.memFree(buffer);
         }

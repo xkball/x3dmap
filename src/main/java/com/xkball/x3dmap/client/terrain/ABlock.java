@@ -4,13 +4,9 @@ import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
 import com.xkball.xklibmc.api.client.b3d.ISTD140Writer;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.codec.StreamCodec;
 
 public record ABlock(int x, int y, int z, int color, int mask) implements ISTD140Writer {
-    
-    private static final int PACKED_Y_MASK = (1 << BlockPos.PACKED_Y_LENGTH) - 1;
-    
     public ABlock() {
         this(0, 0, 0, 0, 0b111111);
     }
@@ -34,7 +30,7 @@ public record ABlock(int x, int y, int z, int color, int mask) implements ISTD14
                 var p = input.readByte();
                 var x = p >> 4 & 0xF;
                 var z = p & 0xF;
-                var y = input.readShort() & PACKED_Y_MASK;
+                var y = input.readShort();
                 var c = input.readInt();
                 var mask = input.readByte();
                 return new ABlockData(x, y, z, c, mask);
@@ -45,7 +41,7 @@ public record ABlock(int x, int y, int z, int color, int mask) implements ISTD14
                 var p = (value.x & 0xF) << 4;
                 p |= value.z & 0xF;
                 output.writeByte(p);
-                output.writeShort(value.y & PACKED_Y_MASK);
+                output.writeShort(value.y);
                 output.writeInt(value.color);
                 output.writeByte(value.mask);
             }
