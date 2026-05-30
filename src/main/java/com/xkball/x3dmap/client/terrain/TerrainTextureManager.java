@@ -166,8 +166,7 @@ public class TerrainTextureManager implements AutoCloseable {
         this.clear();
     }
     
-    public record VirtualTextures(GpuTexture colorTexture, GpuTextureView colorTextureView, GpuTexture depthTexture,
-                                  GpuTextureView depthTextureView) {
+    public record VirtualTextures(GpuTexture colorTexture, GpuTextureView colorTextureView, GpuTexture depthTexture, GpuTextureView depthTextureView) {
     }
     
     public record VirtualTexturePos(int x, int z) {
