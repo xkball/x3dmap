@@ -10,6 +10,7 @@ import com.xkball.xklibmc.utils.ClientUtils;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.loading.FMLPaths;
@@ -110,7 +111,7 @@ public class LevelChunkStorage {
         for (var entry : this.regionMap.entrySet()) {
             if (entry.getValue().haveDirtyChunk()) {
                 if (async) {
-                    TerrainChunkManager.INSTANCE.submitTask(() -> this.saveRegion(entry.getKey()));
+                    Util.ioPool().execute(() -> this.saveRegion(entry.getKey()));
                 } else {
                     this.saveRegion(entry.getKey());
                 }

@@ -157,6 +157,7 @@ public class ChunkStorage {
         for (var b : this.levelStorage.gpuBufferByFace.values()) {
             removeFromUberBuffer(b, this.chunkPos);
         }
+        if(this.data.data.isEmpty()) return;
         var l1List = new ArrayList<ABlock>();
         var x0 = chunkPos.getMinBlockX();
         var z0 = chunkPos.getMinBlockZ();
