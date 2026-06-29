@@ -8,6 +8,7 @@ import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionContext;
 import com.xkball.x3dmap.api.client.map.WorldMapExtensionRegistry;
+import com.xkball.x3dmap.api.mixin.IExtendedTlsfAllocation;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
 import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
 import com.xkball.x3dmap.utils.DualQueueThreadPool;
@@ -215,7 +216,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                             var faceIndexBuffer = faceIndexGpuBuffer.getGpuBuffer(faceIndexAlloc);
                             var blockDataBuffer = storage.gpuBufferBlockData.getGpuBuffer(blockDataAlloc);
                             var offset = faceIndexAlloc.getOffsetFromHeap() / 4;
-                            var size = faceIndexAlloc.getSize() / 4;
+                            var size = IExtendedTlsfAllocation.cast(faceIndexAlloc).getX3dmap$requiedSize() / 4;
                             var cmd = new IndirectDrawCommand(6, (int) size, i * 6, 0, (int) offset);
                             gather2.add(blockDataBuffer, faceIndexBuffer, cmd);
                         }

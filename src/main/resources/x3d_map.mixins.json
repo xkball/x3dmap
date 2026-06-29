@@ -5,12 +5,14 @@
   "mixins": [
     "MixinLevelChunk"
   ],
+  "client": [
+    "MixinTlsfAllocation",
+    "MixinTlsfAllocator"
+  ],
   "injectors": {
     "defaultRequire": 1
   },
   "overwrites": {
     "requireAnnotations": true
-  },
-  "client": [
-  ]
+  }
 }

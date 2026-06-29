@@ -7,7 +7,6 @@ import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 public final class MinimapPlayerMarker {
     
     private static final ResourceLocation ICON = VanillaUtils.modrl("icon/arrow");
-    private static final int COLOR = 0xFF2F80FF;
     
     private MinimapPlayerMarker() {
     }
@@ -34,7 +33,7 @@ public final class MinimapPlayerMarker {
         pose.rotate((float) Math.toRadians(rotationDegrees + 180.0f));
         pose.scale(0.5f, 0.5f);
         pose.translate(-cx, -cy);
-        graphics.blitSprite(ICON, cx - size * 0.5f, cy - size * 0.5f, size, size, COLOR);
+        graphics.blitSprite(ICON, cx - size * 0.5f, cy - size * 0.5f, size, size, -1);
         pose.popMatrix();
     }
     

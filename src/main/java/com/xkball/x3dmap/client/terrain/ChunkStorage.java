@@ -194,11 +194,15 @@ public class ChunkStorage {
             }
             buffer.flip();
             var gpuBuffer = this.levelStorage.gpuBufferByFace.get(dir);
-            var success = gpuBuffer.addAllocation(this.chunkPos, (_) -> {
-            }, buffer);
+            var success = gpuBuffer.addAllocation(this.chunkPos, (_) -> {}, buffer);
             if (!success) {
                 gpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
                 gpuBuffer.addAllocation(this.chunkPos, (_) -> {}, buffer);
+            }
+            gpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
+            var alloc = gpuBuffer.getAllocation(this.chunkPos);
+            if(alloc.getSize() != list.size() * 4){
+                System.out.println(111);
             }
             MemoryUtil.memFree(buffer);
         }

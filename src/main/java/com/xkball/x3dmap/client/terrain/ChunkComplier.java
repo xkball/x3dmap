@@ -169,7 +169,7 @@ public class ChunkComplier {
             var mc = Minecraft.getInstance();
             var tintSource = mc.getBlockColors().getTintSources(state);
             if (tintSource.isEmpty()) return -1;
-            var blockAndTintGetter = calcuColor ? new BlockAndTintGetter() {
+            var blockAndTintGetter = new BlockAndTintGetter() {
                 @Override
                 public CardinalLighting cardinalLighting() {
                     return level.cardinalLighting();
@@ -180,7 +180,7 @@ public class ChunkComplier {
                     if (insideChunk(pos)) {
                         return color.getColor(chunkAccess.getNoiseBiome(pos.getX() >> 2, pos.getY() >> 2, pos.getZ() >> 2).value(), pos.getX(), pos.getZ());
                     }
-                    return level.getBlockTint(pos, color);
+                    return color.getColor(level.getBiome(pos).value(), pos.getX(), pos.getZ());
                 }
                 
                 @Override
@@ -212,7 +212,7 @@ public class ChunkComplier {
                 public int getMinY() {
                     return level.getMinY();
                 }
-            } : level;
+            } ;
             var color = -1;
             for (var source : tintSource) {
                 var tintColor = source.colorInWorld(state, blockAndTintGetter, pos);
