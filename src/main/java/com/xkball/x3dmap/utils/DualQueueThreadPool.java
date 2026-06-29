@@ -38,6 +38,10 @@ public class DualQueueThreadPool {
         workerQueue.offer(task);
     }
     
+    public void submitAsyncIgnoreMain(Runnable task) {
+        workers.submit(task);
+    }
+    
     public int taskCount() {
         return mainQueue.size() + workerQueue.size();
     }

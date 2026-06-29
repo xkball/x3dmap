@@ -96,7 +96,7 @@ public class RegionStorage {
         return directory.resolve(this.regionPos.x() + "," + this.regionPos.z());
     }
     
-    public void saveToFile(Path directory, LevelChunkStorage levelStorage) {
+    public synchronized void saveToFile(Path directory, LevelChunkStorage levelStorage) {
         var file = this.getFile(directory).toFile();
         var parentDir = file.getParentFile();
         if (!parentDir.exists()) {
@@ -123,7 +123,7 @@ public class RegionStorage {
                         readIndex(inRaf, oldOffsets, oldLengths);
                     }
                 }
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
                 oldOffsets = null;
             }
         }
@@ -148,7 +148,7 @@ public class RegionStorage {
                 }
             }
             
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.error("Failed to save region file {}", file.getAbsolutePath(), e);
             throw new RuntimeException(e);
         }
@@ -156,7 +156,7 @@ public class RegionStorage {
         try {
             Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.error("Failed to move temp file {}", file.getAbsolutePath(), e);
             throw new RuntimeException(e);
         } finally {
