@@ -1,14 +1,17 @@
 package com.xkball.x3dmap;
 
 import com.xkball.x3dmap.client.map.minimap.MinimapExtension;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+@NonNullByDefault
 public class ClientConfig {
     
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
+    public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
     public static final ModConfigSpec.IntValue MINIMAP_SIZE;
     public static final ModConfigSpec.IntValue MINIMAP_PADDING;
@@ -23,6 +26,9 @@ public class ClientConfig {
         FORCE_COMPATIBILITY_MODE = builder
                 .comment("Force compatibility mode. When enabled, disables MDI, sparse texture and SSBO rendering features even if the GPU supports them.")
                 .define("forceCompatibilityMode", false);
+        RECORD_ALL_ABOVE_SEA_LEVEL = builder
+                .comment("Record all blocks above sea level. This uses more VRAM when enabled.")
+                .define("recordAllAboveSeaLevel", true);
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);

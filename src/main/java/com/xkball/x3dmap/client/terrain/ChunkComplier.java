@@ -1,5 +1,7 @@
 package com.xkball.x3dmap.client.terrain;
 
+import com.xkball.x3dmap.ClientConfig;
+import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.client.TextureSpriteAvgColorCache;
@@ -27,7 +29,6 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,7 @@ public class ChunkComplier {
         var pos = new BlockPos(0, 0, 0).mutable();
         var chunkMinY = level.getMinY();
         var chunkMaxY = level.getMaxY();
+        var seaLevel = ServerConfig.getSeaLevel(level.getSeaLevel());
         var heightMap = new ChunkHeightMap();
         var context = new ComplierContext(level, chunk, chunkPos, calcuColor);
         for (int px = chunkPos.getMinBlockX(); px <= chunkPos.getMaxBlockX(); px++) {
@@ -91,7 +93,12 @@ public class ChunkComplier {
                 if (h3 > level.getMinY()) hMin = Math.min(hMin, h3);
                 var h4 = context.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz - 1) - 1;
                 if (h4 > level.getMinY()) hMin = Math.min(hMin, h4);
-                hMin = Math.clamp(hMin, level.getMinY(), hMax);
+                if (ClientConfig.RECORD_ALL_ABOVE_SEA_LEVEL.get()) {
+                    hMin = Math.clamp(Math.min(hMin, seaLevel), level.getMinY(), hMax);
+                }
+                else {
+                    hMin = Math.clamp(hMin, level.getMinY(), hMax);
+                }
                 chunkMinY = Math.min(chunkMinY, hMin);
                 chunkMaxY = Math.max(chunkMaxY, hMax);
                 for (int y = hMin; y < hMax; y++) {
