@@ -56,7 +56,7 @@ public class ChunkStorage {
         return null;
     }
     
-    public void writeData(List<ABlock.ABlockData> data) {
+    public synchronized void writeData(List<ABlock.ABlockData> data) {
         this.data.data.clear();
         this.data.data.addAll(data);
         if (this.state == State.NO_DATA || this.state == State.ON_BOTH_SIDE) {
@@ -66,7 +66,7 @@ public class ChunkStorage {
         }
     }
     
-    public void releaseData() {
+    public synchronized void releaseData() {
         this.data.data.clear();
         if (this.state == State.ON_BOTH_SIDE) {
             this.state = State.ONLY_ON_GPU;
@@ -152,7 +152,7 @@ public class ChunkStorage {
         }
     }
     
-    public void uploadGpu0() {
+    public synchronized void uploadGpu0() {
         removeFromUberBuffer(this.levelStorage.gpuBufferBlockData, this.chunkPos);
         for (var b : this.levelStorage.gpuBufferByFace.values()) {
             removeFromUberBuffer(b, this.chunkPos);
