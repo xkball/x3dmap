@@ -65,7 +65,7 @@ public class ChunkComplier {
         var directions = VanillaUtils.DIRECTIONS;
         var mc = Minecraft.getInstance();
         var modelManager = mc.getModelManager().getBlockStateModelSet();
-        var result = new ArrayList<ABlock.ABlockData>();
+        var dataBuilder = new CompressedChunkCoordDataMap.Builder<ChunkStorage.TerrainBlockData>(chunkPos);
         var pos = new BlockPos(0, 0, 0).mutable();
         var chunkMinY = level.getMinY();
         var chunkMaxY = level.getMaxY();
@@ -114,12 +114,12 @@ public class ChunkComplier {
                         continue;
                     }
                     var color = processBlockColor(context, bs, pos, modelManager);
-                    result.add(new ABlock.ABlockData(px, y, pz, color, mask));
+                    dataBuilder.append(pos, new ChunkStorage.TerrainBlockData(color, mask));
                 }
             }
         }
         chunkStorage.aabb = new AABB(chunkPos.getMinBlockX(), chunkMinY, chunkPos.getMinBlockZ(), chunkPos.getMaxBlockX(), chunkMaxY, chunkPos.getMaxBlockZ());
-        chunkStorage.writeData(result);
+        chunkStorage.writeData(dataBuilder.build());
         chunkStorage.heightMap = heightMap;
         return chunkStorage;
     }

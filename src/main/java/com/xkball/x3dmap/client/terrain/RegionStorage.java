@@ -210,7 +210,7 @@ public class RegionStorage {
         ChunkPos.STREAM_CODEC.encode(byteBuf, chunk.chunkPos);
         CodecUtils.AABB_STREAM_CODEC.encode(byteBuf, chunk.aabb);
         ChunkHeightMap.STREAM_CODEC.encode(byteBuf, chunk.heightMap);
-        ChunkStorage.ChunkStorageData.STREAM_CODEC.encode(byteBuf, chunk.data);
+        ChunkStorage.TERRAIN_BLOCK_DATA_STREAM_CODEC.encode(byteBuf, chunk.data);
         return VanillaUtils.gzip(byteBuf.array(), 0, byteBuf.readableBytes());
     }
     
@@ -278,12 +278,12 @@ public class RegionStorage {
                         var decodedPos = ChunkPos.STREAM_CODEC.decode(byteBuf);
                         var aabb = CodecUtils.AABB_STREAM_CODEC.decode(byteBuf);
                         var heightMap = ChunkHeightMap.STREAM_CODEC.decode(byteBuf);
-                        var data = ChunkStorage.ChunkStorageData.STREAM_CODEC.decode(byteBuf);
+                        var data = ChunkStorage.TERRAIN_BLOCK_DATA_STREAM_CODEC.decode(byteBuf);
                         assert decodedPos.equals(chunkPos);
                         var storage = new ChunkStorage(chunkPos, levelStorage);
                         storage.aabb = aabb;
                         storage.heightMap = heightMap;
-                        storage.writeData(data.data());
+                        storage.writeData(data);
                         storage.state = ChunkStorage.State.ONLY_ON_MEM;
                         regionStorage.chunkMap.put(chunkPos, storage);
                     }

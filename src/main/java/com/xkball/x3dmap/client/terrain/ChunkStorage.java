@@ -25,9 +25,10 @@ import java.util.Objects;
 @NonNullByDefault
 public class ChunkStorage {
     
+    public static final StreamCodec<ByteBuf, CompressedChunkCoordDataMap<TerrainBlockData>> TERRAIN_BLOCK_DATA_STREAM_CODEC = CompressedChunkCoordDataMap.streamCodec(TerrainBlockData.STREAM_CODEC);
     public final ChunkPos chunkPos;
     public final LevelChunkStorage levelStorage;
-    public final ChunkStorageData data;
+    public CompressedChunkCoordDataMap<TerrainBlockData> data;
     /**
      * 虽然没有初始值, 但是通过文件加载或编译产生的对象, 这两个字段均不为null, 为null则说明产生非法状态
      */
@@ -40,7 +41,7 @@ public class ChunkStorage {
     public ChunkStorage(ChunkPos chunkPos, LevelChunkStorage levelStorage) {
         this.chunkPos = chunkPos;
         this.levelStorage = levelStorage;
-        this.data = new ChunkStorageData(chunkPos, new ArrayList<>());
+        this.data = new CompressedChunkCoordDataMap<>(chunkPos);
     }
     
     public int facesCountByLodFullMesh(int lodLevel) {
@@ -56,9 +57,8 @@ public class ChunkStorage {
         return null;
     }
     
-    public synchronized void writeData(List<ABlock.ABlockData> data) {
-        this.data.data.clear();
-        this.data.data.addAll(data);
+    public synchronized void writeData(CompressedChunkCoordDataMap<TerrainBlockData> data) {
+        this.data = data;
         if (this.state == State.NO_DATA || this.state == State.ON_BOTH_SIDE) {
             this.state = State.DIRTY;
         } else if (this.state == State.ONLY_ON_GPU) {
@@ -67,7 +67,7 @@ public class ChunkStorage {
     }
     
     public synchronized void releaseData() {
-        this.data.data.clear();
+        this.data = new CompressedChunkCoordDataMap<>(chunkPos);
         if (this.state == State.ON_BOTH_SIDE) {
             this.state = State.ONLY_ON_GPU;
         } else if (this.state == State.ONLY_ON_MEM) {
@@ -157,20 +157,14 @@ public class ChunkStorage {
         for (var b : this.levelStorage.gpuBufferByFace.values()) {
             removeFromUberBuffer(b, this.chunkPos);
         }
-        if(this.data.data.isEmpty()) return;
-        var l1List = new ArrayList<ABlock>();
-        var x0 = chunkPos.getMinBlockX();
-        var z0 = chunkPos.getMinBlockZ();
-        for (var b : this.data.data()) {
-            l1List.add(b.toABlock(x0, z0));
-        }
-        var blockDataBuffer = MemoryUtil.memAlloc(l1List.size() * 16);
-        for (var ab : l1List) {
-            blockDataBuffer.putFloat(ab.x());
-            blockDataBuffer.putFloat(ab.y());
-            blockDataBuffer.putFloat(ab.z());
-            blockDataBuffer.putInt(ab.color());
-        }
+        if(this.data.isEmpty()) return;
+        var blockDataBuffer = MemoryUtil.memAlloc(this.data.size() * 16);
+        this.data.forEach((entry,bd) -> {
+            blockDataBuffer.putFloat(entry.x());
+            blockDataBuffer.putFloat(entry.y());
+            blockDataBuffer.putFloat(entry.z());
+            blockDataBuffer.putInt(bd.color());
+        });
         blockDataBuffer.flip();
         var blockDataGpuBuffer = this.levelStorage.gpuBufferBlockData;
         blockDataGpuBuffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
@@ -181,12 +175,11 @@ public class ChunkStorage {
         MemoryUtil.memFree(blockDataBuffer);
         for (var dir : VanillaUtils.DIRECTIONS) {
             var list = new ArrayList<Integer>();
-            for (int i = 0; i < l1List.size(); i++) {
-                var a = l1List.get(i);
-                if ((a.mask() & (1 << dir.get3DDataValue())) > 0) {
-                    list.add(blockDataBaseIndex + i);
+            this.data.forEach((entry,bd) -> {
+                if ((bd.mask() & (1 << dir.get3DDataValue())) > 0) {
+                    list.add(blockDataBaseIndex + entry.index());
                 }
-            }
+            });
             if(list.isEmpty()) continue;
             var buffer = MemoryUtil.memAlloc(list.size() * 4);
             for (var index : list) {
@@ -220,15 +213,21 @@ public class ChunkStorage {
         buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
     }
     
-    public record ChunkStorageData(ChunkPos pos, List<ABlock.ABlockData> data) {
-        
-        public static final StreamCodec<ByteBuf, ChunkStorageData> STREAM_CODEC = StreamCodec.composite(
-                ChunkPos.STREAM_CODEC,
-                ChunkStorageData::pos,
-                ByteBufCodecs.collection(ArrayList::new, ABlock.ABlockData.STREAM_CODEC),
-                ChunkStorageData::data,
-                ChunkStorageData::new
-        );
+    public record TerrainBlockData(int color, int mask){
+        public static final StreamCodec<ByteBuf, TerrainBlockData> STREAM_CODEC = new StreamCodec<>() {
+            @Override
+            public TerrainBlockData decode(ByteBuf input) {
+                var c = input.readInt();
+                var mask = input.readByte();
+                return new TerrainBlockData(c, mask);
+            }
+            
+            @Override
+            public void encode(ByteBuf output, TerrainBlockData value) {
+                output.writeInt(value.color);
+                output.writeByte(value.mask);
+            }
+        };
     }
     
     public enum State {

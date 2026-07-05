@@ -437,7 +437,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                                     if (chunk.state == ChunkStorage.State.NO_DATA) {
                                         var newChunk = newRegionStorage.getChunk(chunk.chunkPos);
                                         if (newChunk == null) return;
-                                        chunk.writeData(newChunk.data.data());
+                                        chunk.writeData(newChunk.data);
                                     }
                                     if (storage.compatibleMode) {
                                         chunk.uploadGpuLodFullMesh();
