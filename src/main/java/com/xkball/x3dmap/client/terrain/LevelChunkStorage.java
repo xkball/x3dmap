@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class LevelChunkStorage {
     
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final ChunkComplier COMPLIER = new ChunkComplier();
     
