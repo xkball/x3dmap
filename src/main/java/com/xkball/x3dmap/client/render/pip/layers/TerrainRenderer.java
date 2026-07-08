@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.xkball.x3dmap.api.client.render.PictureInPictureRenderLayer;
+import com.xkball.x3dmap.client.b3d.X3dMapPostProcesses;
 import com.xkball.x3dmap.client.b3d.X3dMapUniforms;
 import com.xkball.x3dmap.client.b3d.pipeline.X3dMapRenderPipelines;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
@@ -122,8 +123,9 @@ public class TerrainRenderer implements PictureInPictureRenderLayer<WorldTerrain
             b.putVec4(new Vector4f(renderState.dirVec(), 1));
             b.putVec4(new Vector4f(-cp.x, -cp.y, -cp.z, 1));
         });
-//            XKLibPostProcesses.SSAO.apply(texture, depth);
+//        XKLibPostProcesses.SSAO.apply(texture, depth);
         XKLibPostProcesses.SSR.apply(texture, depth);
+        X3dMapPostProcesses.TERRAIN_DEPTH_EDGE.apply(texture, depth);
         RenderSystem.getModelViewStack().popMatrix();
     }
     

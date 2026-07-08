@@ -10,6 +10,7 @@ import com.xkball.x3dmap.client.b3d.X3dMapUniforms;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.client.b3d.pipeline.ExtendedRenderPipeline;
 import com.xkball.xklibmc.client.b3d.uniform.UpdatableUBO;
+import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
 import org.joml.Vector3f;
 
 public class X3dMapRenderPipelines {
@@ -64,6 +65,19 @@ public class X3dMapRenderPipelines {
             .withSSBO("cmd")
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withCull(true)
+            .buildExtended();
+    
+    public static final ExtendedRenderPipeline TERRAIN_DEPTH_EDGE = ExtendedRenderPipeline.builder()
+            .withLocation(VanillaUtils.modRL("terrain_depth_edge"))
+            .withVertexShader(VanillaUtils.resourceLocationOf("xklibmc", "core/blit"))
+            .withFragmentShader(VanillaUtils.modRL("core/terrain_depth_edge"))
+            .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.QUADS)
+            .withSampler("input0")
+            .withSampler("input1")
+            .withUniform("ScreenSize", UniformType.UNIFORM_BUFFER)
+            .bindUniform("ScreenSize", XKLibUniforms.SCREEN_SIZE)
+            .withUniform("InvProjMat", UniformType.UNIFORM_BUFFER)
+            .bindUniform("InvProjMat", XKLibUniforms.INVERSE_PROJ_MAT)
             .buildExtended();
     
     public static final ExtendedRenderPipeline SELECTION_OVERLAY = ExtendedRenderPipeline.builder()
