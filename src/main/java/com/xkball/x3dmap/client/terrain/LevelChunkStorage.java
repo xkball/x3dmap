@@ -181,9 +181,9 @@ public class LevelChunkStorage {
                 for (var chunkStorage : this.getChunks()) {
                     TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
                         if (!this.containsChunk(chunkStorage.chunkPos)) return;
-                        if (compatibleMode) {
-                            chunkStorage.uploadGpuLodFullMesh();
-                        } else chunkStorage.uploadToTexture();
+                        if (!compatibleMode) {
+                            chunkStorage.uploadToTexture();
+                        } ;
                     });
                 }
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> X3dMapClient.loading = false);
@@ -218,6 +218,10 @@ public class LevelChunkStorage {
     
     public boolean containsChunk(ChunkPos chunkPos) {
         return this.getChunk(chunkPos) != null;
+    }
+    
+    public boolean containsChunk(int chunkX, int chunkZ) {
+        return containsChunk(new ChunkPos(chunkX, chunkZ));
     }
     
     public void putChunk(ChunkStorage chunkStorage) {

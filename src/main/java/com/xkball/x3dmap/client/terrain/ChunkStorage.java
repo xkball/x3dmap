@@ -9,7 +9,6 @@ import com.xkball.xklib.x3d.backend.vertex.VertexFormats;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.utils.ClientUtils;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.AABB;
@@ -19,7 +18,6 @@ import org.jspecify.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 @NonNullByDefault
@@ -52,6 +50,7 @@ public class ChunkStorage {
     }
     
     public TlsfAllocator.@Nullable Allocation getLodBufferFullMesh(int lodLevel) {
+        assert this.levelStorage.gpuBufferByLodFullMesh != null;
         if (lodLevel <= 3)
             return this.levelStorage.gpuBufferByLodFullMesh.getAllocation(new ChunkPosLod(this.chunkPos, lodLevel));
         return null;
@@ -89,6 +88,7 @@ public class ChunkStorage {
     }
     
     private void uploadGpuLodFullMesh(int lodLevel, int step) {
+        assert this.levelStorage.gpuBufferByLodFullMesh != null;
         var x0 = chunkPos.getMinBlockX();
         var z0 = chunkPos.getMinBlockZ();
         var minY = this.levelStorage.minHeight;
@@ -153,6 +153,7 @@ public class ChunkStorage {
     }
     
     public synchronized void uploadGpu0() {
+        assert this.levelStorage.gpuBufferBlockData != null;
         removeFromUberBuffer(this.levelStorage.gpuBufferBlockData, this.chunkPos);
         for (var b : this.levelStorage.gpuBufferByFace.values()) {
             removeFromUberBuffer(b, this.chunkPos);
@@ -207,7 +208,8 @@ public class ChunkStorage {
         
     }
     
-    private static <T> void removeFromUberBuffer(UberGpuBuffer<T> buffer, T key) {
+    private static <T> void removeFromUberBuffer(@Nullable UberGpuBuffer<T> buffer, T key) {
+        if(buffer == null) return;
         if (buffer.getAllocation(key) == null) return;
         buffer.removeAllocation(key);
         buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());

@@ -12,6 +12,7 @@ import com.xkball.x3dmap.api.mixin.IExtendedTlsfAllocation;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
 import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
 import com.xkball.x3dmap.utils.DualQueueThreadPool;
+import com.xkball.x3dmap.utils.X3dClientUtils;
 import com.xkball.xklibmc.XKLibMCClient;
 import com.xkball.xklibmc.api.client.b3d.ICloseOnExit;
 import com.xkball.xklibmc.client.b3d.IndirectDrawCommand;
@@ -106,7 +107,26 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public static void onChunkLoad(ChunkEvent.Load event) {
         var level = event.getLevel();
         if (!level.isClientSide()) return;
-        INSTANCE.enqueueUpdate(event.getChunk().getPos());
+        var chunkPos = event.getChunk().getPos();
+        if (X3dClientUtils.isClientChunkAroundLoaded(chunkPos)){
+            INSTANCE.enqueueUpdate(event.getChunk().getPos());
+        }
+        int x = chunkPos.x();
+        int z = chunkPos.z();
+        var storage = INSTANCE.getCurrentLevelChunkStorage();
+        if(storage == null) return;
+        if (X3dClientUtils.isClientChunkAroundLoaded(chunkPos)){
+            INSTANCE.enqueueUpdate(new ChunkPos(x-1,z));
+        }
+        if (X3dClientUtils.isClientChunkAroundLoaded(chunkPos)){
+            INSTANCE.enqueueUpdate(new ChunkPos(x+1,z));
+        }
+        if (X3dClientUtils.isClientChunkAroundLoaded(chunkPos)){
+            INSTANCE.enqueueUpdate(new ChunkPos(x,z-1));
+        }
+        if (X3dClientUtils.isClientChunkAroundLoaded(chunkPos)){
+            INSTANCE.enqueueUpdate(new ChunkPos(x,z+1));
+        }
     }
     
     @SubscribeEvent
@@ -192,6 +212,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         if (level == null) return RenderInfo.empty();
         var storage = this.storageMap.get(level.dimension());
         if (storage == null) return RenderInfo.empty();
+        assert storage.gpuBufferBlockData != null;
         var gather = new RenderInfoBlockGather();
         var gather2 = new RenderInfoWithBufferBlockGather();
         for (var region : storage.regionMap.values()) {
@@ -243,6 +264,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         if (level == null) return RenderInfoCompatible.empty();
         var storage = this.storageMap.get(level.dimension());
         if (storage == null) return RenderInfoCompatible.empty();
+        assert storage.gpuBufferByLodFullMesh != null;
         var gather2 = new RenderInfoCompatibleBlockGather();
         for (var chunkStorage : storage.getChunks()) {
             var aabb = chunkStorage.aabb;
@@ -270,6 +292,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         if (level == null) return RenderInfoCompatible.empty();
         var storage = this.storageMap.get(level.dimension());
         if (storage == null) return RenderInfoCompatible.empty();
+        assert storage.gpuBufferByLodFullMesh != null;
         var centerChunk = ChunkPos.containing(new BlockPos((int) camTar.x, (int) camTar.y, (int) camTar.z));
         var renderRange = 32;
         var highDetailRange = Math.min(highDetailRangeChunks, renderRange);
