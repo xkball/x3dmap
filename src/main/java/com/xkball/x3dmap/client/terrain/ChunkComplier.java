@@ -18,6 +18,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -104,7 +105,7 @@ public class ChunkComplier {
                 for (int y = hMin; y < hMax; y++) {
                     pos.set(px, y, pz);
                     var bs = context.getBlockState(pos);
-                    if (bs.isAir()) {
+                    if (bs.isAir() || bs.getRenderShape() == RenderShape.INVISIBLE) {
                         continue;
                     }
                     var allBlock = true;

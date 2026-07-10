@@ -25,6 +25,7 @@ sourceSets.main.resources {
 }
 
 repositories {
+    mavenLocal()
 }
 
 base {
