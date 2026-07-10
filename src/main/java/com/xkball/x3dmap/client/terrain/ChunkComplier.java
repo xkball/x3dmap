@@ -16,6 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ColorResolver;
+import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RenderShape;
@@ -54,7 +55,10 @@ public class ChunkComplier {
             Blocks.LARGE_FERN,
             Blocks.BUSH,
             Blocks.DEAD_BUSH,
-            Blocks.FIREFLY_BUSH
+            Blocks.FIREFLY_BUSH,
+            Blocks.LIGHT,
+            Blocks.BARRIER,
+            Blocks.STRUCTURE_VOID
     ));
     
     public @Nullable ChunkStorage compile(LevelChunkStorage storage, ClientLevel level, ChunkPos chunkPos) {
@@ -105,7 +109,7 @@ public class ChunkComplier {
                 for (int y = hMin; y < hMax; y++) {
                     pos.set(px, y, pz);
                     var bs = context.getBlockState(pos);
-                    if (bs.isAir() || bs.getRenderShape() == RenderShape.INVISIBLE) {
+                    if (bs.isAir() || (bs.getBlock() instanceof BaseEntityBlock && bs.getRenderShape() == RenderShape.INVISIBLE)) {
                         continue;
                     }
                     var allBlock = true;
