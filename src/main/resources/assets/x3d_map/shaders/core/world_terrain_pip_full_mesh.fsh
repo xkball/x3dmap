@@ -1,4 +1,4 @@
-#version 460 core
+#version 410 core
 #moj_import <minecraft:dynamictransforms.glsl>
 
 layout(std140) uniform PhongLight{
@@ -6,7 +6,7 @@ layout(std140) uniform PhongLight{
     vec3 viewPos;
 };
 
-layout(early_fragment_tests) in;
+//layout(early_fragment_tests) in;
 in vec4 vertexColor;
 in vec3 worldPos;
 in vec3 pNormal;
