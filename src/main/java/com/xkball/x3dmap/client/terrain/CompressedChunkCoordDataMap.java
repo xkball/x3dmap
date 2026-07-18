@@ -12,6 +12,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 
 //todo 随机存取
@@ -140,6 +141,41 @@ public class CompressedChunkCoordDataMap<T> {
         public int index() {
             return index;
         }
+    }
+    
+    public static <T> StreamCodec<ByteBuf, CompressedChunkCoordDataMap<T>> streamCodecWithList(StreamCodec<ByteBuf, List<T>> tStreamCodec) {
+        return new StreamCodec<>() {
+            @Override
+            public CompressedChunkCoordDataMap<T> decode(ByteBuf input) {
+                var x0 = input.readInt();
+                var z0 = input.readInt();
+                var index = new int[256];
+                for (int i = 0; i < 256; i++) {
+                    index[i] = VarInt.read(input);
+                }
+                var size = VarInt.read(input);
+                var yList = new IntArrayList();
+                for (int i = 0; i < size; i++) {
+                    yList.add(input.readShort());
+                }
+                var data = new ArrayList<T>(tStreamCodec.decode(input));
+                return new CompressedChunkCoordDataMap<>(x0, z0, index, yList, data);
+            }
+            
+            @Override
+            public void encode(ByteBuf output, CompressedChunkCoordDataMap<T> value) {
+                output.writeInt(value.x0);
+                output.writeInt(value.z0);
+                for (int i = 0; i < 256; i++) {
+                    VarInt.write(output,value.index[i]);
+                }
+                VarInt.write(output,value.data.size());
+                for (var y : value.yList){
+                    output.writeShort(y);
+                }
+                tStreamCodec.encode(output, value.data);
+            }
+        };
     }
     
     public static <T> StreamCodec<ByteBuf, CompressedChunkCoordDataMap<T>> streamCodec(StreamCodec<ByteBuf, T> tStreamCodec) {

@@ -24,6 +24,38 @@ import java.util.Objects;
 public class ChunkStorage {
     
     public static final StreamCodec<ByteBuf, CompressedChunkCoordDataMap<TerrainBlockData>> TERRAIN_BLOCK_DATA_STREAM_CODEC = CompressedChunkCoordDataMap.streamCodec(TerrainBlockData.STREAM_CODEC);
+//    public static final StreamCodec<ByteBuf, CompressedChunkCoordDataMap<TerrainBlockData>> TERRAIN_BLOCK_DATA_STREAM_CODEC = CompressedChunkCoordDataMap.streamCodecWithList(
+//            new StreamCodec<>() {
+//                @Override
+//                public List<TerrainBlockData> decode(ByteBuf input) {
+//                    var size = input.readInt();
+//                    int[] masks = new int[size];
+//                    for (int i = 0; i < size; i++) {
+//                        masks[i] = input.readByte();
+//                    }
+//                    var palette = IntPalette.STREAM_CODEC.decode(input);
+//                    var result = new ArrayList<TerrainBlockData>();
+//                    var array = palette.toArray();
+//                    assert array.length == size;
+//                    for (int i = 0; i < array.length; i++) {
+//                        result.add(new TerrainBlockData(array[i], masks[i]));
+//                    }
+//                    return result;
+//                }
+//
+//                @Override
+//                public void encode(ByteBuf output, List<TerrainBlockData> value) {
+//                    var size = value.size();
+//                    output.writeInt(size);
+//                    var palette = new IntPalette();
+//                    for (var data : value) {
+//                        palette.add(data.color);
+//                        output.writeByte(data.mask);
+//                    }
+//                    IntPalette.STREAM_CODEC.encode(output, palette);
+//                }
+//            }
+//    );
     public final ChunkPos chunkPos;
     public final LevelChunkStorage levelStorage;
     public CompressedChunkCoordDataMap<TerrainBlockData> data;
