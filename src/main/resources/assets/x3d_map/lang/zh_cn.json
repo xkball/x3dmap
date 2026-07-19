@@ -34,6 +34,7 @@
   "xklibmc.minimap.config.title": "小地图",
   "xklibmc.minimap.config.enable": "启用小地图",
   "xklibmc.minimap.config.high_detail": "高细节范围",
+  "xklibmc.minimap.config.render_interval": "绘制间隔",
   "xklibmc.minimap.config.rotate": "旋转地图",
   "keys.xklibmc.open_map": "打开地图",
   "xklibmc.join.open_map_hint": "[x3dmap] 按 %s 打开地图。",

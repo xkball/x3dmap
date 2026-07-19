@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.ui.widget;
 
+import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
@@ -63,6 +64,9 @@ public class WorldTerrainWidget extends ContainerWidget {
         var minY = level == null ? -64 : level.getMinY();
         var maxY = level == null ? 384 : level.getMaxY();
         fixY.set(level == null ? 64 : level.getSeaLevel());
+        this.lodDistance.set(ClientConfig.WORLD_MAP_LOD_DISTANCE.get());
+        this.viewDistance.set(ClientConfig.WORLD_MAP_LOAD_DISTANCE.get());
+        TerrainChunkManager.INSTANCE.viewDistance = this.viewDistance.get();
         this.inner = new WorldTerrainWidgetInner(terrain, grid, player, cameraTarget, compass, depress_sphere, debug, yMode, fixY, lodDistance);
         this.mapGui = new MapGuiImpl(this);
         this.initExtensions();
@@ -357,9 +361,6 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.depress_sphere.set(this.getBooleanState("depress_sphere", this.depress_sphere.get()));
         this.yMode.set(this.getIntState("y_mode", this.yMode.get()));
         this.fixY.set(this.getIntState("fix_y", this.fixY.get()));
-        this.lodDistance.set(this.getIntState("lod_distance", this.lodDistance.get()));
-        this.viewDistance.set(this.getIntState("view_distance", this.viewDistance.get()));
-        TerrainChunkManager.INSTANCE.viewDistance = this.viewDistance.get();
     }
     
     private void bindPersistentUiState() {
@@ -372,9 +373,9 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.depress_sphere.addCallback(value -> this.setBooleanState("depress_sphere", value));
         this.yMode.addCallback(value -> this.setIntState("y_mode", value));
         this.fixY.addCallback(value -> this.setIntState("fix_y", value));
-        this.lodDistance.addCallback(value -> this.setIntState("lod_distance", value));
+        this.lodDistance.addCallback(ClientConfig.WORLD_MAP_LOD_DISTANCE::set);
         this.viewDistance.addCallback(value -> {
-            this.setIntState("view_distance", value);
+            ClientConfig.WORLD_MAP_LOAD_DISTANCE.set(value);
             TerrainChunkManager.INSTANCE.viewDistance = value;
         });
     }
@@ -385,6 +386,7 @@ public class WorldTerrainWidget extends ContainerWidget {
             TerrainChunkManager.INSTANCE.mapPluginRegistry.closeScreen(this.screenSession);
             this.screenSession = null;
         }
+        ClientConfig.SPEC.save();
     }
 
     private void initUiState() {

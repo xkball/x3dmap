@@ -85,7 +85,7 @@ public final class MinimapHudRenderer {
         var yRot = rotateWithPlayer ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
 
         int renderInterval = ClientConfig.MINIMAP_RENDER_INTERVAL.get();
-        boolean shouldRender = (frameCount % renderInterval == 1) || needsResize;
+        boolean shouldRender = ((frameCount - 1) % renderInterval == 0) || needsResize;
 //        shouldRender = true;
         if (shouldRender && offscreenColorTextureView != null && offscreenDepthTextureView != null) {
             renderTerrainToOffscreen(layers, target, blockPos, yRot, newTexSize);

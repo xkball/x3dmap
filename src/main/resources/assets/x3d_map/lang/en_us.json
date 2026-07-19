@@ -34,6 +34,7 @@
   "xklibmc.minimap.config.title": "Minimap",
   "xklibmc.minimap.config.enable": "Enable Minimap",
   "xklibmc.minimap.config.high_detail": "High Detail Range",
+  "xklibmc.minimap.config.render_interval": "Render Interval",
   "xklibmc.minimap.config.rotate": "Rotate Map",
   "keys.xklibmc.open_map": "Open Map",
   "xklibmc.join.open_map_hint": "[x3dmap] Press %s to open the map.",

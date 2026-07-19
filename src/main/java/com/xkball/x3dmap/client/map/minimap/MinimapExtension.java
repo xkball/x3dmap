@@ -25,6 +25,7 @@ public final class MinimapExtension implements IMapScreenExtension {
 
     private final IMapScreenContext context;
     private final IntLayoutVariable highDetailRange = new IntLayoutVariable(8);
+    private final IntLayoutVariable renderInterval = new IntLayoutVariable(10);
     private final BooleanLayoutVariable rotateWithPlayer = new BooleanLayoutVariable(false);
     private final BooleanLayoutVariable minimapEnabled = new BooleanLayoutVariable(true);
     private @Nullable IMapWindow configWindow;
@@ -36,9 +37,11 @@ public final class MinimapExtension implements IMapScreenExtension {
     @Override
     public void onOpen() {
         this.highDetailRange.set(ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get());
+        this.renderInterval.set(ClientConfig.MINIMAP_RENDER_INTERVAL.get());
         this.rotateWithPlayer.set(ClientConfig.MINIMAP_ROTATE_WITH_PLAYER.get());
         this.minimapEnabled.set(ClientConfig.MINIMAP_ENABLED.get());
         this.highDetailRange.addCallback(ClientConfig.MINIMAP_HIGH_DETAIL_RANGE::set);
+        this.renderInterval.addCallback(ClientConfig.MINIMAP_RENDER_INTERVAL::set);
         this.rotateWithPlayer.addCallback(ClientConfig.MINIMAP_ROTATE_WITH_PLAYER::set);
         this.minimapEnabled.addCallback(ClientConfig.MINIMAP_ENABLED::set);
         this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY,
@@ -51,6 +54,7 @@ public final class MinimapExtension implements IMapScreenExtension {
     public void close() {
         this.configWindow = null;
         this.highDetailRange.removeCallbacks();
+        this.renderInterval.removeCallbacks();
         this.rotateWithPlayer.removeCallbacks();
         this.minimapEnabled.removeCallbacks();
         ClientConfig.SPEC.save();
@@ -114,17 +118,18 @@ public final class MinimapExtension implements IMapScreenExtension {
                         .setCSSClassName("minimap_row")
                         .addChild(new Label(IComponent.translatable("xklibmc.minimap.config.enable")).setCSSClassName("minimap_label"))
                         .addChild(new CheckBox().bind(this.minimapEnabled)))
-                .addChild(this.sliderRow(IComponent.translatable("xklibmc.minimap.config.high_detail"), this.highDetailRange))
+                .addChild(this.sliderRow(IComponent.translatable("xklibmc.minimap.config.high_detail"), this.highDetailRange, 0, 64))
                 .addChild(new ContainerWidget()
                         .setCSSClassName("minimap_row")
                         .addChild(new Label(IComponent.translatable("xklibmc.minimap.config.rotate")).setCSSClassName("minimap_label"))
-                        .addChild(new CheckBox().bind(this.rotateWithPlayer)));
+                        .addChild(new CheckBox().bind(this.rotateWithPlayer)))
+                .addChild(this.sliderRow(IComponent.translatable("xklibmc.minimap.config.render_interval"), this.renderInterval, 1, 20));
     }
 
-    private Widget sliderRow(IComponent label, IntLayoutVariable variable) {
+    private Widget sliderRow(IComponent label, IntLayoutVariable variable, int min, int max) {
         return new ContainerWidget()
                 .setCSSClassName("minimap_row")
                 .addChild(new Label(label).setCSSClassName("minimap_label"))
-                .addChild(new IntSliderWidget(0, 64, variable.get()).bind(variable).inlineStyle("size: 50% 12rpx;margin-right: 2rpx;"));
+                .addChild(new IntSliderWidget(min, max, variable.get()).bind(variable).inlineStyle("size: 50% 12rpx;margin-right: 2rpx;"));
     }
 }

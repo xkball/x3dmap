@@ -11,6 +11,8 @@ public class ClientConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
     public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
+    public static final ModConfigSpec.IntValue WORLD_MAP_LOD_DISTANCE;
+    public static final ModConfigSpec.IntValue WORLD_MAP_LOAD_DISTANCE;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
     public static final ModConfigSpec.IntValue MINIMAP_HIGH_DETAIL_RANGE;
     public static final ModConfigSpec.BooleanValue MINIMAP_ROTATE_WITH_PLAYER;
@@ -33,6 +35,12 @@ public class ClientConfig {
         RECORD_ALL_ABOVE_SEA_LEVEL = builder
                 .comment("Record all blocks above sea level. This uses more VRAM when enabled.")
                 .define("recordAllAboveSeaLevel", true);
+        WORLD_MAP_LOD_DISTANCE = builder
+                .comment("World map LOD distance in blocks.")
+                .defineInRange("worldMapLodDistance", 512, 1, 114514);
+        WORLD_MAP_LOAD_DISTANCE = builder
+                .comment("World map load distance in blocks.")
+                .defineInRange("worldMapLoadDistance", 1024, 256, 1145141919);
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);
@@ -58,8 +66,8 @@ public class ClientConfig {
                 .comment("Minimap padding from screen edge as percentage of screen height. Default: 5.")
                 .defineInRange("minimapPadding", 5, 0, 25);
         MINIMAP_RENDER_INTERVAL = builder
-                .comment("Interval in frames between minimap re-renders. Higher values improve performance at the cost of update latency. Default: 4.")
-                .defineInRange("minimapRenderInterval", 10, 1, 200);
+                .comment("Interval in frames between minimap re-renders. Higher values improve performance at the cost of update latency. Default: 10.")
+                .defineInRange("minimapRenderInterval", 10, 1, 20);
         AUTO_SAVE_INTERVAL = builder
                 .comment("Interval in ticks for auto-saving map data. Default: 1200 (60s).")
                 .defineInRange("autoSaveInterval", 1200, 20, 72000);

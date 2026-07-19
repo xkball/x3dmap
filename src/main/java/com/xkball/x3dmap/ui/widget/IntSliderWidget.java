@@ -7,10 +7,12 @@ import com.xkball.xklib.resource.ResourceLocation;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IGUIGraphics;
 import com.xkball.xklib.ui.widget.Widget;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@NonNullByDefault
 public class IntSliderWidget extends Widget implements IInputWidget<Integer> {
     
     private static final ResourceLocation TRACK = new ResourceLocation("minecraft", "widget/slider");
@@ -34,7 +36,6 @@ public class IntSliderWidget extends Widget implements IInputWidget<Integer> {
     
     @Override
     public void setValue(Integer value) {
-        if (value == null) return;
         var next = Math.clamp(value, this.min, this.max);
         if (this.value == next) return;
         this.value = next;
@@ -92,7 +93,9 @@ public class IntSliderWidget extends Widget implements IInputWidget<Integer> {
         var handleWidth = 6 * padding;
         var handleX = this.x + ratio * (this.width - handleWidth);
         graphics.blitSprite(HANDLE, (int) handleX, (int) this.y, handleWidth, (int) this.height, -1);
-        graphics.drawCenteredString(String.valueOf(this.value), this.x + this.width / 2, this.y + this.height + 4, -1);
+        var textHeight = Math.min(8 * padding, this.height - 2 * padding);
+        var textY = this.y + (this.height - textHeight) / 2 + 1;
+        graphics.drawCenteredString(String.valueOf(this.value), this.x + this.width / 2, textY, -1, true, textHeight);
     }
     
     private void updateFromMouse(float mouseX) {
