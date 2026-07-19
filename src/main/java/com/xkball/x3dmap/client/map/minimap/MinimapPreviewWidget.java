@@ -13,12 +13,13 @@ import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.joml.Vector3f;
+import org.jspecify.annotations.Nullable;
 
 @NonNullByDefault
 public class MinimapPreviewWidget extends ContainerWidget {
     
     private boolean dragging;
-    private WorldTerrainPipRenderer.WorldTerrainState lastState;
+    private WorldTerrainPipRenderer.@Nullable WorldTerrainState lastState;
     
     private final IntLayoutVariable highDetailRange;
     private final BooleanLayoutVariable rotateWithPlayer;

@@ -78,26 +78,32 @@ public class SelectionExtension implements IMapScreenExtension {
         if (!this.selecting) {
             return false;
         }
-        if (event instanceof MapInputEvent.MouseClicked clicked && clicked.event().button() == 0 && !clicked.doubleClick()) {
-            this.dragStartScreen = new Vector2f((float) clicked.event().x(), (float) clicked.event().y());
-            this.dragging = true;
-            this.selectionRectWidget.setStart(this.dragStartScreen);
-            this.selectionRectWidget.setEnd(this.dragStartScreen);
-            this.context.gui().refreshOverlays();
-            return true;
-        } else if (event instanceof MapInputEvent.MouseDragged dragged && dragged.event().button() == 0 && this.dragging) {
-            this.dragEndScreen = new Vector2f((float) (dragged.event().x() + dragged.dx()), (float) (dragged.event().y() + dragged.dy()));
-            this.selectionRectWidget.setEnd(this.dragEndScreen);
-            this.context.gui().refreshOverlays();
-            return true;
-        } else if (event instanceof MapInputEvent.MouseReleased released && released.event().button() == 0 && this.dragging) {
-            this.dragging = false;
-            this.dragEndScreen = new Vector2f((float) released.event().x(), (float) released.event().y());
-            this.selectionRectWidget.setEnd(this.dragEndScreen);
-            this.context.gui().refreshOverlays();
-            this.finishSelection();
-            this.selecting = false;
-            return true;
+        switch (event) {
+            case MapInputEvent.MouseClicked clicked when clicked.event().button() == 0 && !clicked.doubleClick() -> {
+                this.dragStartScreen = new Vector2f((float) clicked.event().x(), (float) clicked.event().y());
+                this.dragging = true;
+                this.selectionRectWidget.setStart(this.dragStartScreen);
+                this.selectionRectWidget.setEnd(this.dragStartScreen);
+                this.context.gui().refreshOverlays();
+                return true;
+            }
+            case MapInputEvent.MouseDragged dragged when dragged.event().button() == 0 && this.dragging -> {
+                this.dragEndScreen = new Vector2f((float) (dragged.event().x() + dragged.dx()), (float) (dragged.event().y() + dragged.dy()));
+                this.selectionRectWidget.setEnd(this.dragEndScreen);
+                this.context.gui().refreshOverlays();
+                return true;
+            }
+            case MapInputEvent.MouseReleased released when released.event().button() == 0 && this.dragging -> {
+                this.dragging = false;
+                this.dragEndScreen = new Vector2f((float) released.event().x(), (float) released.event().y());
+                this.selectionRectWidget.setEnd(this.dragEndScreen);
+                this.context.gui().refreshOverlays();
+                this.finishSelection();
+                this.selecting = false;
+                return true;
+            }
+            default -> {
+            }
         }
         return false;
     }

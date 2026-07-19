@@ -182,7 +182,7 @@ public class LevelChunkStorage {
         return this.regionMap.computeIfAbsent(regionPos, rp -> new RegionStorage(rp, this.minHeight, this.maxHeight));
     }
     
-    public RegionStorage getRegion(RegionPos regionPos) {
+    public @Nullable RegionStorage getRegion(RegionPos regionPos) {
         return this.regionMap.get(regionPos);
     }
     
