@@ -8,6 +8,7 @@ import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.api.client.gui.input.MapInputEvent;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
 import com.xkball.xklib.ui.render.IComponent;
@@ -50,7 +51,7 @@ public final class WaypointExtension implements IMapScreenExtension {
                 new IconButton(VanillaUtils.modrl("icon/manage_waypoint"), this::openManager)
                         .withTooltip(IComponent.translatable("xklibmc.waypoint.open_manager")));
         this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new Widget().setCSSClassName("splitter"));
-        this.context.gui().setOverlay(this.context.extensionId(), () -> this.createOverlay());
+        this.context.gui().setOverlay(this.context.extensionId(), this::createOverlay);
         this.context.gui().refreshOverlays();
     }
 
@@ -65,31 +66,33 @@ public final class WaypointExtension implements IMapScreenExtension {
 
     @Override
     public boolean handle(MapInputEvent event) {
-        if (!(event instanceof MapInputEvent.MouseClicked clicked) || clicked.event().button() != 0) {
+        if (!(event instanceof MapInputEvent.MouseClicked(
+                IMouseButtonEvent event1, boolean doubleClick
+        )) || event1.button() != 0) {
             return false;
         }
         if (this.addingWaypoint) {
-            var worldPos = this.context.view().screenToWorld(clicked.event().x(), clicked.event().y());
+            var worldPos = this.context.view().screenToWorld(event1.x(), event1.y());
             if (worldPos == null) {
                 return false;
             }
             var pos = new BlockPos((int) Math.floor(worldPos.x), (int) Math.floor(worldPos.y), (int) Math.floor(worldPos.z));
             this.temporaryWaypoint = new Waypoint(UUID.randomUUID(), Component.translatable("xklibmc.waypoint.default_name").getString(), pos, 0xFF66CCFF, false);
-            this.openDetail(this.temporaryWaypoint, true, clicked.event().x(), clicked.event().y());
+            this.openDetail(this.temporaryWaypoint, true, event1.x(), event1.y());
             this.context.gui().refreshOverlays();
             this.addingWaypoint = false;
             return true;
         }
-        if (!clicked.doubleClick()) {
+        if (!doubleClick) {
             return false;
         }
-        var worldPos = this.context.view().screenToWorld(clicked.event().x(), clicked.event().y());
+        var worldPos = this.context.view().screenToWorld(event1.x(), event1.y());
         if (worldPos == null || this.detailWindow != null) {
             return this.detailWindow != null;
         }
         var pos = new BlockPos((int) Math.floor(worldPos.x), (int) Math.floor(worldPos.y), (int) Math.floor(worldPos.z));
         this.temporaryWaypoint = new Waypoint(UUID.randomUUID(), Component.translatable("xklibmc.waypoint.default_name").getString(), pos, 0xFF66CCFF, false);
-        this.openDetail(this.temporaryWaypoint, true, clicked.event().x(), clicked.event().y());
+        this.openDetail(this.temporaryWaypoint, true, event1.x(), event1.y());
         this.context.gui().refreshOverlays();
         return true;
     }
@@ -101,10 +104,7 @@ public final class WaypointExtension implements IMapScreenExtension {
 
     private WaypointStorage storage() {
         var access = this.context.runtime().storage().currentLevelData();
-        if (access.isEmpty()) {
-            return this.emptyStorage;
-        }
-        return access.get().get(BuiltinMapDataTypes.WAYPOINTS).value();
+        return access.map(iLevelDataAccess -> iLevelDataAccess.get(BuiltinMapDataTypes.WAYPOINTS).value()).orElse(this.emptyStorage);
     }
 
     private void openDetail(Waypoint waypoint, boolean temporary) {
@@ -120,8 +120,7 @@ public final class WaypointExtension implements IMapScreenExtension {
         this.detailWaypointId = waypointId;
         var content = new WaypointDetailWindow(this.context.gui(), this.storage(), waypoint, temporary,
                 this.context.gui()::refreshOverlays,
-                () -> this.temporaryWaypoint = null,
-                this::closeDetailWindow) {
+                () -> this.temporaryWaypoint = null) {
             @Override
             public void onRemove() {
                 super.onRemove();

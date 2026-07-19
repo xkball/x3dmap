@@ -1,7 +1,7 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
 import com.xkball.x3dmap.api.client.gui.IMapGui;
-import com.xkball.x3dmap.api.client.gui.IMapWindow;
+import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.render.IGUIGraphics;
@@ -18,14 +18,14 @@ import net.minecraft.core.BlockPos;
 import java.util.UUID;
 
 @NonNullByDefault
-public class WaypointDetailWindow extends ContainerWidget {
+public class WaypointDetailWindow extends MapWindowRefContainer {
     
     private final boolean temporary;
     private final Runnable changed;
     private final Runnable removeTemporary;
     private boolean temporaryResolved;
     
-    public WaypointDetailWindow(IMapGui gui, WaypointStorage storage, Waypoint waypoint, boolean temporary, Runnable changed, Runnable removeTemporary, Runnable closeWindow) {
+    public WaypointDetailWindow(IMapGui gui, WaypointStorage storage, Waypoint waypoint, boolean temporary, Runnable changed, Runnable removeTemporary) {
         this.temporary = temporary;
         this.changed = changed;
         this.removeTemporary = removeTemporary;
@@ -136,7 +136,7 @@ public class WaypointDetailWindow extends ContainerWidget {
                 storage.remove(waypoint);
             }
             changed.run();
-            closeWindow.run();
+            this.closeWindow();
         }).setCSSClassName("action_btn"));
         if (temporary) {
             actions.addChild(new Button(IComponent.translatable("xklibmc.waypoint.save"), () -> {
@@ -145,7 +145,7 @@ public class WaypointDetailWindow extends ContainerWidget {
                 this.temporaryResolved = true;
                 removeTemporary.run();
                 changed.run();
-                closeWindow.run();
+                this.closeWindow();
             }).setCSSClassName("action_btn"));
         }
         this.addChild(editor);
@@ -178,9 +178,8 @@ public class WaypointDetailWindow extends ContainerWidget {
     private void openColorWindow(IMapGui gui, WaypointStorage storage, Waypoint waypoint) {
         var colorInput = new ColorInputWidget();
         colorInput.setValue(waypoint.color());
-        var holder = new IMapWindow[1];
-        var content = new ContainerWidget()
-                .inlineStyle("""
+        var content = new MapWindowRefContainer();
+        content.inlineStyle("""
                         flex-direction: column;
                         size: 100% 100%;
                         """)
@@ -207,14 +206,14 @@ public class WaypointDetailWindow extends ContainerWidget {
                 .addChild(colorInput)
                 .addChild(new ContainerWidget()
                         .setCSSClassName("color_actions")
-                        .addChild(new Button(IComponent.translatable("xklibmc.common.cancel"), () -> holder[0].close()).setCSSClassName("color_action_btn"))
+                        .addChild(new Button(IComponent.translatable("xklibmc.common.cancel"), content::closeWindow).setCSSClassName("color_action_btn"))
                         .addChild(new Button(IComponent.translatable("xklibmc.waypoint.confirm"), () -> {
                             waypoint.setColor(colorInput.getValue());
                             this.markDirtyIfFormal(storage, this.temporary);
                             this.changed.run();
-                            holder[0].close();
+                            content.closeWindow();
                         }).setCSSClassName("color_action_btn")));
-        holder[0] = gui.openWindow(com.xkball.x3dmap.api.client.gui.MapWindowSpec.blocking(IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240)), content);
+        gui.openWindow(com.xkball.x3dmap.api.client.gui.MapWindowSpec.blocking(IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240)), content);
     }
     
     private static class ColorPreviewWidget extends Widget {

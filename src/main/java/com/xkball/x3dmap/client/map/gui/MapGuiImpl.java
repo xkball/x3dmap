@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.map.gui;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
 import com.xkball.x3dmap.api.client.gui.IMapWindow;
 import com.xkball.x3dmap.api.client.gui.MapToolbarSlot;
+import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.ui.widget.WorldTerrainWidget;
 import com.xkball.xklib.ui.system.GuiSystem;
@@ -50,7 +51,11 @@ public final class MapGuiImpl implements IMapGui {
             window = parent.addSubWindow(content, spec.title(), spec.resizable(), x, y, width, height);
         }
         window.setAutoHeight(spec.autoShrinkHeight());
-        return new MapWindowImpl(window);
+        var mapWindow = new MapWindowImpl(window);
+        if (content instanceof MapWindowRefContainer mapWindowRefContainer) {
+            mapWindowRefContainer.bindWindow(mapWindow);
+        }
+        return mapWindow;
     }
 
     @Override

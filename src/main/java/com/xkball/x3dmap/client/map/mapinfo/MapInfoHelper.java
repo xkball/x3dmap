@@ -2,7 +2,7 @@ package com.xkball.x3dmap.client.map.mapinfo;
 
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
-import com.xkball.x3dmap.api.client.gui.IMapWindow;
+import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
@@ -39,8 +39,8 @@ public class MapInfoHelper {
     }
     
     public static void showInfoWindow(IMapGui mapGui) {
-        var content = new ContainerWidget()
-                .inlineStyle("flex-direction: column; size: 100% 100%;")
+        var content = new MapWindowRefContainer();
+        content.inlineStyle("flex-direction: column; size: 100% 100%;")
                 .asRootStyle("""
                         Label{
                             size: 100% 12rpx;
@@ -54,20 +54,16 @@ public class MapInfoHelper {
             content.addChild(new Label(IComponent.translatable(key)));
         }
         
-        var subWindowRef = new IMapWindow[1];
         var bottomRow = new ContainerWidget()
                 .inlineStyle("size: 100% 18rpx; flex-direction: row; align-items: center;")
-                .addChild(new Button(IComponent.translatable("xklibmc.compatibility.ok"), () -> {
-                    if (subWindowRef[0] != null) {
-                        subWindowRef[0].close();
-                    }
-                }).inlineStyle("size: 40rpx 16rpx; margin-left: auto; margin-right: auto; text-scale: expand-width; text-align: center; button-shape: rect;"));
+                .addChild(new Button(IComponent.translatable("xklibmc.compatibility.ok"), content::closeWindow)
+                        .inlineStyle("size: 40rpx 16rpx; margin-left: auto; margin-right: auto; text-scale: expand-width; text-align: center; button-shape: rect;"));
         
         content.addChild(bottomRow);
         
         var gui = GuiSystem.INSTANCE.get();
         var x = Math.max(0f, (gui.screenWidth - 360 * CssLengthUnit.rpxScaleWorkaround) / 2f);
         var y = Math.max(0f, (gui.screenHeight - 240) / 2f);
-        subWindowRef[0] = mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.map_info.title"), false, x, y, CssLengthUnit.rpx(360), CssLengthUnit.rpx(160)), content);
+        mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.map_info.title"), false, x, y, CssLengthUnit.rpx(360), CssLengthUnit.rpx(160)), content);
     }
 }

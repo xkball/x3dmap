@@ -2,7 +2,7 @@ package com.xkball.x3dmap.client.map.compatibility;
 
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
-import com.xkball.x3dmap.api.client.gui.IMapWindow;
+import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
@@ -48,8 +48,8 @@ public class CompatibilityExtension {
         
         var dontShowAgain = new BooleanLayoutVariable(false);
         
-        var content = new ContainerWidget()
-                .inlineStyle("flex-direction: column; size: 100% 100%;")
+        var content = new MapWindowRefContainer();
+        content.inlineStyle("flex-direction: column; size: 100% 100%;")
                 .asRootStyle("""
                         Label{
                             size: 100% 12rpx;
@@ -66,7 +66,6 @@ public class CompatibilityExtension {
             content.addChild(new Label("  - " + reason));
         }
         
-        var subWindowRef = new IMapWindow[1];
         var bottomRow = new ContainerWidget()
                 .inlineStyle("size: 100% 18rpx; flex-direction: row; align-items: center;")
                 .addChild(new CheckBox()
@@ -78,15 +77,13 @@ public class CompatibilityExtension {
                     if (dontShowAgain.get()) {
                         TerrainChunkManager.INSTANCE.compatibilityWarningSuppressed = true;
                     }
-                    if (subWindowRef[0] != null) {
-                        subWindowRef[0].close();
-                    }
+                    content.closeWindow();
                 }).inlineStyle("size: 40rpx 16rpx; text-scale: expand-width; text-align: center; button-shape: rect;"));
         content.addChild(bottomRow);
         
         var gui = GuiSystem.INSTANCE.get();
         var x = Math.max(0f, (gui.screenWidth - 240 * CssLengthUnit.rpxScaleWorkaround) / 2f);
         var y = Math.max(0f, (gui.screenHeight - 120) / 2f);
-        subWindowRef[0] = mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.compatibility.warning_title"), false, x, y, CssLengthUnit.rpx(240), CssLengthUnit.rpx(240)), content);
+        mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.compatibility.warning_title"), false, x, y, CssLengthUnit.rpx(240), CssLengthUnit.rpx(240)), content);
     }
 }

@@ -1,10 +1,30 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
+import com.xkball.xklibmc.annotation.NonNullByDefault;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.UUID;
 
+@NonNullByDefault
 public class Waypoint {
+
+    public static final StreamCodec<ByteBuf, Waypoint> STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC,
+            Waypoint::id,
+            ByteBufCodecs.STRING_UTF8,
+            Waypoint::name,
+            BlockPos.STREAM_CODEC,
+            Waypoint::pos,
+            ByteBufCodecs.INT,
+            Waypoint::color,
+            ByteBufCodecs.BOOL,
+            Waypoint::hidden,
+            Waypoint::new
+    );
     
     private final UUID id;
     private String name;
