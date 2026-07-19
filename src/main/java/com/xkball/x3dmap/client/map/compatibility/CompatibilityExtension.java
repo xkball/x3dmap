@@ -1,8 +1,9 @@
 package com.xkball.x3dmap.client.map.compatibility;
 
 import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.api.client.map.WorldMapExtension;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.api.client.gui.IMapGui;
+import com.xkball.x3dmap.api.client.gui.IMapWindow;
+import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
@@ -12,11 +13,12 @@ import com.xkball.xklib.ui.widget.Button;
 import com.xkball.xklib.ui.widget.CheckBox;
 import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
-import com.xkball.xklib.ui.widget.container.WindowedContainer;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 import java.util.ArrayList;
 
-public class CompatibilityExtension implements WorldMapExtension {
+@NonNullByDefault
+public class CompatibilityExtension {
     
     public static void initCompatibilityMode() {
         var reasons = new ArrayList<String>();
@@ -36,7 +38,7 @@ public class CompatibilityExtension implements WorldMapExtension {
         }
     }
     
-    public static void showWarningIfNeeded(WorldMapExtensionService service) {
+    public static void showWarningIfNeeded(IMapGui mapGui) {
         if (!TerrainChunkManager.INSTANCE.compatibleMode) {
             return;
         }
@@ -64,7 +66,7 @@ public class CompatibilityExtension implements WorldMapExtension {
             content.addChild(new Label("  - " + reason));
         }
         
-        var subWindowRef = new WindowedContainer.SubWindow[1];
+        var subWindowRef = new IMapWindow[1];
         var bottomRow = new ContainerWidget()
                 .inlineStyle("size: 100% 18rpx; flex-direction: row; align-items: center;")
                 .addChild(new CheckBox()
@@ -85,11 +87,6 @@ public class CompatibilityExtension implements WorldMapExtension {
         var gui = GuiSystem.INSTANCE.get();
         var x = Math.max(0f, (gui.screenWidth - 240 * CssLengthUnit.rpxScaleWorkaround) / 2f);
         var y = Math.max(0f, (gui.screenHeight - 120) / 2f);
-        subWindowRef[0] = service.addBlockingSubWindow(content, IComponent.translatable("xklibmc.compatibility.warning_title"), false, x, y, CssLengthUnit.rpx(240), CssLengthUnit.rpx(240));
-    }
-    
-    @Override
-    public String id() {
-        return "compatibility";
+        subWindowRef[0] = mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.compatibility.warning_title"), false, x, y, CssLengthUnit.rpx(240), CssLengthUnit.rpx(240)), content);
     }
 }

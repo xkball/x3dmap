@@ -1,7 +1,8 @@
 package com.xkball.x3dmap.client.map.uistate;
 
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionStorage;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -9,9 +10,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class WorldMapUiStateStorage implements WorldMapExtensionStorage {
-    
-    public static final String EXTENSION_ID = "ui_state";
+@NonNullByDefault
+public class WorldMapUiStateStorage {
+
+    public static final StreamCodec<ByteBuf, WorldMapUiStateStorage> STREAM_CODEC = new StreamCodec<>() {
+        @Override
+        public WorldMapUiStateStorage decode(ByteBuf input) {
+            var storage = new WorldMapUiStateStorage();
+            storage.load(input);
+            return storage;
+        }
+
+        @Override
+        public void encode(ByteBuf output, WorldMapUiStateStorage value) {
+            value.save(output);
+        }
+    };
     private static final int VERSION = 1;
     private static final byte TYPE_BOOLEAN = 1;
     private static final byte TYPE_INT = 2;
@@ -19,21 +33,10 @@ public class WorldMapUiStateStorage implements WorldMapExtensionStorage {
     private static final byte TYPE_STRING = 4;
     
     private final Map<String, Object> values = new HashMap<>();
-    private boolean dirty;
-    
-    @Override
-    public String extensionId() {
-        return EXTENSION_ID;
-    }
-    
-    @Override
-    public boolean dirty() {
-        return this.dirty;
-    }
-    
-    @Override
-    public void clearDirty() {
-        this.dirty = false;
+    private @Nullable Runnable dirtyListener;
+
+    public void setDirtyListener(@Nullable Runnable dirtyListener) {
+        this.dirtyListener = dirtyListener;
     }
     
     public boolean contains(String key) {
@@ -82,7 +85,6 @@ public class WorldMapUiStateStorage implements WorldMapExtensionStorage {
         this.setValue(key, value);
     }
     
-    @Override
     public void load(ByteBuf byteBuf) {
         this.values.clear();
         var version = byteBuf.readInt();
@@ -102,10 +104,8 @@ public class WorldMapUiStateStorage implements WorldMapExtensionStorage {
                 }
             }
         }
-        this.clearDirty();
     }
     
-    @Override
     public void save(ByteBuf byteBuf) {
         byteBuf.writeInt(VERSION);
         byteBuf.writeInt(this.values.size());
@@ -136,7 +136,9 @@ public class WorldMapUiStateStorage implements WorldMapExtensionStorage {
     }
     
     private void markDirty() {
-        this.dirty = true;
+        if (this.dirtyListener != null) {
+            this.dirtyListener.run();
+        }
     }
     
     private void writeString(ByteBuf byteBuf, String value) {

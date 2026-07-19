@@ -6,8 +6,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.X3dMapClient;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionContext;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionRegistry;
+import com.xkball.x3dmap.client.map.plugin.X3dMapPluginRegistry;
 import com.xkball.x3dmap.api.mixin.IExtendedTlsfAllocation;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
 import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
@@ -16,6 +15,7 @@ import com.xkball.x3dmap.utils.X3dClientUtils;
 import com.xkball.xklibmc.XKLibMCClient;
 import com.xkball.xklibmc.api.client.b3d.ICloseOnExit;
 import com.xkball.xklibmc.client.b3d.IndirectDrawCommand;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.utils.ClientUtils;
 import com.xkball.xklibmc.utils.VanillaUtils;
 import net.minecraft.client.Minecraft;
@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @EventBusSubscriber(Dist.CLIENT)
+@NonNullByDefault
 public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -59,7 +60,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public final Map<ResourceKey<Level>, LevelChunkStorage> storageMap = new ConcurrentHashMap<>();
     public final DualQueueThreadPool taskQueue = new DualQueueThreadPool();
-    public final WorldMapExtensionRegistry worldMapExtensionRegistry = new WorldMapExtensionRegistry();
+    public final X3dMapPluginRegistry mapPluginRegistry = new X3dMapPluginRegistry();
     public boolean compatibleMode = false;
     public List<String> compatibilityReasons = Collections.emptyList();
     public boolean compatibilityWarningSuppressed = false;
@@ -69,10 +70,10 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
+        INSTANCE.initializeMapApi();
         if (!Minecraft.getInstance().isPaused() && Minecraft.getInstance().level != null) {
             INSTANCE.tryLoadLevel(Minecraft.getInstance().level);
             INSTANCE.taskQueue.runFor10ms();
-            INSTANCE.worldMapExtensionRegistry.tick();
             for (var s : INSTANCE.storageMap.values()) {
                 for (var b : s.getGpuBuffers()) {
                     if (!b.stagedAllocations.isEmpty()) {
@@ -97,9 +98,9 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         int saveInterval = ClientConfig.AUTO_SAVE_INTERVAL.get();
         if (saveInterval > 0 && XKLibMCClient.tickCount % saveInterval == 0) {
             for (var s : INSTANCE.storageMap.values()) {
-                INSTANCE.worldMapExtensionRegistry.onStorageSaving(s);
                 s.saveFile(true);
             }
+            INSTANCE.mapPluginRegistry.saveData();
         }
     }
     
@@ -134,12 +135,14 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         var level = Minecraft.getInstance().level;
         if (level == null) return;
         INSTANCE.setCloseOnExit();
+        INSTANCE.initializeMapApi();
+        INSTANCE.mapPluginRegistry.openRuntime(ClientUtils.getSaveOrServerName());
         CompatibilityExtension.initCompatibilityMode();
         if (!INSTANCE.storageMap.containsKey(level.dimension())) {
             INSTANCE.tryLoadLevel(level);
         } else {
             var s = INSTANCE.storageMap.get(level.dimension());
-            INSTANCE.worldMapExtensionRegistry.onStorageLoaded(s);
+            INSTANCE.mapPluginRegistry.openLevel(s.dimension, s.getDirectory());
             s.loadFile();
         }
     }
@@ -148,6 +151,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public static void onClientLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
         var level = Minecraft.getInstance().level;
         INSTANCE.unloadLevel(level);
+        INSTANCE.mapPluginRegistry.closeRuntime();
     }
     
     public void enqueueUpdate(ChunkPos chunkPos) {
@@ -172,13 +176,18 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     public TerrainChunkManager() {
-        this.worldMapExtensionRegistry.init(new WorldMapExtensionContext(this, this.worldMapExtensionRegistry));
+    }
+
+    public void initializeMapApi() {
+        this.mapPluginRegistry.initialize(this);
     }
     
     public void tryLoadLevel(Level level) {
+        this.initializeMapApi();
+        this.mapPluginRegistry.openRuntime(ClientUtils.getSaveOrServerName());
         if (!this.storageMap.containsKey(level.dimension())) {
             var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), this.compatibleMode);
-            this.worldMapExtensionRegistry.onStorageLoaded(s);
+            this.mapPluginRegistry.openLevel(s.dimension, s.getDirectory());
             s.loadFile();
             this.storageMap.put(level.dimension(), s);
         }
@@ -395,14 +404,13 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         this.taskQueue.submitWorker(task);
     }
     
-    public void unloadLevel(Level level) {
+    public void unloadLevel(@Nullable Level level) {
         if (level != null) {
             var storage = this.storageMap.get(level.dimension());
             if (storage != null) {
-                this.worldMapExtensionRegistry.onStorageClosed(storage);
-                this.worldMapExtensionRegistry.onStorageSaving(storage);
                 storage.unloadGpu();
                 storage.saveFile(false);
+                this.mapPluginRegistry.closeLevel(level.dimension());
             }
             this.storageMap.remove(level.dimension());
         }
@@ -415,6 +423,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         for (var storage : this.storageMap.values()) {
             storage.unloadGpu();
         }
+        this.mapPluginRegistry.closeRuntime();
         this.taskQueue.shutdown();
     }
     

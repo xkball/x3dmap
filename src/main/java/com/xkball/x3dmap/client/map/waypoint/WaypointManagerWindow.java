@@ -5,20 +5,24 @@ import com.xkball.xklib.ui.widget.Button;
 import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.Widget;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 import java.util.function.Consumer;
 
+@NonNullByDefault
 public class WaypointManagerWindow extends ContainerWidget {
     
     private final WaypointStorage storage;
     private final Consumer<Waypoint> openDetail;
     private final Runnable changed;
+    private final Runnable dirtyListener;
     
     public WaypointManagerWindow(WaypointStorage storage, Consumer<Waypoint> openDetail, Runnable changed) {
         this.storage = storage;
         this.openDetail = openDetail;
         this.changed = changed;
-        this.storage.onMarkDirty = () -> this.submitTreeUpdate(this::rebuild);
+        this.dirtyListener = () -> this.submitTreeUpdate(this::rebuild);
+        this.storage.addDirtyListener(this.dirtyListener);
         this.inlineStyle("""
                         flex-direction: column;
                         size: 100% 100%;
@@ -157,6 +161,6 @@ public class WaypointManagerWindow extends ContainerWidget {
     @Override
     public void onRemove() {
         super.onRemove();
-        this.storage.onMarkDirty = null;
+        this.storage.removeDirtyListener(this.dirtyListener);
     }
 }

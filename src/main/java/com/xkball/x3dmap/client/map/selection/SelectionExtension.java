@@ -1,12 +1,10 @@
 package com.xkball.x3dmap.client.map.selection;
 
-import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
-import com.xkball.x3dmap.api.client.map.WorldMapEvent;
-import com.xkball.x3dmap.api.client.map.WorldMapExtension;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionContext;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
-import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.api.client.gui.IMapScreenContext;
+import com.xkball.x3dmap.api.client.gui.IMapScreenExtension;
+import com.xkball.x3dmap.api.client.gui.MapToolbarSlot;
+import com.xkball.x3dmap.api.client.gui.input.MapInputEvent;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.network.c2s.RequestServerChunk;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -14,6 +12,7 @@ import com.xkball.xklib.XKLib;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.widget.IconButton;
 import com.xkball.xklib.ui.widget.Widget;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.joml.Vector2f;
@@ -22,67 +21,51 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 
-public class SelectionExtension implements WorldMapExtension {
+@NonNullByDefault
+public class SelectionExtension implements IMapScreenExtension {
     
-    public static final String EXTENSION_ID = "selection";
     private static @Nullable SelectionStorage currentStorage;
     
+    private final IMapScreenContext context;
     private final SelectionStorage storage = new SelectionStorage();
     private final SelectionRectangleWidget selectionRectWidget = new SelectionRectangleWidget();
     private boolean selecting;
     private boolean dragging;
-    private Vector2f dragStartScreen;
-    private Vector2f dragEndScreen;
+    private @Nullable Vector2f dragStartScreen;
+    private @Nullable Vector2f dragEndScreen;
+
+    public SelectionExtension(IMapScreenContext context) {
+        this.context = context;
+    }
     
     public static @Nullable SelectionStorage currentStorage() {
         return currentStorage;
     }
     
     @Override
-    public String id() {
-        return EXTENSION_ID;
-    }
-    
-    @Override
-    public int order() {
-        return 1;
-    }
-    
-    @Override
-    public void init(WorldMapExtensionContext context) {
-        WorldTerrainPipRenderer.regRenderLayers(SelectionOverlayRenderer::new);
-    }
-    
-    @Override
-    public List<String> enabledLayers(WorldMapExtensionService service) {
-        return List.of("selection");
-    }
-    
-    @Override
-    public void onMapOpened(WorldMapExtensionService service) {
+    public void onOpen() {
         currentStorage = this.storage;
-        service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section"), () -> this.selecting = !this.selecting)
+        this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new IconButton(VanillaUtils.modrl("icon/section"), () -> this.selecting = !this.selecting)
                 .withTooltip(IComponent.translatable("xklibmc.selection.toggle_mode")));
-        service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_clear"), this::clearSelection)
+        this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new IconButton(VanillaUtils.modrl("icon/section_clear"), this::clearSelection)
                 .withTooltip(IComponent.translatable("xklibmc.selection.clear_selected")));
-        service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_renew"), this::clientRerender)
+        this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new IconButton(VanillaUtils.modrl("icon/section_renew"), this::clientRerender)
                 .withTooltip(IComponent.translatable("xklibmc.selection.rerender_chunks")));
         if(ServerConfig.ALLOW_SERVER_SENT_CHUNK.get() || XKLib.IS_DEBUG){
-            service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_renew_server"), this::serverRerender)
+            this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new IconButton(VanillaUtils.modrl("icon/section_renew_server"), this::serverRerender)
                     .withTooltip(IComponent.translatable("xklibmc.selection.request_resend")));
         }
-        service.addTopBar2Widget(new IconButton(VanillaUtils.modrl("icon/section_delete"), this::deleteSelection)
+        this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new IconButton(VanillaUtils.modrl("icon/section_delete"), this::deleteSelection)
                 .withTooltip(IComponent.translatable("xklibmc.selection.delete_chunks")));
-        service.addTopBar2Widget(new Widget().setCSSClassName("splitter"));
+        this.context.gui().addToolbarWidget(MapToolbarSlot.TOP_SECONDARY, new Widget().setCSSClassName("splitter"));
         
-        service.setInnerOverlayProvider(() -> this.selectionRectWidget);
-        service.refreshInnerOverlay();
+        this.context.gui().setOverlay(this.context.extensionId(), () -> this.selectionRectWidget);
+        this.context.gui().refreshOverlays();
     }
     
     @Override
-    public void onMapClosed(WorldMapExtensionService service) {
+    public void close() {
         currentStorage = null;
         this.storage.clear();
         this.selecting = false;
@@ -91,34 +74,35 @@ public class SelectionExtension implements WorldMapExtension {
     }
     
     @Override
-    public void onMapEvent(WorldMapExtensionService service, WorldMapEvent event) {
+    public boolean handle(MapInputEvent event) {
         if (!this.selecting) {
-            return;
+            return false;
         }
-        if (event instanceof WorldMapEvent.MouseClicked clicked && clicked.event().button() == 0 && !clicked.doubleClick()) {
+        if (event instanceof MapInputEvent.MouseClicked clicked && clicked.event().button() == 0 && !clicked.doubleClick()) {
             this.dragStartScreen = new Vector2f((float) clicked.event().x(), (float) clicked.event().y());
             this.dragging = true;
             this.selectionRectWidget.setStart(this.dragStartScreen);
             this.selectionRectWidget.setEnd(this.dragStartScreen);
-            service.refreshInnerOverlay();
-            clicked.consume();
-        } else if (event instanceof WorldMapEvent.MouseDragged dragged && dragged.event().button() == 0 && this.dragging) {
+            this.context.gui().refreshOverlays();
+            return true;
+        } else if (event instanceof MapInputEvent.MouseDragged dragged && dragged.event().button() == 0 && this.dragging) {
             this.dragEndScreen = new Vector2f((float) (dragged.event().x() + dragged.dx()), (float) (dragged.event().y() + dragged.dy()));
             this.selectionRectWidget.setEnd(this.dragEndScreen);
-            service.refreshInnerOverlay();
-            dragged.consume();
-        } else if (event instanceof WorldMapEvent.MouseReleased released && released.event().button() == 0 && this.dragging) {
+            this.context.gui().refreshOverlays();
+            return true;
+        } else if (event instanceof MapInputEvent.MouseReleased released && released.event().button() == 0 && this.dragging) {
             this.dragging = false;
             this.dragEndScreen = new Vector2f((float) released.event().x(), (float) released.event().y());
             this.selectionRectWidget.setEnd(this.dragEndScreen);
-            service.refreshInnerOverlay();
-            this.finishSelection(service);
+            this.context.gui().refreshOverlays();
+            this.finishSelection();
             this.selecting = false;
-            released.consume();
+            return true;
         }
+        return false;
     }
     
-    private void finishSelection(WorldMapExtensionService service) {
+    private void finishSelection() {
         if (this.dragStartScreen == null || this.dragEndScreen == null) {
             return;
         }
@@ -133,7 +117,7 @@ public class SelectionExtension implements WorldMapExtension {
         var step = 16f;
         for (var sx = x0; sx <= x1; sx += step) {
             for (var sy = y0; sy <= y1; sy += step) {
-                var wp = service.projScreen2World(sx, sy);
+                var wp = this.context.view().screenToWorld(sx, sy);
                 if (wp != null) {
                     worldMin.x = Math.min(worldMin.x, wp.x);
                     worldMin.z = Math.min(worldMin.z, wp.z);
@@ -162,7 +146,7 @@ public class SelectionExtension implements WorldMapExtension {
         
         this.storage.addAll(toAdd);
         this.selectionRectWidget.clear();
-        service.refreshInnerOverlay();
+        this.context.gui().refreshOverlays();
     }
     
     private void clearSelection() {

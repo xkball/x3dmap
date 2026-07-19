@@ -1,6 +1,5 @@
 package com.xkball.x3dmap;
 
-import com.xkball.x3dmap.client.map.minimap.MinimapExtension;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -13,6 +12,11 @@ public class ClientConfig {
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
     public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
+    public static final ModConfigSpec.IntValue MINIMAP_HIGH_DETAIL_RANGE;
+    public static final ModConfigSpec.BooleanValue MINIMAP_ROTATE_WITH_PLAYER;
+    public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_X_ROT;
+    public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_FOV;
+    public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_LENGTH;
     public static final ModConfigSpec.IntValue MINIMAP_SIZE;
     public static final ModConfigSpec.IntValue MINIMAP_PADDING;
     public static final ModConfigSpec.IntValue MINIMAP_RENDER_INTERVAL;
@@ -32,6 +36,21 @@ public class ClientConfig {
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);
+        MINIMAP_HIGH_DETAIL_RANGE = builder
+                .comment("Minimap high detail range in chunks.")
+                .defineInRange("minimapHighDetailRange", 8, 0, 64);
+        MINIMAP_ROTATE_WITH_PLAYER = builder
+                .comment("Rotate the minimap with the player.")
+                .define("minimapRotateWithPlayer", false);
+        MINIMAP_CAMERA_X_ROT = builder
+                .comment("Minimap camera X rotation.")
+                .defineInRange("minimapCameraXRot", 89.0, -89.9, 89.9);
+        MINIMAP_CAMERA_FOV = builder
+                .comment("Minimap camera field of view.")
+                .defineInRange("minimapCameraFov", 60.0, 5.0, 90.0);
+        MINIMAP_CAMERA_LENGTH = builder
+                .comment("Minimap camera length.")
+                .defineInRange("minimapCameraLength", 0.0, 0.0, 100000.0);
         MINIMAP_SIZE = builder
                 .comment("Minimap size as percentage of screen height. Default: 15.")
                 .defineInRange("minimapSize", 25, 1, 50);
@@ -57,9 +76,6 @@ public class ClientConfig {
     }
     
     public static void update() {
-        if (MinimapExtension.INSTANCE != null) {
-            MinimapExtension.INSTANCE.minimapEnabled.set(MINIMAP_ENABLED.get());
-        }
     }
     
     @SubscribeEvent

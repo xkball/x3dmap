@@ -1,6 +1,7 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.api.client.gui.IMapGui;
+import com.xkball.x3dmap.api.client.gui.IMapWindow;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.render.IGUIGraphics;
@@ -8,14 +9,15 @@ import com.xkball.xklib.ui.widget.Button;
 import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.Widget;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
-import com.xkball.xklib.ui.widget.container.WindowedContainer;
 import com.xkball.xklibmc.ui.widget.ColorInputWidget;
 import com.xkball.xklibmc.ui.widget.NumberInputWidget;
 import com.xkball.xklibmc.ui.widget.ObjectInputWidget;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.core.BlockPos;
 
 import java.util.UUID;
 
+@NonNullByDefault
 public class WaypointDetailWindow extends ContainerWidget {
     
     private final boolean temporary;
@@ -23,7 +25,7 @@ public class WaypointDetailWindow extends ContainerWidget {
     private final Runnable removeTemporary;
     private boolean temporaryResolved;
     
-    public WaypointDetailWindow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint, boolean temporary, Runnable changed, Runnable removeTemporary, Runnable closeWindow) {
+    public WaypointDetailWindow(IMapGui gui, WaypointStorage storage, Waypoint waypoint, boolean temporary, Runnable changed, Runnable removeTemporary, Runnable closeWindow) {
         this.temporary = temporary;
         this.changed = changed;
         this.removeTemporary = removeTemporary;
@@ -101,7 +103,7 @@ public class WaypointDetailWindow extends ContainerWidget {
         x.setCallback(_ -> posCallback.run());
         y.setCallback(_ -> posCallback.run());
         z.setCallback(_ -> posCallback.run());
-        var colorRow = this.createColorRow(service, storage, waypoint);
+        var colorRow = this.createColorRow(gui, storage, waypoint);
         var editor = new ContainerWidget()
                 .inlineStyle("flex-direction: column; size: 90% auto; margin: 3rpx;")
                 .addChild(new Label(IComponent.translatable("xklibmc.waypoint.name")).inlineStyle("height: 8rpx;"))
@@ -166,17 +168,17 @@ public class WaypointDetailWindow extends ContainerWidget {
         }
     }
     
-    private Widget createColorRow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint) {
+    private Widget createColorRow(IMapGui gui, WaypointStorage storage, Waypoint waypoint) {
         return new ContainerWidget()
                 .setCSSClassName("color_row")
                 .addChild(new ColorPreviewWidget(waypoint).setCSSClassName("color_preview"))
-                .addChild(new Button(IComponent.translatable("xklibmc.waypoint.edit"), () -> this.openColorWindow(service, storage, waypoint)).setCSSClassName("color_edit_btn"));
+                .addChild(new Button(IComponent.translatable("xklibmc.waypoint.edit"), () -> this.openColorWindow(gui, storage, waypoint)).setCSSClassName("color_edit_btn"));
     }
     
-    private void openColorWindow(WorldMapExtensionService service, WaypointStorage storage, Waypoint waypoint) {
+    private void openColorWindow(IMapGui gui, WaypointStorage storage, Waypoint waypoint) {
         var colorInput = new ColorInputWidget();
         colorInput.setValue(waypoint.color());
-        var holder = new WindowedContainer.SubWindow[1];
+        var holder = new IMapWindow[1];
         var content = new ContainerWidget()
                 .inlineStyle("""
                         flex-direction: column;
@@ -212,7 +214,7 @@ public class WaypointDetailWindow extends ContainerWidget {
                             this.changed.run();
                             holder[0].close();
                         }).setCSSClassName("color_action_btn")));
-        holder[0] = service.addBlockingSubWindow(content, IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240));
+        holder[0] = gui.openWindow(com.xkball.x3dmap.api.client.gui.MapWindowSpec.blocking(IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240)), content);
     }
     
     private static class ColorPreviewWidget extends Widget {

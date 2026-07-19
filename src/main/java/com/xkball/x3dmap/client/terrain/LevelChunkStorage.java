@@ -2,23 +2,16 @@ package com.xkball.x3dmap.client.terrain;
 
 import com.mojang.blaze3d.GraphicsWorkarounds;
 import com.mojang.blaze3d.vertex.UberGpuBuffer;
-import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.X3dMapClient;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionStorage;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.utils.ClientUtils;
-import io.netty.buffer.Unpooled;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.loading.FMLPaths;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -29,10 +22,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+@NonNullByDefault
 public class LevelChunkStorage {
     
     public static final int VERSION = 3;
-    private static final Logger LOGGER = LogUtils.getLogger();
     public static final ChunkComplier COMPLIER = new ChunkComplier();
     
     public final int minHeight;
@@ -47,7 +40,6 @@ public class LevelChunkStorage {
     private final List<UberGpuBuffer<?>> gpuBuffers = new ArrayList<>();
     public final Map<RegionPos, RegionStorage> regionMap = new LinkedHashMap<>();
     public final Set<RegionPos> residentRegions = new LinkedHashSet<>();
-    private final Map<String, WorldMapExtensionStorage> extensionStorageMap = new LinkedHashMap<>();
     
     public LevelChunkStorage(ResourceKey<Level> dimension, int minHeight, int maxHeight, boolean compatibleMode) {
         this.dimension = dimension;
@@ -91,18 +83,6 @@ public class LevelChunkStorage {
         }
     }
     
-    public void registerExtensionStorage(WorldMapExtensionStorage storage) {
-        this.extensionStorageMap.put(storage.extensionId(), storage);
-    }
-    
-    public @Nullable WorldMapExtensionStorage getExtensionStorage(String extensionId) {
-        return this.extensionStorageMap.get(extensionId);
-    }
-    
-    public Path getExtensionFile(String extensionId) {
-        return this.getDirectory().resolve(extensionId);
-    }
-    
     public void unloadGpu() {
         for (var b : this.gpuBuffers) {
             b.close();
@@ -120,7 +100,6 @@ public class LevelChunkStorage {
                 }
             }
         }
-        this.saveExtensionFiles();
     }
     
     public int getHeight(int x, int z) {
@@ -189,7 +168,6 @@ public class LevelChunkStorage {
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> X3dMapClient.loading = false);
             });
         }, TerrainChunkManager.INSTANCE.taskQueue.workers);
-        this.loadExtensionFiles();
     }
     
     public void saveRegion(RegionPos regionPos) {
@@ -239,61 +217,6 @@ public class LevelChunkStorage {
     public Path getDirectory() {
         var dim = dimension.identifier();
         return FMLPaths.GAMEDIR.get().resolve("x3dmap").resolve(this.saveName).resolve(dim.getNamespace()).resolve(dim.getPath());
-    }
-    
-    private boolean hasDirtyExtensionStorage() {
-        for (var storage : this.extensionStorageMap.values()) {
-            if (storage.dirty()) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private void loadExtensionFiles() {
-        for (var storage : this.extensionStorageMap.values()) {
-            var file = this.getExtensionFile(storage.extensionId());
-            if (!file.toFile().exists()) {
-                continue;
-            }
-            try {
-                var bytes = Files.readAllBytes(file);
-                bytes = VanillaUtils.unGzip(bytes);
-                var byteBuf = Unpooled.buffer(bytes.length);
-                byteBuf.writeBytes(bytes);
-                storage.load(byteBuf);
-                storage.clearDirty();
-            } catch (Exception e) {
-                LOGGER.error("Failed to load map extension storage {}", storage.extensionId(), e);
-            }
-        }
-    }
-    
-    private void saveExtensionFiles() {
-        for (var storage : this.extensionStorageMap.values()) {
-            if (!storage.dirty()) {
-                continue;
-            }
-            var file = this.getExtensionFile(storage.extensionId()).toFile();
-            if (!file.exists()) {
-                file.getParentFile().mkdirs();
-                try {
-                    file.createNewFile();
-                } catch (IOException e) {
-                    LOGGER.error("Failed to create map extension storage file {}", file.getAbsolutePath(), e);
-                    throw new RuntimeException(e);
-                }
-            }
-            try (var output = new FileOutputStream(file)) {
-                var byteBuf = Unpooled.buffer();
-                storage.save(byteBuf);
-                output.write(VanillaUtils.gzip(byteBuf.array(), 0, byteBuf.readableBytes()));
-                storage.clearDirty();
-            } catch (IOException e) {
-                LOGGER.error("Failed to save map extension storage file {}", file.getAbsolutePath(), e);
-                throw new RuntimeException(e);
-            }
-        }
     }
     
 }

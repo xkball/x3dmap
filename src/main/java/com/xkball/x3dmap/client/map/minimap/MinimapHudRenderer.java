@@ -5,10 +5,10 @@ import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklibmc.api.client.b3d.SamplerCacheCache;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -18,24 +18,25 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.util.Lazy;
 import org.joml.Vector3f;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+@NonNullByDefault
 public final class MinimapHudRenderer {
 
-    private static final WorldMapExtensionServiceImpl HUD_SERVICE = new WorldMapExtensionServiceImpl("");
     private static final Lazy<WorldTerrainPipRenderer> TERRAIN_RENDERER = Lazy.of(() -> new WorldTerrainPipRenderer(Minecraft.getInstance().renderBuffers().bufferSource()));
-    private static GpuTexture offscreenColorTexture;
-    private static GpuTextureView offscreenColorTextureView;
-    private static GpuTexture offscreenDepthTexture;
-    private static GpuTextureView offscreenDepthTextureView;
+    private static @Nullable GpuTexture offscreenColorTexture;
+    private static @Nullable GpuTextureView offscreenColorTextureView;
+    private static @Nullable GpuTexture offscreenDepthTexture;
+    private static @Nullable GpuTextureView offscreenDepthTextureView;
     private static int offscreenTexWidth;
     private static int offscreenTexHeight;
     
     private static long frameCount;
     private static double lastRenderPlayerX = Double.NaN;
     private static double lastRenderPlayerZ = Double.NaN;
-    private static Level lastLevel;
+    private static @Nullable Level lastLevel;
 
     private MinimapHudRenderer() {
     }
@@ -44,9 +45,6 @@ public final class MinimapHudRenderer {
         var mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null || mc.options.hideGui || mc.screen != null) return;
         if (!ClientConfig.MINIMAP_ENABLED.get()) return;
-        var minimap = MinimapExtension.INSTANCE;
-        if (minimap == null) return;
-        
         if (mc.level != lastLevel) {
             lastLevel = mc.level;
             frameCount = 0;
@@ -82,14 +80,15 @@ public final class MinimapHudRenderer {
         var blockPos = player.blockPosition();
         var targetY = MinimapRenderHelper.getCameraTargetY(player.getY(), blockPos.getX(), blockPos.getZ(), mc.level.getMinY());
         var target = new Vector3f((float) player.getX(), targetY, (float) player.getZ());
-        var layers = MinimapRenderHelper.buildEnabledLayers(HUD_SERVICE);
-        var yRot = minimap.rotateWithPlayer() ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
+        var layers = MinimapRenderHelper.buildEnabledLayers();
+        var rotateWithPlayer = ClientConfig.MINIMAP_ROTATE_WITH_PLAYER.get();
+        var yRot = rotateWithPlayer ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
 
         int renderInterval = ClientConfig.MINIMAP_RENDER_INTERVAL.get();
         boolean shouldRender = (frameCount % renderInterval == 1) || needsResize;
 //        shouldRender = true;
         if (shouldRender && offscreenColorTextureView != null && offscreenDepthTextureView != null) {
-            renderTerrainToOffscreen(minimap, layers, target, blockPos, yRot, newTexSize);
+            renderTerrainToOffscreen(layers, target, blockPos, yRot, newTexSize);
             lastRenderPlayerX = player.getX();
             lastRenderPlayerZ = player.getZ();
         }
@@ -100,8 +99,8 @@ public final class MinimapHudRenderer {
                 float dx = (float) (player.getX() - lastRenderPlayerX);
                 float dz = (float) (player.getZ() - lastRenderPlayerZ);
             
-                float cameraLength = minimap.camCameraLength();
-                float fov = minimap.camFov();
+                float cameraLength = ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue();
+                float fov = ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue();
                 float worldCoverage = (float) (2 * (cameraLength + 100) * Math.tan(Math.toRadians(fov / 2)));
                 float pixelsPerWorld = realMapSize / worldCoverage;
 
@@ -136,9 +135,8 @@ public final class MinimapHudRenderer {
         
         MinimapRenderHelper.drawBorder(graphics, x0, y0, x1, y1);
         var b3dGraphics = MinimapRenderHelper.getOrCreateB3dGuiGraphics(graphics);
-        if (HUD_SERVICE.getBooleanState("compass", true))
-            CompassRenderer.render(b3dGraphics, x0, y0, x1, y1, yRot, 0, 8f);
-        MinimapPlayerMarker.render(b3dGraphics, x0, y0, x1, y1, player.getYRot(), minimap.rotateWithPlayer());
+        CompassRenderer.render(b3dGraphics, x0, y0, x1, y1, yRot, 0, 8f);
+        MinimapPlayerMarker.render(b3dGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer);
         var coords = "%d %d %d".formatted(blockPos.getX(), blockPos.getY(), blockPos.getZ());
         var textX = (x0 + x1) / 2f;
         var textY = y1 + 8;
@@ -149,10 +147,10 @@ public final class MinimapHudRenderer {
         b3dGraphics.drawCenteredString(coords, textX, textY, 0xCCFFFFFF);
     }
 
-    private static void renderTerrainToOffscreen(MinimapExtension minimap, List<String> layers, Vector3f target,
+    private static void renderTerrainToOffscreen(List<net.minecraft.resources.Identifier> layers, Vector3f target,
             BlockPos blockPos, float yRot, int texSize) {
         
-        float baseFov = minimap.camFov();
+        float baseFov = ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue();
         float offscreenScale = texSize / (texSize / 1.1f);
         float offscreenFov = (float) (2 * Math.toDegrees(
                 Math.atan(Math.tan(Math.toRadians(baseFov / 2)) * offscreenScale)
@@ -161,15 +159,15 @@ public final class MinimapHudRenderer {
         var state = new WorldTerrainPipRenderer.WorldTerrainState(
                 layers, target, blockPos,
                 offscreenFov,
-                minimap.camCameraLength(),
-                minimap.camXRot(),
+                ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue(),
+                ClientConfig.MINIMAP_CAMERA_X_ROT.get().floatValue(),
                 yRot,
                 0, texSize, 0, texSize,
                 1.0f,
-                HUD_SERVICE.getBooleanState("depress_sphere", false),
-                HUD_SERVICE.getIntState("lod_distance", 512),
+                false,
+                512,
                 true,
-                minimap.highDetailRange(),
+                ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get(),
                 null,
                 new ScreenRectangle(0, 0, texSize, texSize)
         );

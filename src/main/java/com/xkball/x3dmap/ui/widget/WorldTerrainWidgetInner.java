@@ -1,9 +1,12 @@
 package com.xkball.x3dmap.ui.widget;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.xkball.x3dmap.api.client.map.WorldMapEvent;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.api.client.gui.input.MapInputEvent;
+import com.xkball.x3dmap.api.client.render.MapRenderTarget;
+import com.xkball.x3dmap.api.client.storage.IMapDataHandle;
+import com.xkball.x3dmap.client.map.gui.MapScreenSession;
 import com.xkball.x3dmap.client.map.minimap.CompassRenderer;
+import com.xkball.x3dmap.client.map.uistate.WorldMapUiStateStorage;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -24,6 +27,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix2f;
 import org.joml.Vector2f;
@@ -52,7 +56,8 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     private boolean rotating;
     private float fov = 60;
     private WorldTerrainPipRenderer.@Nullable WorldTerrainState lastState;
-    private @Nullable WorldMapExtensionService extensionService;
+    private @Nullable MapScreenSession screenSession;
+    private @Nullable IMapDataHandle<WorldMapUiStateStorage> uiState;
     private final AbsoluteContainer extensionOverlay = new AbsoluteContainer();
     private final Map<String, Supplier<Widget>> extensionOverlayProviders = new LinkedHashMap<>();
     private final Set<Integer> pressedMovementKeys = new HashSet<>();
@@ -88,27 +93,39 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         this.yMode.addCallback(_ -> this.setCameraY());
     }
     
-    public void setExtensionService(WorldMapExtensionService extensionService) {
-        this.extensionService = extensionService;
-        this.xRot = this.extensionService.getFloatState(KEY_CAM_XROT, this.xRot);
-        this.yRot = this.extensionService.getFloatState(KEY_CAM_YROT, this.yRot);
-        this.fov = this.extensionService.getFloatState(KEY_CAM_FOV, this.fov);
-        this.cameraLength = this.extensionService.getFloatState(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
+    public void setScreenSession(MapScreenSession screenSession) {
+        this.screenSession = screenSession;
     }
-    
-    public void onMapClosed(WorldMapExtensionService service) {
-        service.setFloatState(KEY_CAM_XROT, this.xRot);
-        service.setFloatState(KEY_CAM_YROT, this.yRot);
-        service.setFloatState(KEY_CAM_FOV, this.fov);
-        service.setFloatState(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
+
+    public void setUiStateHandle(@Nullable IMapDataHandle<WorldMapUiStateStorage> uiState) {
+        this.uiState = uiState;
+        if (uiState == null) {
+            return;
+        }
+        var state = uiState.value();
+        this.xRot = state.getFloat(KEY_CAM_XROT, this.xRot);
+        this.yRot = state.getFloat(KEY_CAM_YROT, this.yRot);
+        this.fov = state.getFloat(KEY_CAM_FOV, this.fov);
+        this.cameraLength = state.getFloat(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
+    }
+
+    public void saveUiState() {
+        if (this.uiState == null) {
+            return;
+        }
+        var state = this.uiState.value();
+        state.setFloat(KEY_CAM_XROT, this.xRot);
+        state.setFloat(KEY_CAM_YROT, this.yRot);
+        state.setFloat(KEY_CAM_FOV, this.fov);
+        state.setFloat(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
     }
     
     public void setExtensionOverlayProvider(String extensionId, Supplier<Widget> provider) {
         this.extensionOverlayProviders.put(extensionId, provider);
-        this.refreshExtensionOverlay(extensionId);
+        this.refreshExtensionOverlays();
     }
     
-    public void refreshExtensionOverlay(String extensionId) {
+    public void refreshExtensionOverlays() {
         this.extensionOverlay.clearChildren();
         for (var provider : this.extensionOverlayProviders.values()) {
             this.extensionOverlay.addChild(provider.get());
@@ -157,12 +174,19 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
             lastState = null;
             return;
         }
-        var list = new ArrayList<String>();
-        if (terrain.get()) list.add("terrain");
-        if (grid.get()) list.add("grid");
-        if (player.get()) list.add("player");
-        if (cameraTarget_.get()) list.add("cameraTarget");
-        list.addAll(TerrainChunkManager.INSTANCE.worldMapExtensionRegistry.enabledLayers(this.extensionService));
+        var list = new ArrayList<Identifier>();
+        for (var id : TerrainChunkManager.INSTANCE.mapPluginRegistry.layerRegistry().layers(MapRenderTarget.WORLD_MAP)) {
+            var enabled = switch (id.getPath()) {
+                case "terrain" -> terrain.get();
+                case "grid" -> grid.get();
+                case "player" -> player.get();
+                case "camera_target" -> cameraTarget_.get();
+                default -> true;
+            };
+            if (enabled) {
+                list.add(id);
+            }
+        }
         
         var scaleX = XKLibBaseScreen.tryGetScaleX();
         var scaleY = XKLibBaseScreen.tryGetScaleY();
@@ -279,7 +303,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     protected boolean onMouseClicked(IMouseButtonEvent event, boolean doubleClick) {
-        if (this.dispatchMapEvent(new WorldMapEvent.MouseClicked(event, doubleClick))) {
+        if (this.dispatchMapEvent(new MapInputEvent.MouseClicked(event, doubleClick))) {
             return true;
         }
         if (event.button() == 2) {
@@ -294,7 +318,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     protected boolean onMouseReleased(IMouseButtonEvent event) {
-        if (this.dispatchMapEvent(new WorldMapEvent.MouseReleased(event))) {
+        if (this.dispatchMapEvent(new MapInputEvent.MouseReleased(event))) {
             return true;
         }
         if (event.button() == 2) {
@@ -310,7 +334,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     protected boolean onMouseDragged(IMouseButtonEvent event, double dx, double dy) {
-        if (this.dispatchMapEvent(new WorldMapEvent.MouseDragged(event, dx, dy))) {
+        if (this.dispatchMapEvent(new MapInputEvent.MouseDragged(event, dx, dy))) {
             return true;
         }
         if (event.button() == 2) {
@@ -357,7 +381,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        if (this.dispatchMapEvent(new WorldMapEvent.MouseScrolled(x, y, scrollX, scrollY))) {
+        if (this.dispatchMapEvent(new MapInputEvent.MouseScrolled(x, y, scrollX, scrollY))) {
             return true;
         }
         if (fov > 90 - 1e-6) {
@@ -373,7 +397,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     
     @Override
     protected boolean onKeyPressed(IKeyEvent event) {
-        if (this.dispatchMapEvent(new WorldMapEvent.KeyPressed(event))) {
+        if (this.dispatchMapEvent(new MapInputEvent.KeyPressed(event))) {
             return true;
         }
         int key = event.key();
@@ -399,6 +423,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
     }
     
     public void tick() {
+        if (this.screenSession != null) {
+            this.screenSession.tick();
+        }
         if (this.pressedMovementKeys.isEmpty()) {
             return;
         }
@@ -466,11 +493,10 @@ public class WorldTerrainWidgetInner extends ContainerWidget {
         return true;
     }
     
-    private boolean dispatchMapEvent(WorldMapEvent.Input event) {
-        if (this.extensionService == null) {
+    private boolean dispatchMapEvent(MapInputEvent event) {
+        if (this.screenSession == null) {
             return false;
         }
-        TerrainChunkManager.INSTANCE.worldMapExtensionRegistry.onMapEvent(this.extensionService, event);
-        return event.consumed();
+        return this.screenSession.handle(event);
     }
 }

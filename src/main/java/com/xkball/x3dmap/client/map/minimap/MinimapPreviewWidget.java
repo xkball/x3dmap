@@ -1,6 +1,6 @@
 package com.xkball.x3dmap.client.map.minimap;
 
-import com.xkball.x3dmap.client.map.WorldMapExtensionServiceImpl;
+import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
@@ -16,8 +16,6 @@ import org.joml.Vector3f;
 
 @NonNullByDefault
 public class MinimapPreviewWidget extends ContainerWidget {
-    
-    private static final WorldMapExtensionServiceImpl MINIMAP_SERVICE = new WorldMapExtensionServiceImpl("");
     
     private boolean dragging;
     private WorldTerrainPipRenderer.WorldTerrainState lastState;
@@ -59,16 +57,14 @@ public class MinimapPreviewWidget extends ContainerWidget {
     
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        var minimap = MinimapExtension.INSTANCE;
-        if (minimap == null) return true;
-        var fov = minimap.camFov();
-        var cameraLength = minimap.camCameraLength();
+        var fov = ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue();
+        var cameraLength = ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue();
         if (fov > 90 - 1e-6) {
             cameraLength = Math.max(cameraLength - (float) (scrollY * Math.log10(cameraLength + 10f)), 0);
-            minimap.setCamCameraLength(cameraLength);
+            ClientConfig.MINIMAP_CAMERA_LENGTH.set((double) cameraLength);
         }
-        if (minimap.camCameraLength() < 1e-6) {
-            minimap.setCamFov((float) Math.clamp(fov - scrollY, 5, 90));
+        if (ClientConfig.MINIMAP_CAMERA_LENGTH.get() < 1e-6) {
+            ClientConfig.MINIMAP_CAMERA_FOV.set((double) Math.clamp(fov - scrollY, 5, 90));
         }
         this.calculateNewPipState();
         return true;
@@ -91,10 +87,9 @@ public class MinimapPreviewWidget extends ContainerWidget {
         if (!dragging) {
             return false;
         }
-        var minimap = MinimapExtension.INSTANCE;
-        if (minimap == null) return false;
-        float sens = 0.25f * Math.max(0.4f, minimap.camFov() / 100);
-        minimap.setCamXRot(minimap.camXRot() + (float) dy * sens);
+        float sens = 0.25f * Math.max(0.4f, ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue() / 100);
+        var xRot = ClientConfig.MINIMAP_CAMERA_X_ROT.get().floatValue();
+        ClientConfig.MINIMAP_CAMERA_X_ROT.set((double) Math.clamp(xRot + (float) dy * sens, -89.9f, 89.9f));
         this.calculateNewPipState();
         return true;
     }
@@ -105,8 +100,7 @@ public class MinimapPreviewWidget extends ContainerWidget {
     }
     
     private void calculateNewPipState() {
-        var minimap = MinimapExtension.INSTANCE;
-        if (width == 0 || height == 0 || minimap == null) {
+        if (width == 0 || height == 0) {
             lastState = null;
             return;
         }
@@ -119,7 +113,7 @@ public class MinimapPreviewWidget extends ContainerWidget {
         var blockPos = player.blockPosition();
         var targetY = MinimapRenderHelper.getCameraTargetY(player.getY(), blockPos.getX(), blockPos.getZ(), mc.level.getMinY());
         var target = new Vector3f((float) player.getX(), targetY, (float) player.getZ());
-        var layers = MinimapRenderHelper.buildEnabledLayers(MINIMAP_SERVICE);
+        var layers = MinimapRenderHelper.buildEnabledLayers();
         var yRot = rotateWithPlayer.get() ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
         var scaleX = XKLibBaseScreen.tryGetScaleX();
         var scaleY = XKLibBaseScreen.tryGetScaleY();
@@ -127,17 +121,17 @@ public class MinimapPreviewWidget extends ContainerWidget {
                 layers,
                 target,
                 blockPos,
-                minimap.camFov(),
-                minimap.camCameraLength(),
-                minimap.camXRot(),
+                ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue(),
+                ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue(),
+                ClientConfig.MINIMAP_CAMERA_X_ROT.get().floatValue(),
                 yRot,
                 (int) (x / scaleX),
                 (int) ((x + width) / scaleX),
                 (int) (y / scaleY),
                 (int) ((y + height) / scaleY),
                 1.0f,
-                MINIMAP_SERVICE.getBooleanState("depress_sphere", false),
-                MINIMAP_SERVICE.getIntState("lod_distance", 512),
+                false,
+                512,
                 true,
                 highDetailRange.get(),
                 null,

@@ -5,10 +5,8 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.xkball.x3dmap.api.client.render.PictureInPictureRenderLayer;
-import com.xkball.x3dmap.client.render.pip.layers.CameraTargetRenderer;
-import com.xkball.x3dmap.client.render.pip.layers.GridRenderer;
-import com.xkball.x3dmap.client.render.pip.layers.PlayerOnMapRenderer;
-import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
+import com.xkball.x3dmap.api.client.render.MapRenderTarget;
+import com.xkball.x3dmap.client.map.render.MapLayerRegistry;
 import com.xkball.x3dmap.client.terrain.LevelChunkStorage;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.api.gui.widget.IGuiWidget;
@@ -21,6 +19,7 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -29,42 +28,36 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.jspecify.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
 
 @NonNullByDefault
 public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPipRenderer.WorldTerrainState> {
 
-    private static final Set<Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>>> regRenderLayers = new HashSet<>();
     @SuppressWarnings("NotNullFieldNotInitialized")
     public static GpuBufferSlice projBuffer;
     
-    private final Map<String, PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>> renderLayers = new LinkedHashMap<>();
+    private final Map<Identifier, PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>> renderLayers = new LinkedHashMap<>();
     public final ProjectionMatrixBuffer proj = new ProjectionMatrixBuffer("world_terrain_pip_proj");
     public Matrix4f projMatrix = new Matrix4f();
     public CameraRenderState cameraRenderState = new CameraRenderState();
 
-    static {
-        regRenderLayers(TerrainRenderer::new);
-        regRenderLayers(GridRenderer::new);
-        regRenderLayers(PlayerOnMapRenderer::new);
-        regRenderLayers(CameraTargetRenderer::new);
-    }
-    
-    public static void regRenderLayers(Supplier<PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>> renderLayer) {
-        regRenderLayers.add(renderLayer);
-    }
-    
     public WorldTerrainPipRenderer(MultiBufferSource.BufferSource bufferSource) {
         super(bufferSource);
-        for (var s : regRenderLayers) {
-            var layer = s.get();
-            this.renderLayers.put(layer.name(), layer);
+        var registry = com.xkball.x3dmap.client.terrain.TerrainChunkManager.INSTANCE.mapPluginRegistry.layerRegistry();
+        for (var definition : registry.definitions()) {
+            if (!definition.targets().contains(MapRenderTarget.WORLD_MAP) && !definition.targets().contains(MapRenderTarget.MINIMAP)) {
+                continue;
+            }
+            var layer = this.createLayer(definition);
+            this.renderLayers.put(definition.id(), layer);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState> createLayer(MapLayerRegistry.LayerDefinition definition) {
+        return (PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainState>) definition.factory().get();
     }
     
     @Override
@@ -111,7 +104,7 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
     }
     
     public static final class WorldTerrainState implements PictureInPictureRenderState {
-        private final List<String> enabledLayers;
+        private final List<Identifier> enabledLayers;
         private final Vector3f cameraTarget;
         private final BlockPos centerPos;
         private final float fov;
@@ -132,7 +125,7 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
         private final Matrix4f projMatrix;
         private final Frustum frustum;
 
-        public WorldTerrainState(List<String> enabledLayers,
+        public WorldTerrainState(List<Identifier> enabledLayers,
                 Vector3f cameraTarget,
                 BlockPos centerPos,
                 float fov,
@@ -263,7 +256,7 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
             return point.y - storage.getHeight(x, z);
         }
         
-        public List<String> enabledLayers() {
+        public List<Identifier> enabledLayers() {
             return enabledLayers;
         }
         

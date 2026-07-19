@@ -5,6 +5,7 @@ import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.ui.WorldTerrainScreen;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -28,6 +29,7 @@ import org.lwjgl.glfw.GLFW;
 
 @Mod(value = X3dMap.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = X3dMap.MODID, value = Dist.CLIENT)
+@NonNullByDefault
 public class X3dMapClient {
     
     public static final Lazy<KeyMapping> OPEN_MAP_KEY = Lazy.of(() -> new KeyMapping(
@@ -50,7 +52,7 @@ public class X3dMapClient {
     
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-    
+        TerrainChunkManager.INSTANCE.initializeMapApi();
     }
     
     @SubscribeEvent

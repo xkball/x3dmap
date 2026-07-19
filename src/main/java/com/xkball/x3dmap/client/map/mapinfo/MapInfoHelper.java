@@ -1,22 +1,22 @@
 package com.xkball.x3dmap.client.map.mapinfo;
 
-import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.api.client.map.WorldMapExtensionService;
+import com.xkball.x3dmap.api.client.gui.IMapGui;
+import com.xkball.x3dmap.api.client.gui.IMapWindow;
+import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.system.GuiSystem;
 import com.xkball.xklib.ui.widget.Button;
 import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
-import com.xkball.xklib.ui.widget.container.WindowedContainer;
-import org.slf4j.Logger;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 import java.util.List;
 
+@NonNullByDefault
 public class MapInfoHelper {
     
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final List<String> INFO_LINES = List.of(
             "xklibmc.map_info.line.0",
             "xklibmc.map_info.line.1",
@@ -29,16 +29,16 @@ public class MapInfoHelper {
             "xklibmc.map_info.line.8"
     );
     
-    public static void showInfoIfNeeded(WorldMapExtensionService service) {
+    public static void showInfoIfNeeded(IMapGui mapGui) {
         if (!ClientConfig.SHOW_MAP_INFO.get()) {
             return;
         }
-        showInfoWindow(service);
+        showInfoWindow(mapGui);
         ClientConfig.SHOW_MAP_INFO.set(false);
         ClientConfig.SPEC.save();
     }
     
-    public static void showInfoWindow(WorldMapExtensionService service) {
+    public static void showInfoWindow(IMapGui mapGui) {
         var content = new ContainerWidget()
                 .inlineStyle("flex-direction: column; size: 100% 100%;")
                 .asRootStyle("""
@@ -54,7 +54,7 @@ public class MapInfoHelper {
             content.addChild(new Label(IComponent.translatable(key)));
         }
         
-        var subWindowRef = new WindowedContainer.SubWindow[1];
+        var subWindowRef = new IMapWindow[1];
         var bottomRow = new ContainerWidget()
                 .inlineStyle("size: 100% 18rpx; flex-direction: row; align-items: center;")
                 .addChild(new Button(IComponent.translatable("xklibmc.compatibility.ok"), () -> {
@@ -68,6 +68,6 @@ public class MapInfoHelper {
         var gui = GuiSystem.INSTANCE.get();
         var x = Math.max(0f, (gui.screenWidth - 360 * CssLengthUnit.rpxScaleWorkaround) / 2f);
         var y = Math.max(0f, (gui.screenHeight - 240) / 2f);
-        subWindowRef[0] = service.addBlockingSubWindow(content, IComponent.translatable("xklibmc.map_info.title"), false, x, y, CssLengthUnit.rpx(360), CssLengthUnit.rpx(160));
+        subWindowRef[0] = mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.map_info.title"), false, x, y, CssLengthUnit.rpx(360), CssLengthUnit.rpx(160)), content);
     }
 }
