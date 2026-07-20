@@ -19,10 +19,9 @@ public final class MapScreenSession implements AutoCloseable {
 
     public MapScreenSession(MapGuiRegistry registry, X3dMapRuntimeImpl runtime, WorldTerrainWidget widget) {
         var gui = new MapGuiImpl(widget);
-        var view = new MapViewImpl(widget);
         for (var definition : registry.definitions()) {
             try {
-                var context = new MapScreenContextImpl(definition.id(), runtime, view, gui);
+                var context = new MapScreenContextImpl(definition.id(), runtime, widget.inner, gui);
                 var extension = definition.factory().create(context);
                 extension.onOpen();
                 this.extensions.add(new ExtensionEntry(definition.id().toString(), extension));

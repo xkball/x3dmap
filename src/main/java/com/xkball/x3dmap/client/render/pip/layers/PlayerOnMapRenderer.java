@@ -1,20 +1,21 @@
 package com.xkball.x3dmap.client.render.pip.layers;
 
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.xkball.x3dmap.api.client.render.PictureInPictureRenderLayer;
-import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.api.client.render.IMap3dLayer;
+import com.xkball.x3dmap.api.client.render.IMap3dRenderCommand;
+import com.xkball.x3dmap.api.client.render.IMap3dRenderContext;
+import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.Minecraft;
 
-public class PlayerOnMapRenderer implements PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainPipRenderer.WorldTerrainState> {
-    
+@NonNullByDefault
+public class PlayerOnMapRenderer implements IMap3dLayer {
+
     @Override
-    public String name() {
-        return "player";
+    public IMap3dRenderCommand prepareRender(IMapFrame frame) {
+        return this::render;
     }
-    
-    @Override
-    public void render(WorldTerrainPipRenderer pip, WorldTerrainPipRenderer.WorldTerrainState renderState, PoseStack poseStack, GpuTextureView texture, GpuTextureView depth) {
+
+    private void render(IMap3dRenderContext context) {
         var featureRenderDispatcher = Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher();
         var entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         var player = Minecraft.getInstance().player;
@@ -27,7 +28,7 @@ public class PlayerOnMapRenderer implements PictureInPictureRenderLayer<WorldTer
                 if (entity == null) continue;
                 var playerState = entityRenderDispatcher.extractEntity(entity, 0);
                 var playerPos = entity.position();
-                entityRenderDispatcher.submit(playerState, pip.cameraRenderState, playerPos.x, playerPos.y, playerPos.z, poseStack, featureRenderDispatcher.getSubmitNodeStorage());
+                entityRenderDispatcher.submit(playerState, context.cameraRenderState(), playerPos.x, playerPos.y, playerPos.z, context.poseStack(), featureRenderDispatcher.getSubmitNodeStorage());
             }
         }
         featureRenderDispatcher.renderAllFeatures();

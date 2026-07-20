@@ -88,6 +88,7 @@ public final class X3dMapPluginRegistry {
                 LOGGER.error("Failed to make map runtime unavailable to plugin {}", plugin.getPluginUid(), e);
             }
         }
+        this.runtime.viewportManagerImpl().closeAll();
         this.runtime.storageImpl().closeSession();
         this.runtimeAvailable = false;
     }

@@ -12,10 +12,10 @@ import net.minecraft.network.chat.Component;
 
 @NonNullByDefault
 public class WorldTerrainScreen extends XKLibBaseScreen {
-    
+
     private final WindowedContainer windowLayer;
     private final WorldTerrainWidget worldTerrainWidget;
-    
+
     public WorldTerrainScreen() {
         super(Component.empty());
         this.windowLayer = new WindowedContainer();
@@ -24,24 +24,18 @@ public class WorldTerrainScreen extends XKLibBaseScreen {
         this.addScreenLayer(XKLibBaseScreen.frame(IComponent.translatable("xklibmc.screen.x3d_map"), this.worldTerrainWidget));
         this.addScreenLayer(this.windowLayer);
     }
-    
+
     @Override
     protected void init() {
         super.init();
         CompatibilityExtension.showWarningIfNeeded(this.worldTerrainWidget.mapGui());
         MapInfoHelper.showInfoIfNeeded(this.worldTerrainWidget.mapGui());
     }
-    
+
     @Override
     public void removed() {
         this.worldTerrainWidget.closeMap();
         super.removed();
     }
-    
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-        this.worldTerrainWidget.inner.tick();
-        this.worldTerrainWidget.inner.calculateNewPipState();
-        super.extractRenderState(graphics, mouseX, mouseY, a);
-    }
+
 }

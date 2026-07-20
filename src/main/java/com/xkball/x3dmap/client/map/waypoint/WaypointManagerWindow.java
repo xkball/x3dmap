@@ -11,12 +11,12 @@ import java.util.function.Consumer;
 
 @NonNullByDefault
 public class WaypointManagerWindow extends ContainerWidget {
-    
+
     private final WaypointStorage storage;
     private final Consumer<Waypoint> openDetail;
     private final Runnable changed;
     private final Runnable dirtyListener;
-    
+
     public WaypointManagerWindow(WaypointStorage storage, Consumer<Waypoint> openDetail, Runnable changed) {
         this.storage = storage;
         this.openDetail = openDetail;
@@ -86,7 +86,7 @@ public class WaypointManagerWindow extends ContainerWidget {
                         """);
         this.rebuild();
     }
-    
+
     private void rebuild() {
         this.clearChildren();
         this.addChild(this.header());
@@ -104,7 +104,7 @@ public class WaypointManagerWindow extends ContainerWidget {
         rows.addChild(this.emptyRow());
         this.addChild(rows);
     }
-    
+
     private Widget header() {
         return new ContainerWidget()
                 .inlineStyle("""
@@ -125,7 +125,7 @@ public class WaypointManagerWindow extends ContainerWidget {
                         .setCSSClassName("actions_cell")
                         .addChild(new Label(IComponent.translatable("xklibmc.waypoint.manager.actions")).inlineStyle("width: 100%; height: 100%; text-color: -1;")));
     }
-    
+
     private Widget row(Waypoint waypoint) {
         var teleport = new Button(IComponent.translatable("xklibmc.waypoint.manager.tp"), () -> WaypointActions.teleport(waypoint));
         teleport.setEnabled(WaypointActions.canTeleport());
@@ -144,20 +144,19 @@ public class WaypointManagerWindow extends ContainerWidget {
                             waypoint.setHidden(!waypoint.hidden());
                             this.storage.markDirty();
                             this.changed.run();
-                            this.rebuild();
                         }))
                         .addChild(new Button(IComponent.translatable("xklibmc.waypoint.edit"), () -> this.openDetail.accept(waypoint)))
                 );
     }
-    
+
     private Widget emptyRow() {
         return new ContainerWidget().inlineStyle("size: 100% 16rpx;");
     }
-    
+
     private int textColor(Waypoint waypoint) {
         return 0xFF000000 | (waypoint.color() & 0xFFFFFF);
     }
-    
+
     @Override
     public void onRemove() {
         super.onRemove();

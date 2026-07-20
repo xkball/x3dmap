@@ -5,7 +5,10 @@ import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 @NonNullByDefault
-public sealed interface MapInputEvent permits MapInputEvent.MouseClicked, MapInputEvent.MouseReleased, MapInputEvent.MouseDragged, MapInputEvent.MouseScrolled, MapInputEvent.KeyPressed {
+public sealed interface MapInputEvent permits MapInputEvent.MouseMoved, MapInputEvent.MouseClicked, MapInputEvent.MouseReleased, MapInputEvent.MouseDragged, MapInputEvent.MouseScrolled, MapInputEvent.KeyPressed, MapInputEvent.KeyReleased {
+
+    record MouseMoved(double x, double y) implements MapInputEvent {
+    }
 
     record MouseClicked(IMouseButtonEvent event, boolean doubleClick) implements MapInputEvent {
     }
@@ -20,5 +23,8 @@ public sealed interface MapInputEvent permits MapInputEvent.MouseClicked, MapInp
     }
 
     record KeyPressed(IKeyEvent event) implements MapInputEvent {
+    }
+
+    record KeyReleased(IKeyEvent event) implements MapInputEvent {
     }
 }

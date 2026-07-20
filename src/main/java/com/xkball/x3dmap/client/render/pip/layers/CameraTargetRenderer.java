@@ -1,36 +1,42 @@
 package com.xkball.x3dmap.client.render.pip.layers;
 
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.xkball.x3dmap.api.client.render.PictureInPictureRenderLayer;
-import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.api.client.render.IMap3dLayer;
+import com.xkball.x3dmap.api.client.render.IMap3dRenderCommand;
+import com.xkball.x3dmap.api.client.render.IMap3dRenderContext;
+import com.xkball.x3dmap.api.client.render.IMapFrame;
 import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 
-public class CameraTargetRenderer implements PictureInPictureRenderLayer<WorldTerrainPipRenderer, WorldTerrainPipRenderer.WorldTerrainState> {
+@NonNullByDefault
+public class CameraTargetRenderer implements IMap3dLayer {
+
     @Override
-    public String name() {
-        return "cameraTarget";
+    public IMap3dRenderCommand prepareRender(IMapFrame frame) {
+        return this::render;
     }
-    
-    @Override
-    public void render(WorldTerrainPipRenderer pip, WorldTerrainPipRenderer.WorldTerrainState renderState, PoseStack poseStack, GpuTextureView texture, GpuTextureView depth) {
+
+    private void render(IMap3dRenderContext context) {
+        var poseStack = context.poseStack();
         poseStack.pushPose();
-//        var buffer = pip.getBufferSource().getBuffer(RenderTypes.LINES);
-        var buffer = pip.getBufferSource().getBuffer(RenderTypes.debugQuads());
-        var dir = renderState.dirVec();
+//        var buffer = context.bufferSource().getBuffer(RenderTypes.LINES);
+        var buffer = context.bufferSource().getBuffer(RenderTypes.debugQuads());
+        var dir = context.frame().cameraDirection();
+        var camera = context.frame().camera();
+        var targetX = camera.targetX();
+        var targetZ = camera.targetZ();
         var pose = poseStack.last();
-        buffer.addVertex(pose, renderState.cameraTarget().x - 0.5f, -1000, renderState.cameraTarget().z).setColor(VanillaUtils.getColor(255, 175, 71, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x + 0.5f, -1000, renderState.cameraTarget().z).setColor(VanillaUtils.getColor(255, 175, 71, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x + 0.5f, 1000, renderState.cameraTarget().z).setColor(VanillaUtils.getColor(255, 66, 64, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x - 0.5f, 1000, renderState.cameraTarget().z).setColor(VanillaUtils.getColor(255, 66, 64, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x, -1000, renderState.cameraTarget().z - 0.5f).setColor(VanillaUtils.getColor(255, 175, 71, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x, -1000, renderState.cameraTarget().z + 0.5f).setColor(VanillaUtils.getColor(255, 175, 71, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x, 1000, renderState.cameraTarget().z + 0.5f).setColor(VanillaUtils.getColor(255, 66, 64, 255));
-        buffer.addVertex(pose, renderState.cameraTarget().x, 1000, renderState.cameraTarget().z - 0.5f).setColor(VanillaUtils.getColor(255, 66, 64, 255));
-//        buffer.addVertex(pose,renderState.cameraTarget().x,-1000, renderState.cameraTarget().z).setNormal(pose,-dir.x,0,-dir.z).setLineWidth(2).setColor(VanillaUtils.getColor(255,175,71, 255));
-//        buffer.addVertex(pose,renderState.cameraTarget().x, 1000, renderState.cameraTarget().z).setNormal(pose,-dir.x,0,-dir.z).setLineWidth(2).setColor(VanillaUtils.getColor(255,66,64, 255));
-        pip.getBufferSource().endLastBatch();
+        buffer.addVertex(pose, targetX - 0.5f, -1000, targetZ).setColor(VanillaUtils.getColor(255, 175, 71, 255));
+        buffer.addVertex(pose, targetX + 0.5f, -1000, targetZ).setColor(VanillaUtils.getColor(255, 175, 71, 255));
+        buffer.addVertex(pose, targetX + 0.5f, 1000, targetZ).setColor(VanillaUtils.getColor(255, 66, 64, 255));
+        buffer.addVertex(pose, targetX - 0.5f, 1000, targetZ).setColor(VanillaUtils.getColor(255, 66, 64, 255));
+        buffer.addVertex(pose, targetX, -1000, targetZ - 0.5f).setColor(VanillaUtils.getColor(255, 175, 71, 255));
+        buffer.addVertex(pose, targetX, -1000, targetZ + 0.5f).setColor(VanillaUtils.getColor(255, 175, 71, 255));
+        buffer.addVertex(pose, targetX, 1000, targetZ + 0.5f).setColor(VanillaUtils.getColor(255, 66, 64, 255));
+        buffer.addVertex(pose, targetX, 1000, targetZ - 0.5f).setColor(VanillaUtils.getColor(255, 66, 64, 255));
+//        buffer.addVertex(pose,targetX,-1000, targetZ).setNormal(pose,-dir.x(),0,-dir.z()).setLineWidth(2).setColor(VanillaUtils.getColor(255,175,71, 255));
+//        buffer.addVertex(pose,targetX, 1000, targetZ).setNormal(pose,-dir.x(),0,-dir.z()).setLineWidth(2).setColor(VanillaUtils.getColor(255,66,64, 255));
+        context.bufferSource().endLastBatch();
         poseStack.popPose();
     }
 }

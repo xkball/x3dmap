@@ -37,7 +37,7 @@ import java.util.ArrayList;
 
 @NonNullByDefault
 public class WorldTerrainWidget extends ContainerWidget {
-    
+
     public final BooleanLayoutVariable terrain = new BooleanLayoutVariable(true);
     public final BooleanLayoutVariable grid = new BooleanLayoutVariable(true);
     public final BooleanLayoutVariable player = new BooleanLayoutVariable(true);
@@ -57,7 +57,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     private final MapGuiImpl mapGui;
     private @Nullable MapScreenSession screenSession;
     private @Nullable IMapDataHandle<WorldMapUiStateStorage> uiState;
-    
+
     public WorldTerrainWidget(WindowedContainer windowLayer) {
         this.windowLayer = windowLayer;
         var level = Minecraft.getInstance().level;
@@ -142,7 +142,7 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.screenSession = TerrainChunkManager.INSTANCE.mapPluginRegistry.openScreen(this);
         this.inner.setScreenSession(this.screenSession);
     }
-    
+
     public void initExtensions() {
         this.initUiState();
         this.loadPersistentUiState();
@@ -153,7 +153,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     public MapGuiImpl mapGui() {
         return this.mapGui;
     }
-    
+
     public Widget createToolbarLeft() {
         return new ContainerWidget()
                 .inlineStyle("""
@@ -189,7 +189,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                 .addChild(this.leftExtensionWidgets)
                 .addChild(new IconCheckBox(VanillaUtils.modrl("icon/debug")).bind(debug).withTooltip(IComponent.translatable("xklibmc.world_terrain.show_debug_info")));
     }
-    
+
     public Widget createToolbarTop1(int minY, int maxY) {
         var toolbar = new ContainerWidget()
                 .inlineStyle("""
@@ -244,20 +244,20 @@ public class WorldTerrainWidget extends ContainerWidget {
                         """));
         return toolbar;
     }
-    
+
     private void showDeleteConfirmation() {
         var content = new MapWindowRefContainer();
         content.inlineStyle("flex-direction: column; size: 100% 100%;")
                 .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_confirm_msg")).inlineStyle("text-color: 0xFFFF5555; size: 100% 12rpx; text-scale: fit_to_max;"))
                 .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_irreversible"))
                         .inlineStyle("text-color: 0xFFFF5555; margin-top: 4px; size: 100% 12rpx; text-scale: fit_to_max;"));
-        
+
         var bottomRow = new ContainerWidget()
                 .inlineStyle("flex-direction: row; align-items: center; margin-top: auto;");
-        
+
         var cancelButton = new Button(IComponent.translatable("xklibmc.common.cancel"), content::closeWindow);
         cancelButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; margin-left: auto; margin-right: 8px; button-shape: rect; button-bg-color: rgb(75,85,99); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
-        
+
         var confirmButton = new Button(IComponent.translatable("xklibmc.world_terrain.delete"), () -> {
             var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
             if (storage != null) {
@@ -268,14 +268,14 @@ public class WorldTerrainWidget extends ContainerWidget {
             content.closeWindow();
         });
         confirmButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; button-shape: rect; button-bg-color: rgb(221,0,27); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
-        
+
         bottomRow.addChild(cancelButton);
         bottomRow.addChild(confirmButton);
         content.addChild(bottomRow);
-        
+
         this.mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.world_terrain.confirm_delete_title"), false, CssLengthUnit.rpx(180), CssLengthUnit.rpx(120)), content);
     }
-    
+
     public Widget createToolbarTop2() {
         return new ContainerWidget()
                 .inlineStyle("""
@@ -293,64 +293,64 @@ public class WorldTerrainWidget extends ContainerWidget {
                         .withTooltip(IComponent.translatable("xklibmc.world_terrain.open_config"))
                         .inlineStyle("margin-right: 5rpx;"));
     }
-    
+
     private void openConfigFile() {
         var configFile = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("xklibmc_example-client.toml").toFile();
         Util.getPlatform().openFile(configFile);
     }
-    
+
     public void addExtensionLeftBarWidget(Widget widget) {
         this.leftExtensionWidgets.addChild(widget);
     }
-    
+
     public void addExtensionTopBar1Widget(Widget widget) {
         this.top1ExtensionWidgets.addChild(widget);
     }
-    
+
     public void addExtensionTopBar2Widget(Widget widget) {
         this.top2ExtensionWidgets.addChild(widget);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, w, h);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, float x, float y, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, x, y, w, h);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, IComponent title, boolean resizable, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, title, resizable, w, h);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, String title, boolean resizable, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, title, resizable, w, h);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, IComponent title, boolean resizable, float x, float y, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, title, resizable, x, y, w, h);
     }
-    
+
     public WindowedContainer.SubWindow addMapSubWindow(Widget content, String title, boolean resizable, float x, float y, CssLengthUnit width, CssLengthUnit height) {
         var w = width.resolve(this.windowLayer.getWidth());
         var h = height.resolve(this.windowLayer.getHeight());
         return this.windowLayer.addSubWindow(content, title, resizable, x, y, w, h);
     }
-    
+
     public WindowedContainer windowLayer() {
         return this.windowLayer;
     }
-    
+
     private void loadPersistentUiState() {
         this.terrain.set(this.getBooleanState("terrain", this.terrain.get()));
         this.grid.set(this.getBooleanState("grid", this.grid.get()));
@@ -362,7 +362,7 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.yMode.set(this.getIntState("y_mode", this.yMode.get()));
         this.fixY.set(this.getIntState("fix_y", this.fixY.get()));
     }
-    
+
     private void bindPersistentUiState() {
         this.terrain.addCallback(value -> this.setBooleanState("terrain", value));
         this.grid.addCallback(value -> this.setBooleanState("grid", value));
@@ -379,13 +379,14 @@ public class WorldTerrainWidget extends ContainerWidget {
             TerrainChunkManager.INSTANCE.viewDistance = value;
         });
     }
-    
+
     public void closeMap() {
         this.inner.saveUiState();
         if (this.screenSession != null) {
             TerrainChunkManager.INSTANCE.mapPluginRegistry.closeScreen(this.screenSession);
             this.screenSession = null;
         }
+        this.inner.close();
         ClientConfig.SPEC.save();
     }
 
@@ -415,5 +416,5 @@ public class WorldTerrainWidget extends ContainerWidget {
             this.uiState.value().setInt(key, value);
         }
     }
-    
+
 }

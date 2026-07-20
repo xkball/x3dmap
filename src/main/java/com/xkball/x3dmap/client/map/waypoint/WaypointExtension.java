@@ -72,7 +72,7 @@ public final class WaypointExtension implements IMapScreenExtension {
             return false;
         }
         if (this.addingWaypoint) {
-            var worldPos = this.context.view().screenToWorld(event1.x(), event1.y());
+            var worldPos = this.context.viewport().projection().screenToTerrain(event1.x(), event1.y());
             if (worldPos == null) {
                 return false;
             }
@@ -86,7 +86,7 @@ public final class WaypointExtension implements IMapScreenExtension {
         if (!doubleClick) {
             return false;
         }
-        var worldPos = this.context.view().screenToWorld(event1.x(), event1.y());
+        var worldPos = this.context.viewport().projection().screenToTerrain(event1.x(), event1.y());
         if (worldPos == null || this.detailWindow != null) {
             return this.detailWindow != null;
         }
@@ -98,7 +98,7 @@ public final class WaypointExtension implements IMapScreenExtension {
     }
 
     private WaypointOverlayWidget createOverlay() {
-        return new WaypointOverlayWidget(this.context.view(), this.visible, this::storage, () -> this.temporaryWaypoint,
+        return new WaypointOverlayWidget(this.context.viewport().projection(), this.visible, this::storage, () -> this.temporaryWaypoint,
                 (mouse, waypoint, temporary) -> this.openDetail(waypoint, temporary, mouse.x, mouse.y));
     }
 
@@ -136,7 +136,7 @@ public final class WaypointExtension implements IMapScreenExtension {
             return;
         }
         this.managerWindow = this.context.gui().openWindow(
-                MapWindowSpec.regular(IComponent.translatable("xklibmc.waypoint.title.manager"), false, CssLengthUnit.rpx(180), CssLengthUnit.rpx(800)),
+                MapWindowSpec.regular(IComponent.translatable("xklibmc.waypoint.title.manager"), false, CssLengthUnit.rpx(180), CssLengthUnit.rpx(200)),
                 new WaypointManagerWindow(this.storage(), waypoint -> this.openDetail(waypoint, false), this.context.gui()::refreshOverlays) {
                     @Override
                     public void onRemove() {

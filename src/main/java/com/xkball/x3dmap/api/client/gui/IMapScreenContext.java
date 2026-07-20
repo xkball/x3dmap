@@ -1,6 +1,7 @@
 package com.xkball.x3dmap.api.client.gui;
 
 import com.xkball.x3dmap.api.client.runtime.IX3dMapRuntime;
+import com.xkball.x3dmap.api.client.viewport.IMapViewport;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.resources.Identifier;
 
@@ -11,7 +12,7 @@ public interface IMapScreenContext {
 
     IX3dMapRuntime runtime();
 
-    IMapView view();
+    IMapViewport viewport();
 
     IMapGui gui();
 }

@@ -1,32 +1,15 @@
 package com.xkball.x3dmap.client.map.minimap;
 
-import com.xkball.x3dmap.api.client.render.MapRenderTarget;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.xklib.XKLib;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dRenderContext;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.resources.Identifier;
-
-import java.util.ArrayList;
-import java.util.List;
-
 @NonNullByDefault
 public final class MinimapRenderHelper {
 
     private MinimapRenderHelper() {
-    }
-
-    public static List<Identifier> buildEnabledLayers() {
-        var layers = new ArrayList<Identifier>();
-        for (var id : TerrainChunkManager.INSTANCE.mapPluginRegistry.layerRegistry().layers(MapRenderTarget.MINIMAP)) {
-            if (id.getPath().equals("camera_target")) {
-                continue;
-            }
-            layers.add(id);
-        }
-        return layers;
     }
 
     public static void drawBorder(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1) {
