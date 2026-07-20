@@ -21,7 +21,6 @@ public class CameraTargetRenderer implements IMap3dLayer {
         poseStack.pushPose();
 //        var buffer = context.bufferSource().getBuffer(RenderTypes.LINES);
         var buffer = context.bufferSource().getBuffer(RenderTypes.debugQuads());
-        var dir = context.frame().cameraDirection();
         var camera = context.frame().camera();
         var targetX = camera.targetX();
         var targetZ = camera.targetZ();

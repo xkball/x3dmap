@@ -16,6 +16,7 @@ import com.xkball.x3dmap.api.client.render.Map2dLayerSpec;
 import com.xkball.x3dmap.api.client.render.Map3dLayerSpec;
 import com.xkball.x3dmap.api.client.runtime.IX3dMapRuntime;
 import com.xkball.x3dmap.api.client.viewport.IMapViewport;
+import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
@@ -167,8 +168,8 @@ public final class MapLayerHostImpl implements IMapLayerHost, AutoCloseable {
         }
         if (captured != null && isPointerEvent(event)) {
             var result = this.handle(captured, event, context);
-            if (event instanceof MapInputEvent.MouseReleased released
-                    && (this.capturedButton < 0 || released.event().button() == this.capturedButton)) {
+            if (event instanceof MapInputEvent.MouseReleased(IMouseButtonEvent event1)
+                    && (this.capturedButton < 0 || event1.button() == this.capturedButton)) {
                 this.releasePointerCapture();
             }
             return result == MapInputResult.PASS ? MapInputResult.HANDLED : result;

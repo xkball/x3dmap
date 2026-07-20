@@ -7,7 +7,6 @@ import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.widget.container.WindowedContainer;
 import com.xkball.xklibmc.ui.XKLibBaseScreen;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 @NonNullByDefault

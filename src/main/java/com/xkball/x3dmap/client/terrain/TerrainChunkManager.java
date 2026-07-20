@@ -530,8 +530,8 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         
     }
     
-    public record RenderInfo(List<RenderInfoWithFaceBlock> blocks,
-                             List<RenderInfoWithTextureBlock> lods) implements AutoCloseable {
+    public record RenderInfo(@Nullable List<RenderInfoWithFaceBlock> blocks,
+                             @Nullable List<RenderInfoWithTextureBlock> lods) implements AutoCloseable {
         
         public static RenderInfo empty() {
             return new RenderInfo(null, null);

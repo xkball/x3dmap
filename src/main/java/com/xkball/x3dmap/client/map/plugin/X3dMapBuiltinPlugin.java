@@ -1,6 +1,5 @@
 package com.xkball.x3dmap.client.map.plugin;
 
-import com.xkball.x3dmap.X3dMap;
 import com.xkball.x3dmap.api.client.IX3dMapPlugin;
 import com.xkball.x3dmap.api.client.X3dMapPlugin;
 import com.xkball.x3dmap.api.client.registration.IMapGuiRegistration;
