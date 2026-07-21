@@ -136,7 +136,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         if (level == null) return;
         INSTANCE.setCloseOnExit();
         INSTANCE.initializeMapApi();
-        INSTANCE.mapPluginRegistry.openRuntime(ClientUtils.getSaveOrServerName());
+        INSTANCE.mapPluginRegistry.openRuntime(X3dClientUtils.getEncodedSaveOrServerName());
         CompatibilityExtension.initCompatibilityMode();
         if (!INSTANCE.storageMap.containsKey(level.dimension())) {
             INSTANCE.tryLoadLevel(level);
@@ -184,8 +184,8 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public void tryLoadLevel(Level level) {
         this.initializeMapApi();
-        this.mapPluginRegistry.openRuntime(ClientUtils.getSaveOrServerName());
         if (!this.storageMap.containsKey(level.dimension())) {
+            this.mapPluginRegistry.openRuntime(X3dClientUtils.getEncodedSaveOrServerName());
             var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), this.compatibleMode);
             this.mapPluginRegistry.openLevel(s.dimension, s.getDirectory());
             s.loadFile();

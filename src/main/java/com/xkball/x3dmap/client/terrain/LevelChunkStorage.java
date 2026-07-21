@@ -4,6 +4,7 @@ import com.mojang.blaze3d.GraphicsWorkarounds;
 import com.mojang.blaze3d.vertex.UberGpuBuffer;
 import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.x3dmap.utils.X3dClientUtils;
 import com.xkball.xklibmc.utils.ClientUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.core.Direction;
@@ -46,7 +47,7 @@ public class LevelChunkStorage {
         this.minHeight = minHeight;
         this.maxHeight = maxHeight;
         this.compatibleMode = compatibleMode;
-        this.saveName = ClientUtils.getSaveOrServerName();
+        this.saveName = X3dClientUtils.getEncodedSaveOrServerName();
         this.createBuffer();
     }
     
@@ -162,7 +163,7 @@ public class LevelChunkStorage {
                         if (!this.containsChunk(chunkStorage.chunkPos)) return;
                         if (!compatibleMode) {
                             chunkStorage.uploadToTexture();
-                        } ;
+                        }
                     });
                 }
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> X3dMapClient.loading = false);
