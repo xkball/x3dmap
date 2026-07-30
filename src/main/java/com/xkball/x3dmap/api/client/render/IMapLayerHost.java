@@ -12,9 +12,9 @@ public interface IMapLayerHost {
 
     IMapLayerHandle add2d(Map2dLayerSpec spec, IMap2dLayerFactory factory);
 
-    List<Identifier> threeDimensionalLayers();
+    List<Identifier> getLayers3d();
 
-    List<Identifier> twoDimensionalLayers();
+    List<Identifier> getLayers2d();
 
     boolean visible(Identifier id);
 

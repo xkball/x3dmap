@@ -42,50 +42,49 @@ public class GridRenderer implements IMap3dLayer {
 
         var renderType = B3dRenderPipelines.LINE.asRenderType();
         var bufferConsumer = context.bufferSource().getBuffer(renderType);
-        if (bufferConsumer instanceof IExtendedBufferBuilder buffer) {
-            for (int x = min; x <= max; x += step) {
-                drawLine3D(bufferConsumer, buffer, matrix, x, y, min, x, y, max, xColor);
-            }
-
-            for (int z = min; z <= max; z += step) {
-                drawLine3D(bufferConsumer, buffer, matrix, min, y, z, max, y, z, zColor);
-            }
+        for (int x = min; x <= max; x += step) {
+            tryDrawLine3D(bufferConsumer, matrix, x, y, min, x, y, max, xColor, xColor);
         }
 
+        for (int z = min; z <= max; z += step) {
+            tryDrawLine3D(bufferConsumer, matrix, min, y, z, max, y, z, zColor, zColor);
+        }
+        
         context.bufferSource().endLastBatch();
         poseStack.popPose();
         XKLibUniforms.SCREEN_SIZE.endOverride();
     }
-
-    private static void drawLine3D(VertexConsumer vertexConsumer, IExtendedBufferBuilder buffer, PoseStack.Pose matrix, float x0, float y0, float z0, float x1, float y1, float z1, int color) {
+    
+    public static void tryDrawLine3D(VertexConsumer vertexConsumer, PoseStack.Pose matrix, float x0, float y0, float z0, float x1, float y1, float z1, int color1, int color2) {
+        if(!(vertexConsumer instanceof IExtendedBufferBuilder buffer)) return;
         Vector3f p0 = new Vector3f(x0, y0, z0);
         matrix.pose().transformPosition(p0);
         Vector3f p1 = new Vector3f(x1, y1, z1);
         matrix.pose().transformPosition(p1);
-
+        
         float p0x = p0.x();
         float p0y = p0.y();
         float p0z = p0.z();
         float p1x = p1.x();
         float p1y = p1.y();
         float p1z = p1.z();
-
-        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color1);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, -1.0f, 0.0f);
-
-        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color1);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, 1.0f, 0.0f);
-
-        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color2);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, -1.0f, 1.0f);
-
-        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color2);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, -1.0f, 1.0f);
-
-        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x1, y1, z1).setColor(color2);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, 1.0f, 1.0f);
-
-        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color);
+        
+        vertexConsumer.addVertex(matrix, x0, y0, z0).setColor(color1);
         writeLineAttribs(buffer, p0x, p0y, p0z, p1x, p1y, p1z, 1.0f, 0.0f);
     }
 

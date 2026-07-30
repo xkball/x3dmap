@@ -91,12 +91,12 @@ public final class MapLayerHostImpl implements IMapLayerHost, AutoCloseable {
     }
 
     @Override
-    public List<Identifier> threeDimensionalLayers() {
+    public List<Identifier> getLayers3d() {
         return this.threeDimensionalEntries.stream().map(entry -> entry.spec.id()).toList();
     }
 
     @Override
-    public List<Identifier> twoDimensionalLayers() {
+    public List<Identifier> getLayers2d() {
         return this.twoDimensionalEntries.stream().map(entry -> entry.spec.id()).toList();
     }
 
