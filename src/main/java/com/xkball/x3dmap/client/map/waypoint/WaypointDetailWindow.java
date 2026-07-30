@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
+import com.xkball.x3dmap.api.client.map.WaypointDetailWindowCreateEvent;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
 import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
@@ -14,7 +15,9 @@ import com.xkball.xklibmc.ui.widget.NumberInputWidget;
 import com.xkball.xklibmc.ui.widget.ObjectInputWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.core.BlockPos;
+import net.neoforged.neoforge.common.NeoForge;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 @NonNullByDefault
@@ -117,18 +120,19 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
                 .addChild(new Label(IComponent.translatable("xklibmc.waypoint.detail.color")).inlineStyle("height: 8rpx;"))
                 .addChild(colorRow);
         var actions = new ContainerWidget().inlineStyle("flex-direction: column; size: 90% auto; margin: 3rpx;");
-        var teleport = new Button(IComponent.translatable("xklibmc.waypoint.teleport"), () -> WaypointActions.teleport(waypoint)).setCSSClassName("action_btn");
+        var buttons = new ArrayList<Button>();
+        var teleport = this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.teleport"), () -> WaypointActions.teleport(waypoint)));
         teleport.setEnabled(WaypointActions.canTeleport());
-        actions.addChild(teleport);
-        actions.addChild(new Button(IComponent.translatable("xklibmc.waypoint.share"), () -> WaypointActions.share(waypoint)).setCSSClassName("action_btn"));
+        buttons.add(teleport);
+        buttons.add(this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.share"), () -> WaypointActions.share(waypoint))));
         if (!temporary) {
-            actions.addChild(new Button(IComponent.translatable(waypoint.hidden() ? "xklibmc.waypoint.show" : "xklibmc.waypoint.hide"), () -> {
+            buttons.add(this.actionButton(new Button(IComponent.translatable(waypoint.hidden() ? "xklibmc.waypoint.show" : "xklibmc.waypoint.hide"), () -> {
                 waypoint.setHidden(!waypoint.hidden());
                 storage.markDirty();
                 changed.run();
-            }).setCSSClassName("action_btn"));
+            })));
         }
-        actions.addChild(new Button(IComponent.translatable("xklibmc.waypoint.delete"), () -> {
+        buttons.add(this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.delete"), () -> {
             if (temporary) {
                 this.temporaryResolved = true;
                 removeTemporary.run();
@@ -137,16 +141,20 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
             }
             changed.run();
             this.closeWindow();
-        }).setCSSClassName("action_btn"));
+        })));
         if (temporary) {
-            actions.addChild(new Button(IComponent.translatable("xklibmc.waypoint.save"), () -> {
+            buttons.add(this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.save"), () -> {
                 var formal = new Waypoint(UUID.randomUUID(), waypoint.name(), waypoint.pos(), waypoint.color(), false);
                 storage.add(formal);
                 this.temporaryResolved = true;
                 removeTemporary.run();
                 changed.run();
                 this.closeWindow();
-            }).setCSSClassName("action_btn"));
+            })));
+        }
+        NeoForge.EVENT_BUS.post(new WaypointDetailWindowCreateEvent(waypoint, temporary, buttons));
+        for (var button : buttons) {
+            actions.addChild(button);
         }
         this.addChild(editor);
         this.addChild(actions);
@@ -166,6 +174,11 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
         if (!temporary) {
             storage.markDirty();
         }
+    }
+
+    private Button actionButton(Button button) {
+        button.setCSSClassName("action_btn");
+        return button;
     }
     
     private Widget createColorRow(IMapGui gui, WaypointStorage storage, Waypoint waypoint) {

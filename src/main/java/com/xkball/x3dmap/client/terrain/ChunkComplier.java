@@ -16,7 +16,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ColorResolver;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RenderShape;
@@ -109,7 +108,7 @@ public class ChunkComplier {
                 for (int y = hMin; y < hMax; y++) {
                     pos.set(px, y, pz);
                     var bs = context.getBlockState(pos);
-                    if (bs.isAir() || (bs.getBlock() instanceof BaseEntityBlock && bs.getRenderShape() == RenderShape.INVISIBLE)) {
+                    if (bs.isAir()) {
                         continue;
                     }
                     var allBlock = true;
@@ -174,6 +173,7 @@ public class ChunkComplier {
                 result = chunkAccess.getBlockState(pos);
             } else result = level.getBlockState(pos);
             if (IGNORED_BLOCKS.contains(result.getBlock())) return Blocks.AIR.defaultBlockState();
+            if (result.getRenderShape() == RenderShape.INVISIBLE) return Blocks.AIR.defaultBlockState();
             return result;
         }
         

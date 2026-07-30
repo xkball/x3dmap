@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.b3d.pipeline;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -11,6 +12,7 @@ import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.client.b3d.pipeline.ExtendedRenderPipeline;
 import com.xkball.xklibmc.client.b3d.uniform.UpdatableUBO;
 import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
+import com.xkball.xklibmc.x3d.backend.b3d.pipeline.B3dRenderPipelines;
 import org.joml.Vector3f;
 
 public class X3dMapRenderPipelines {
@@ -20,6 +22,9 @@ public class X3dMapRenderPipelines {
             .putVec3("lightPos", Vector3f::new)
             .putVec3("viewPos", Vector3f::new)
             .build();
+    
+    
+    public static final RenderPipeline LINE = B3dRenderPipelines.LINE;
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("world_terrain_pip"))
