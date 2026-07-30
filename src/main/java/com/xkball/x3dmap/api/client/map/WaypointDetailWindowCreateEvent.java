@@ -1,11 +1,13 @@
 package com.xkball.x3dmap.api.client.map;
 
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
+import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.widget.Button;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.neoforged.bus.api.Event;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @NonNullByDefault
 public final class WaypointDetailWindowCreateEvent extends Event {
@@ -30,5 +32,9 @@ public final class WaypointDetailWindowCreateEvent extends Event {
 
     public List<Button> buttons() {
         return this.buttons;
+    }
+    
+    public void addButton(String key, Consumer<Waypoint> onClick) {
+        this.buttons.add((Button) new Button(IComponent.translatable(key), () -> onClick.accept(waypoint)).setCSSClassName("action_btn"));
     }
 }
