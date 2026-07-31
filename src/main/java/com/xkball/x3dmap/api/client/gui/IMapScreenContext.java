@@ -19,11 +19,38 @@ public interface IMapScreenContext {
 
     IMapGui gui();
 
+    boolean containsState(String key);
+
+    void removeState(String key);
+
+    boolean getBooleanState(String key, boolean defaultValue);
+
+    void setBooleanState(String key, boolean value);
+
+    int getIntState(String key, int defaultValue);
+
+    void setIntState(String key, int value);
+
+    float getFloatState(String key, float defaultValue);
+
+    void setFloatState(String key, float value);
+
+    String getStringState(String key, String defaultValue);
+
+    void setStringState(String key, String value);
+
     default void addLayerToggle(Identifier layerId, Identifier sprite, String tooltipKey) {
         var layers = this.viewport().layers();
+        var stateKey = "layer:" + layerId;
+        var visible = this.getBooleanState(stateKey, layers.visible(layerId));
+        layers.setVisible(layerId, visible);
         var button = new IconCheckBox(VanillaUtils.convertId(sprite));
-        button.setValue(layers.visible(layerId));
-        button.onChange = () -> layers.setVisible(layerId, button.getValue());
+        button.setValue(visible);
+        button.onChange = () -> {
+            var value = button.getValue();
+            layers.setVisible(layerId, value);
+            this.setBooleanState(stateKey, value);
+        };
         button.withTooltip(IComponent.translatable(tooltipKey));
         this.gui().addToolbarWidget(MapToolbarSlot.LEFT, button);
     }

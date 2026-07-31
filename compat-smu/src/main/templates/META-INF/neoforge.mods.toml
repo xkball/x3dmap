@@ -1,0 +1,38 @@
+license = "${mod_license}"
+
+[[mods]]
+modId = "x3d_map_compat_smu"
+version = "${mod_version}"
+displayName = "x3d map compatibility for Sign Me Up"
+authors = "xkball"
+description = '''
+Displays Sign Me Up exhibition labels on the x3d map.
+'''
+
+[[dependencies.x3d_map_compat_smu]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_smu]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_smu]]
+modId = "x3d_map"
+type = "required"
+versionRange = "[${mod_version}]"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_smu]]
+modId = "exhibition_portal"
+type = "optional"
+versionRange = "[1.1.2,)"
+ordering = "AFTER"
+side = "CLIENT"

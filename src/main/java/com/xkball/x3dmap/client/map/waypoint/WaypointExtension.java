@@ -40,7 +40,9 @@ public final class WaypointExtension implements IMapScreenExtension {
 
     @Override
     public void onOpen() {
+        this.visible.set(this.context.getBooleanState("visible", this.visible.get()));
         this.visible.addCallback(_ -> this.context.gui().refreshOverlays());
+        this.visible.addCallback(value -> this.context.setBooleanState("visible", value));
         this.context.gui().addToolbarWidget(MapToolbarSlot.LEFT,
                 new IconCheckBox(VanillaUtils.modrl("icon/waypoint")).bind(this.visible)
                         .withTooltip(IComponent.translatable("xklibmc.waypoint.show_waypoints")));
@@ -62,6 +64,7 @@ public final class WaypointExtension implements IMapScreenExtension {
         this.detailWaypointId = null;
         this.temporaryWaypoint = null;
         this.addingWaypoint = false;
+        this.visible.removeCallbacks();
     }
 
     @Override

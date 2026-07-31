@@ -18,7 +18,34 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
     version = rootProject.neo_version
+    runs {
+        client {
+            client()
 
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            clientData()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
     mods {
         x3d_map_compat_template {
             sourceSet(sourceSets.main)
@@ -28,6 +55,7 @@ neoForge {
 
 dependencies {
     compileOnly project(':')
+    compileOnly "com.xkball:xklib-3d:${rootProject.xklib_version}"
     compileOnly "com.xkball:xklib-mc:${rootProject.xklib_version}"
 }
 
