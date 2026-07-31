@@ -6,6 +6,8 @@ import com.xkball.xklib.ui.widget.Label;
 import com.xkball.xklib.ui.widget.Widget;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.permissions.Permissions;
 
 import java.util.function.Consumer;
 
@@ -127,8 +129,8 @@ public class WaypointManagerWindow extends ContainerWidget {
     }
 
     private Widget row(Waypoint waypoint) {
-        var teleport = new Button(IComponent.translatable("xklibmc.waypoint.manager.tp"), () -> WaypointActions.teleport(waypoint));
-        teleport.setEnabled(WaypointActions.canTeleport());
+        var teleport = new Button(IComponent.translatable("xklibmc.waypoint.manager.tp"), () -> this.teleport(waypoint));
+        teleport.setEnabled(this.canTeleport());
         var name = new Label(waypoint.name(), this.textColor(waypoint));
         name.setCSSClassName("name_cell");
         return new ContainerWidget()
@@ -155,6 +157,19 @@ public class WaypointManagerWindow extends ContainerWidget {
 
     private int textColor(Waypoint waypoint) {
         return 0xFF000000 | (waypoint.color() & 0xFFFFFF);
+    }
+
+    private boolean canTeleport() {
+        var player = Minecraft.getInstance().player;
+        return player != null && player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    private void teleport(Waypoint waypoint) {
+        var player = Minecraft.getInstance().player;
+        if (player == null || !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+            return;
+        }
+        player.connection.sendCommand("tp " + waypoint.pos().getX() + " " + (waypoint.pos().getY() + 1) + " " + waypoint.pos().getZ());
     }
 
     @Override

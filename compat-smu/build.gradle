@@ -59,7 +59,9 @@ neoForge {
 dependencies {
     implementation project(':')
     compileOnly "com.xkball:xklib-3d:${rootProject.xklib_version}"
+    compileOnly "com.xkball:xklib-ap:${rootProject.xklib_version}"
     compileOnly "com.xkball:xklib-mc:${rootProject.xklib_version}"
+    compileOnly "com.xkball:xklib-ui:${rootProject.xklib_version}"
     implementation files('libs/SignMeUp-NeoForge-26.1-1.1.2.jar')
 }
 

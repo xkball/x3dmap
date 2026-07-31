@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.map.waypoint;
 import com.xkball.x3dmap.api.client.map.WaypointDetailWindowCreateEvent;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
 import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
+import com.xkball.x3dmap.network.c2s.ShareWaypoint;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.render.IGUIGraphics;
@@ -15,6 +16,9 @@ import com.xkball.xklibmc.ui.widget.NumberInputWidget;
 import com.xkball.xklibmc.ui.widget.ObjectInputWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.permissions.Permissions;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.common.NeoForge;
 
 import java.util.ArrayList;
@@ -121,10 +125,10 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
                 .addChild(colorRow);
         var actions = new ContainerWidget().inlineStyle("flex-direction: column; size: 90% auto; margin: 3rpx;");
         var buttons = new ArrayList<Button>();
-        var teleport = this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.teleport"), () -> WaypointActions.teleport(waypoint)));
-        teleport.setEnabled(WaypointActions.canTeleport());
+        var teleport = this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.teleport"), () -> this.teleport(waypoint)));
+        teleport.setEnabled(this.canTeleport());
         buttons.add(teleport);
-        buttons.add(this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.share"), () -> WaypointActions.share(waypoint))));
+        buttons.add(this.actionButton(new Button(IComponent.translatable("xklibmc.waypoint.share"), () -> this.share(waypoint))));
         if (!temporary) {
             buttons.add(this.actionButton(new Button(IComponent.translatable(waypoint.hidden() ? "xklibmc.waypoint.show" : "xklibmc.waypoint.hide"), () -> {
                 waypoint.setHidden(!waypoint.hidden());
@@ -174,6 +178,31 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
         if (!temporary) {
             storage.markDirty();
         }
+    }
+
+    private boolean canTeleport() {
+        var player = Minecraft.getInstance().player;
+        return player != null && player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    private void teleport(Waypoint waypoint) {
+        var player = Minecraft.getInstance().player;
+        if (player == null || !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+            return;
+        }
+        player.connection.sendCommand("tp " + waypoint.pos().getX() + " " + (waypoint.pos().getY() + 1) + " " + waypoint.pos().getZ());
+    }
+
+    private void share(Waypoint waypoint) {
+        var player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        var name = waypoint.name();
+        if (name.length() > ShareWaypoint.MAX_NAME_LENGTH) {
+            name = name.substring(0, ShareWaypoint.MAX_NAME_LENGTH);
+        }
+        ClientPacketDistributor.sendToServer(new ShareWaypoint(name, waypoint.pos()));
     }
 
     private Button actionButton(Button button) {
