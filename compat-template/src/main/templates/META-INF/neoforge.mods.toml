@@ -1,0 +1,31 @@
+license = "${mod_license}"
+
+[[mods]]
+modId = "x3d_map_compat_template"
+version = "${mod_version}"
+displayName = "x3d map compatibility template"
+authors = "xkball"
+description = '''
+Template module for x3d map mod compatibility.
+'''
+
+[[dependencies.x3d_map_compat_template]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_template]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_template]]
+modId = "x3d_map"
+type = "required"
+versionRange = "[${mod_version}]"
+ordering = "AFTER"
+side = "BOTH"
