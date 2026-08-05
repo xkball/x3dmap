@@ -19,27 +19,11 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 neoForge {
     version = rootProject.neo_version
     runs {
-        client {
-            client()
-
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-        gameTestServer {
-            type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        data {
-            clientData()
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
+//        client {
+//            client()
+//            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+//            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+//        }
 
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'

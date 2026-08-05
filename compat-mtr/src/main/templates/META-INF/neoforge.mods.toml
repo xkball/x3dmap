@@ -1,0 +1,38 @@
+license = "${mod_license}"
+
+[[mods]]
+modId = "x3d_map_compat_mtr"
+version = "${mod_version}"
+displayName = "x3d map compatibility for NeoMTR"
+authors = "xkball"
+description = '''
+Displays NeoMTR stations and routes on the x3d map.
+'''
+
+[[dependencies.x3d_map_compat_mtr]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_mtr]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_mtr]]
+modId = "x3d_map"
+type = "required"
+versionRange = "[${mod_version}]"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.x3d_map_compat_mtr]]
+modId = "mtr"
+type = "optional"
+versionRange = "[300.6.1,)"
+ordering = "AFTER"
+side = "CLIENT"

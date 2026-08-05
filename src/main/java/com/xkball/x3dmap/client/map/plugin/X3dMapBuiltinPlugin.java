@@ -15,6 +15,7 @@ import com.xkball.x3dmap.client.map.selection.SelectionExtension;
 import com.xkball.x3dmap.client.map.selection.SelectionOverlayRenderer;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.waypoint.WaypointExtension;
+import com.xkball.x3dmap.client.map.waypoint.WaypointMinimapLayer;
 import com.xkball.x3dmap.client.render.pip.layers.CameraTargetRenderer;
 import com.xkball.x3dmap.client.render.pip.layers.CompassMapLayer;
 import com.xkball.x3dmap.client.render.pip.layers.GridRenderer;
@@ -60,7 +61,8 @@ public final class X3dMapBuiltinPlugin implements IX3dMapPlugin {
         registration.add3d(new Map3dLayerSpec(VanillaUtils.modRL("selection"), worldMap, Map3dLayerPhase.AFTER_TERRAIN, 10, 10, true), _ -> new SelectionOverlayRenderer());
         registration.add3d(new Map3dLayerSpec(VanillaUtils.modRL("camera_target"), worldMap, Map3dLayerPhase.AFTER_TERRAIN, 20, 20, false), _ -> new CameraTargetRenderer());
         registration.add3d(new Map3dLayerSpec(VanillaUtils.modRL("player"), worldMap, Map3dLayerPhase.AFTER_TERRAIN, 30, 30, true), _ -> new PlayerOnMapRenderer());
-        registration.add2d(new Map2dLayerSpec(VanillaUtils.modRL("player_heads"), worldMap, Map2dLayerPhase.CONTENT, 0, 0, true), _ -> new PlayerHeadsMapLayer());
+        registration.add2d(new Map2dLayerSpec(VanillaUtils.modRL("player_heads"), worldMapAndMinimap, Map2dLayerPhase.CONTENT, 0, 0, true), _ -> new PlayerHeadsMapLayer());
+        registration.add2d(new Map2dLayerSpec(VanillaUtils.modRL("minimap_waypoints"), Set.of(MapViewportPresets.MINIMAP), Map2dLayerPhase.CONTENT, 10, 0, true), WaypointMinimapLayer::new);
         registration.add2d(new Map2dLayerSpec(VanillaUtils.modRL("compass"), worldMap, Map2dLayerPhase.FOREGROUND, 0, 0, true), _ -> new CompassMapLayer());
     }
 

@@ -177,7 +177,9 @@ public final class MinimapHudRenderer {
             );
             var displayLayers = viewport.prepare2d(displayFrame);
             var context = new Map2dRenderContextImpl(displayFrame, b3dGraphics);
+            b3dGraphics.enableScissor(x0 + 1, y0 + 1, x1 - 1, y1 - 1);
             Map2dLayerRenderer.render(displayLayers, Map2dLayerPhase.CONTENT, context);
+            b3dGraphics.disableScissor();
             MinimapRenderHelper.drawBorder(graphics, x0, y0, x1, y1);
             CompassRenderer.render(b3dGraphics, x0, y0, x1, y1, yRot, 0, 8f);
             MinimapPlayerMarker.render(b3dGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer);

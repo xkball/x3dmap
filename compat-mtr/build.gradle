@@ -1,0 +1,66 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = rootProject.mod_version
+group = "${rootProject.mod_group_id}.compat"
+
+base {
+    archivesName = 'x3d_map_compat_mtr'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = "https://maven.blamejared.com"
+    }
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+neoForge {
+    version = rootProject.neo_version
+    runs {
+//        client {
+//            client()
+//        }
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+    mods {
+        x3d_map_compat_mtr {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    implementation project(':')
+    compileOnly "com.xkball:xklib-3d:${rootProject.xklib_version}"
+    compileOnly "com.xkball:xklib-mc:${rootProject.xklib_version}"
+    implementation files('libs/architectury-neoforge-20.0.7.jar')
+    implementation files('libs/NeoMTR-300.6.1+26.1.2.jar')
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version_range: rootProject.minecraft_version_range,
+            neo_version            : rootProject.neo_version,
+            mod_license            : rootProject.mod_license,
+            mod_version            : rootProject.mod_version
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

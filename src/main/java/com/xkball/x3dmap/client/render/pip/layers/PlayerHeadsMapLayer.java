@@ -4,6 +4,7 @@ import com.xkball.x3dmap.api.client.render.IMap2dLayer;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.x3dmap.api.client.render.MapViewportPresets;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import net.minecraft.client.Minecraft;
@@ -28,6 +29,10 @@ public final class PlayerHeadsMapLayer implements IMap2dLayer {
             return;
         }
         for (var playerInfo : player.connection.getListedOnlinePlayers()) {
+            var minimap = context.frame().preset().equals(MapViewportPresets.MINIMAP);
+            if (minimap && playerInfo.getProfile().id().equals(player.getUUID())) {
+                continue;
+            }
             var entity = level.getEntity(playerInfo.getProfile().id());
             if (entity == null) {
                 continue;
@@ -37,11 +42,18 @@ public final class PlayerHeadsMapLayer implements IMap2dLayer {
             if (screenPosition == null) {
                 continue;
             }
-            var x = screenPosition.x - 8;
-            var y = screenPosition.y - 10;
-            PlayerFaceExtractor.extractRenderState(graphics.getInner(), playerInfo.getSkin(), (int) x, (int) y, 16);
-            y -= 10;
-            graphics.drawCenteredString(playerInfo.getProfile().name(), screenPosition.x, y, -1);
+            var faceSize = minimap ? 8 : 16;
+            var x = screenPosition.x - faceSize / 2.0f;
+            var y = screenPosition.y - faceSize / 2.0f;
+            PlayerFaceExtractor.extractRenderState(graphics.getInner(), playerInfo.getSkin(), (int) x, (int) y, faceSize);
+            var nameY = y - (minimap ? 8 : 10);
+            graphics.drawCenteredString(
+                    playerInfo.getProfile().name(),
+                    screenPosition.x,
+                    nameY,
+                    -1,
+                    minimap ? 6.0f : graphics.defaultFont().lineHeight()
+            );
         }
     }
 }
