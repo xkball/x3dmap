@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.client.map.waypoint;
 
+import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.api.client.map.WaypointDetailWindowCreateEvent;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
 import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
@@ -255,7 +256,7 @@ public class WaypointDetailWindow extends MapWindowRefContainer {
                             this.changed.run();
                             content.closeWindow();
                         }).setCSSClassName("color_action_btn")));
-        gui.openWindow(com.xkball.x3dmap.api.client.gui.MapWindowSpec.blocking(IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240)), content);
+        gui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.waypoint.detail.color_title"), false, CssLengthUnit.rpx(140), CssLengthUnit.rpx(240)), content);
     }
     
     private static class ColorPreviewWidget extends Widget {

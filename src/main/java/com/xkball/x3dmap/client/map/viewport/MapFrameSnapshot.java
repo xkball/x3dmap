@@ -6,6 +6,7 @@ import com.xkball.x3dmap.api.client.viewport.MapRay;
 import com.xkball.x3dmap.client.terrain.LevelChunkStorage;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.ChunkPos;
@@ -37,7 +38,7 @@ public final class MapFrameSnapshot implements IMapFrame {
     private final Vector3f cameraDirection;
     private final Vector3f cameraPosition;
     private final Matrix4f projectionMatrix;
-    private final net.minecraft.client.renderer.culling.Frustum frustum;
+    private final Frustum frustum;
 
     public MapFrameSnapshot(
             ResourceKey<Level> dimension,
@@ -88,7 +89,7 @@ public final class MapFrameSnapshot implements IMapFrame {
                         1,
                         0
                 );
-        this.frustum = new net.minecraft.client.renderer.culling.Frustum(new Matrix4f(), this.projectionMatrix);
+        this.frustum = new Frustum(new Matrix4f(), this.projectionMatrix);
     }
 
     @Override

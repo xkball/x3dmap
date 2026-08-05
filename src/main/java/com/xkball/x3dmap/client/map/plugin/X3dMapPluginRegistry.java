@@ -53,6 +53,7 @@ public final class X3dMapPluginRegistry {
         for (var plugin : this.discoverPlugins()) {
             this.registerPlugin(plugin);
         }
+        
     }
 
     public void openRuntime(String saveName) {

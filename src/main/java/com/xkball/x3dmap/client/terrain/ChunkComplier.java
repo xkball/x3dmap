@@ -29,6 +29,8 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
+import net.neoforged.bus.api.Event;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
@@ -60,6 +62,10 @@ public class ChunkComplier {
             Blocks.BARRIER,
             Blocks.STRUCTURE_VOID
     ));
+    
+    public static void init(){
+        NeoForge.EVENT_BUS.post(new RegisterChunkComplierBlackListEvent(IGNORED_BLOCKS));
+    }
     
     public @Nullable ChunkStorage compile(LevelChunkStorage storage, ClientLevel level, ChunkPos chunkPos) {
         if (level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) == null) return null;
@@ -235,6 +241,19 @@ public class ChunkComplier {
                 color = VanillaUtils.mulColor(color, tintColor);
             }
             return color;
+        }
+    }
+    
+    public static class RegisterChunkComplierBlackListEvent extends Event {
+        
+        public final Set<Block> blackList;
+        
+        public RegisterChunkComplierBlackListEvent(Set<Block> blackList) {
+            this.blackList = blackList;
+        }
+        
+        public void add(Block block) {
+            blackList.add(block);
         }
     }
 }

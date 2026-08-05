@@ -7,6 +7,7 @@ import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.client.terrain.ChunkComplier;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.ui.WorldTerrainScreen;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -64,6 +65,7 @@ public class X3dMapClient {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         TerrainChunkManager.INSTANCE.initializeMapApi();
+        ChunkComplier.init();
     }
 
     @SubscribeEvent

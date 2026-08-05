@@ -10,4 +10,4 @@ plugins {
 
 rootProject.name = 'x3dmap'
 
-include 'compat-template','compat-smu'
+include 'compat-template', 'compat-smu', 'compat-mtr'
