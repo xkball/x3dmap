@@ -10,6 +10,7 @@ public class ServerConfig {
     public static final ModConfigSpec.BooleanValue ALLOW_SERVER_SENT_CHUNK;
     public static final ModConfigSpec.BooleanValue OVERRIDE_SEA_LEVEL;
     public static final ModConfigSpec.IntValue SEA_LEVEL_OVERRIDE;
+    public static final ModConfigSpec.BooleanValue SHOW_MOTD;
     
     static {
         var builder = new ModConfigSpec.Builder();
@@ -22,6 +23,8 @@ public class ServerConfig {
         SEA_LEVEL_OVERRIDE = builder
                 .comment("Sea level height used when sea level override is enabled.")
                 .defineInRange("seaLevelOverride", 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        SHOW_MOTD = builder
+                .define("showMotd", true);
         SPEC = builder.build();
     }
     

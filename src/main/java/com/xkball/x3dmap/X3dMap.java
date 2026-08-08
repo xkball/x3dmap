@@ -56,6 +56,7 @@ public class X3dMap {
     
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        if(!ServerConfig.SHOW_MOTD.get()) return;
         event.getEntity().sendSystemMessage(
                 Component.translatable("xklibmc.join.open_map_hint", Component.keybind("keys.xklibmc.open_map"))
         );
