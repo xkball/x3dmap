@@ -71,8 +71,8 @@ public class TerrainRenderer implements IMap3dLayer {
             });
             if (TerrainChunkManager.INSTANCE.compatibleMode) {
                 try (var renderInfo = minimap
-                        ? TerrainChunkManager.INSTANCE.gatherRenderInfoCompatibleModeMinimap(frustum, frame.cullNear(), cameraPosition, cameraTarget, frame.minimapHighDetailRange())
-                        : TerrainChunkManager.INSTANCE.gatherRenderInfoCompatibleMode(frustum, frame.cullNear(), new Vector3f(cameraOffset).add(cameraTarget), cameraTarget, frame.lodDistance())) {
+                        ? TerrainChunkManager.INSTANCE.getTerrainCommandEncoder().gatherRenderInfoCompatibleModeMinimap(frustum, frame.cullNear(), cameraPosition, cameraTarget, frame.minimapHighDetailRange())
+                        : TerrainChunkManager.INSTANCE.getTerrainCommandEncoder().gatherRenderInfoCompatibleMode(frustum, frame.cullNear(), new Vector3f(cameraOffset).add(cameraTarget), cameraTarget, frame.lodDistance())) {
                     if (!renderInfo.lodFullMesh().isEmpty()) {
                         try (var renderpass = ClientUtils.getCommandEncoder().createRenderPass(() -> "world terrain pip rendering lod full mesh", texture, OptionalInt.empty(), depth, OptionalDouble.empty())) {
                             RenderSystem.bindDefaultUniforms(renderpass);
@@ -90,7 +90,7 @@ public class TerrainRenderer implements IMap3dLayer {
                     }
                 }
             } else {
-                try (var renderInfo = TerrainChunkManager.INSTANCE.gatherRenderInfo(frustum, frame.cullNear(), cameraPosition, cameraTarget, minimap ? frame.minimapHighDetailRange() * 16 : frame.lodDistance())) {
+                try (var renderInfo = TerrainChunkManager.INSTANCE.getTerrainCommandEncoder().gatherRenderInfo(frustum, frame.cullNear(), cameraPosition, cameraTarget, minimap ? frame.minimapHighDetailRange() * 16 : frame.lodDistance())) {
                     if (renderInfo.blocks() != null) {
                         try (var renderpass = ClientUtils.getCommandEncoder().createRenderPass(() -> "world terrain pip rendering", texture, OptionalInt.empty(), depth, OptionalDouble.empty())) {
                             RenderSystem.bindDefaultUniforms(renderpass);
