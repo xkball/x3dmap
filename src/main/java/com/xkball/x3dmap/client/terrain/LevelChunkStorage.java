@@ -53,7 +53,6 @@ public class LevelChunkStorage {
     
     public void createBuffer() {
         this.unloadGpu();
-        this.gpuBuffers.clear();
         var gpuDevice = ClientUtils.getGpuDevice();
         var gpuWorkaround = GraphicsWorkarounds.get(gpuDevice);
         if(!compatibleMode){
@@ -88,6 +87,7 @@ public class LevelChunkStorage {
         for (var b : this.gpuBuffers) {
             b.close();
         }
+        this.gpuBuffers.clear();
         this.terrainTextureManager.close();
     }
     

@@ -68,7 +68,7 @@ public class TerrainRenderCommandEncoder {
     public RenderCommand gatherRenderInfo(Frustum frustum, boolean cullNear, Vector3f camPos, Vector3f camTar, int baseLodDistance) {
         var level = Minecraft.getInstance().level;
         if (level == null) return RenderCommand.empty();
-        var storage = this.manager.storageMap.get(level.dimension());
+        var storage = this.manager.currentChunkStorage;
         if (storage == null) return RenderCommand.empty();
         assert storage.gpuBufferBlockData != null;
         var gather = new RenderInfoBlockGather();
@@ -120,7 +120,7 @@ public class TerrainRenderCommandEncoder {
     public RenderCommandCompatible gatherRenderInfoCompatibleMode(Frustum frustum, boolean cullNear, Vector3f camPos, Vector3f camTar, int baseLodDistance) {
         var level = Minecraft.getInstance().level;
         if (level == null) return RenderCommandCompatible.empty();
-        var storage = this.manager.storageMap.get(level.dimension());
+        var storage = this.manager.currentChunkStorage;
         if (storage == null) return RenderCommandCompatible.empty();
         assert storage.gpuBufferByLodFullMesh != null;
         var gather2 = new RenderInfoCompatibleBlockGather();
@@ -148,7 +148,7 @@ public class TerrainRenderCommandEncoder {
     public RenderCommandCompatible gatherRenderInfoCompatibleModeMinimap(Frustum frustum, boolean cullNear, Vector3f camPos, Vector3f camTar, int highDetailRangeChunks) {
         var level = Minecraft.getInstance().level;
         if (level == null) return RenderCommandCompatible.empty();
-        var storage = this.manager.storageMap.get(level.dimension());
+        var storage = this.manager.currentChunkStorage;
         if (storage == null) return RenderCommandCompatible.empty();
         assert storage.gpuBufferByLodFullMesh != null;
         var centerChunk = ChunkPos.containing(new BlockPos((int) camTar.x, (int) camTar.y, (int) camTar.z));

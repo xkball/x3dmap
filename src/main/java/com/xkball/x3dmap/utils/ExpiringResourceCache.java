@@ -120,7 +120,7 @@ public class ExpiringResourceCache<K, V> {
     private static class Entry<V> {
         @SuppressWarnings("rawtypes")
         private static final AtomicIntegerFieldUpdater<Entry> CAS_HELPER = AtomicIntegerFieldUpdater.newUpdater(Entry.class, "read");
-        private final V value;
+        public final V value;
         private volatile long time;
         private volatile int read = 0;
         
@@ -139,7 +139,7 @@ public class ExpiringResourceCache<K, V> {
             return true;
         }
         
-        private boolean isExpire(long expire) {
+        public boolean isExpire(long expire) {
             if (System.nanoTime() - this.time <= expire) {
                 return false;
             }
