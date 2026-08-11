@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Function;
 
 @NonNullByDefault
-public class ExpiringResourceCache<K, V> {
+public class ExpiringResourceCache<K, V> implements AutoCloseable {
     
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1, r -> {
@@ -40,6 +40,7 @@ public class ExpiringResourceCache<K, V> {
     private final long expireNano;
     private final Map<K, Entry<V>> cache = new ConcurrentHashMap<>();
     private final Map<K, CompletableFuture<V>> loading = new ConcurrentHashMap<>();
+    private boolean closed = false;
     
     public ExpiringResourceCache(@Nullable Executor loaderExecutor, @Nullable Executor unloaderExecutor, Function<K, ? extends V> loader, long expireS) {
         this.loaderExecutor = loaderExecutor;
@@ -54,7 +55,7 @@ public class ExpiringResourceCache<K, V> {
         while (iter_.hasNext()) {
             var ref = iter_.next();
             var cache = ref.get();
-            if (cache == null) {
+            if (cache == null || cache.closed) {
                 iter_.remove();
                 continue;
             }
@@ -115,6 +116,27 @@ public class ExpiringResourceCache<K, V> {
     private V put(K key, V value) {
         this.cache.put(key, new Entry<>(value));
         return value;
+    }
+    
+    @Override
+    public void close() throws Exception {
+        for(var c : this.cache.values()){
+            if(c.value instanceof AutoCloseable closeable) {
+                if(this.unloaderExecutor != null) {
+                    this.unloaderExecutor.execute(() -> {
+                        try {
+                            closeable.close();
+                        } catch (Exception e) {
+                            LOGGER.error("Failed to close {}", closeable, e);
+                        }
+                    });
+                }
+                else {
+                    closeable.close();
+                }
+            }
+        }
+        this.closed = true;
     }
     
     private static class Entry<V> {
