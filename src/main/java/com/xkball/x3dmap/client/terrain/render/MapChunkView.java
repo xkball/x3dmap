@@ -1,4 +1,4 @@
-package com.xkball.x3dmap.client.terrain.file;
+package com.xkball.x3dmap.client.terrain.render;
 
 public class MapChunkView implements AutoCloseable{
     

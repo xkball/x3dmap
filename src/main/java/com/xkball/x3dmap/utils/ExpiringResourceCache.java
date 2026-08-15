@@ -36,18 +36,27 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     
     private final @Nullable Executor loaderExecutor;
     private final @Nullable Executor unloaderExecutor;
-    private final Function<K, ? extends V> loader;
+    private final @Nullable Function<K, ? extends V> loader;
+    private final @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader;
     private final long expireNano;
     private final Map<K, Entry<V>> cache = new ConcurrentHashMap<>();
     private final Map<K, CompletableFuture<V>> loading = new ConcurrentHashMap<>();
-    private boolean closed = false;
-    
-    public ExpiringResourceCache(@Nullable Executor loaderExecutor, @Nullable Executor unloaderExecutor, Function<K, ? extends V> loader, long expireS) {
+    private volatile boolean closed = false;
+
+    private ExpiringResourceCache(@Nullable Executor loaderExecutor, @Nullable Executor unloaderExecutor,
+                                  @Nullable Function<K, ? extends V> loader,
+                                  @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader,
+                                  long expireS) {
         this.loaderExecutor = loaderExecutor;
         this.unloaderExecutor = unloaderExecutor;
         this.loader = loader;
+        this.asyncLoader = asyncLoader;
         this.expireNano = TimeUnit.SECONDS.toNanos(expireS);
         if (this.expireNano > 0) CACHES.add(new WeakReference<>(this));
+    }
+    
+    public static <K,V> Builder<K,V> builder(){
+        return new Builder<>();
     }
     
     private static void runCleanUp() {
@@ -108,7 +117,16 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     }
     
     private CompletableFuture<V> load(K key) {
-        return CompletableFuture.supplyAsync(() -> loader.apply(key), loaderExecutor == null ? ForkJoinPool.commonPool() : loaderExecutor)
+        var value = this.get(key);
+        if (value != null) return CompletableFuture.completedFuture(value);
+        var executor = this.loaderExecutor == null ? ForkJoinPool.commonPool() : this.loaderExecutor;
+        if (this.asyncLoader != null) {
+            return this.asyncLoader.apply(key)
+                    .thenApplyAsync(v -> this.put(key, v),executor)
+                    .whenComplete((_, _) -> this.loading.remove(key));
+        }
+        assert this.loader != null;
+        return CompletableFuture.supplyAsync(() -> this.loader.apply(key), executor)
                 .thenApply(v -> this.put(key, v))
                 .whenComplete((_, _) -> this.loading.remove(key));
     }
@@ -174,6 +192,7 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
         private @Nullable Executor loaderExecutor;
         private @Nullable Executor unloaderExecutor;
         private @Nullable Function<K, ? extends V> loader;
+        private @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader;
         private long expireS = -1;
         
         public Builder() {
@@ -182,6 +201,11 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
         
         public Builder<K, V> loader(Function<K, ? extends V> loader) {
             this.loader = loader;
+            return this;
+        }
+
+        public Builder<K, V> asyncLoader(Function<K, ? extends CompletableFuture<? extends V>> loader) {
+            this.asyncLoader = loader;
             return this;
         }
         
@@ -201,10 +225,13 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
         }
         
         public ExpiringResourceCache<K, V> build() {
-            if (this.loader == null) {
+            if (this.loader == null && this.asyncLoader == null) {
                 throw new IllegalStateException("Cache loader can not be null.");
             }
-            return new ExpiringResourceCache<>(loaderExecutor, unloaderExecutor, loader, expireS);
+            if (this.loader != null && this.asyncLoader != null) {
+                throw new IllegalStateException("Only one cache loader can be configured.");
+            }
+            return new ExpiringResourceCache<>(loaderExecutor, unloaderExecutor, loader, asyncLoader, expireS);
         }
         
     }
