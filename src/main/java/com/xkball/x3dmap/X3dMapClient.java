@@ -58,6 +58,9 @@ public class X3dMapClient {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         X3dMap.MARK_DIRTY_CALLBACK = c -> {
+            if (!c.getLevel().isClientSide()) {
+                return;
+            }
             TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
         };
     }
