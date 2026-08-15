@@ -6,6 +6,8 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -110,10 +112,26 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
         return this.getAsync(key).join();
     }
     
-    public CompletableFuture<? extends V> getAsync(K key) {
+    public CompletableFuture<V> getAsync(K key) {
         var r = this.get(key);
         if (r != null) return CompletableFuture.completedFuture(r);
         return this.loading.computeIfAbsent(key, this::load);
+    }
+    
+    public CompletableFuture<List<V>> getListAsync(List<K> list){
+        var size = list.size();
+        var futures = new ArrayList<CompletableFuture<V>>(size);
+        for (var key : list) {
+            futures.add(this.getAsync(key));
+        }
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                .thenApplyAsync((_) -> {
+                    var result = new ArrayList<V>(size);
+                    for(var future : futures){
+                        result.add(future.join());
+                    }
+                    return result;
+                });
     }
     
     private CompletableFuture<V> load(K key) {

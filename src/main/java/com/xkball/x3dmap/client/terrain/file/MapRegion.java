@@ -2,6 +2,8 @@ package com.xkball.x3dmap.client.terrain.file;
 
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.client.terrain.RegionPos;
+import com.xkball.x3dmap.client.terrain.render.MapChunkView;
+import com.xkball.x3dmap.utils.ExpiringResourceCache;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import io.netty.buffer.Unpooled;
@@ -16,6 +18,8 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @NonNullByDefault
 public class MapRegion implements AutoCloseable{
@@ -32,6 +36,12 @@ public class MapRegion implements AutoCloseable{
     private final MapRegionHeightMap heightMap = new MapRegionHeightMap();
     private final @Nullable MapChunk[] chunks = new MapChunk[32 * 32];
     
+    //todo: 区块在拿到一次后才会过期.
+    private final ExpiringResourceCache<ChunkPos, MapChunkView> chunkViewCache = ExpiringResourceCache.<ChunkPos, MapChunkView>builder()
+            .loader(this::createChunkView)
+            .expireAfterRead(60)
+            .build();
+    
     public MapRegion(Identifier level, RegionPos regionPos, Path dir) {
         this.regionPos = regionPos;
         this.level = level;
@@ -39,17 +49,46 @@ public class MapRegion implements AutoCloseable{
         this.file = dir.resolve(this.regionPos.x() + "," + this.regionPos.z());
     }
     
-    public synchronized void readMapChunk(ChunkPos chunkPos) {
+    public void clearChunkData(ChunkPos chunkPos){
+        var idx = this.getChunkIndex(chunkPos);
+        var chunk = this.chunks[idx];
+        if(chunk == null || chunk.state != FileChunkState.NORMAL) return;
+        chunks[idx] = new MapChunk(chunkPos);
+    }
+    
+    private MapChunkView createChunkView(ChunkPos chunkPos){
+        var idx = this.getChunkIndex(chunkPos);
+        var chunk = this.chunks[idx];
+        if(chunk != null && chunk.state != FileChunkState.EMPTY) return new MapChunkView(this, chunk);
+        this.readMapChunk(chunkPos);
+        chunk = this.chunks[idx];
+        assert chunk != null && chunk.state == FileChunkState.EMPTY;
+        return new MapChunkView(this, chunk);
+    }
+    
+    public CompletableFuture<MapChunkView> getMapChunkView(ChunkPos chunkPos){
+        return this.chunkViewCache.getAsync(chunkPos);
+    }
+    
+    public CompletableFuture<List<MapChunkView>> getMapChunkViews(List<ChunkPos> chunkPosList){
+        return this.chunkViewCache.getListAsync(chunkPosList);
+    }
+    
+    public int getChunkIndex(ChunkPos chunkPos){
         var chunkPos0 = this.regionPos.toChunkPos();
         var dx = chunkPos.x() - chunkPos0.x();
         var dz = chunkPos.z() - chunkPos0.z();
-        if(dx < 0 || dz < 0 ||dx >= 32 || dz >= 32) return;
-        var idx = dx * 32 + dz;
+        if(dx < 0 || dz < 0 ||dx >= 32 || dz >= 32) throw new IllegalArgumentException("Chunk pos not belongs region " + this.regionPos);
+        return dx * 32 + dz;
+    }
+    
+    public synchronized void readMapChunk(ChunkPos chunkPos) {
+        var idx = this.getChunkIndex(chunkPos);
         var old = chunks[idx];
         if(old != null && old.state == FileChunkState.DIRTY) return;
         LOGGER.trace("Reading map single chunk {}/{}/{}", this.level, this.regionPos, chunkPos);
         try (var raf = new RandomAccessFile(this.file.toFile(), "r")) {
-            raf.seek(HEADER_SIZE + idx * 12);
+            raf.seek(HEADER_SIZE + idx * 12L);
             var offset = raf.readLong();
             var len = raf.readInt();
             chunks[idx] = readMapChunkInternal(raf, offset, len);
