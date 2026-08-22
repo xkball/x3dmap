@@ -19,7 +19,7 @@ public class MapChunk {
             var chunkpos = ChunkPos.STREAM_CODEC.decode(input);
             var aabb = CodecUtils.AABB_STREAM_CODEC.decode(input);
             var data = TERRAIN_BLOCK_DATA_STREAM_CODEC.decode(input);
-            return new MapChunk(chunkpos, data, aabb, FileChunkState.NORMAL);
+            return new MapChunk(chunkpos, data, aabb, MapChunkState.NORMAL);
         }
         
         @Override
@@ -33,7 +33,7 @@ public class MapChunk {
     public final ChunkPos chunkPos;
     public CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData> data;
     public AABB aabb ;
-    public FileChunkState state = FileChunkState.EMPTY;
+    public MapChunkState state = MapChunkState.EMPTY;
     
     public MapChunk(ChunkPos chunkPos) {
         this.chunkPos = chunkPos;
@@ -41,11 +41,16 @@ public class MapChunk {
         this.aabb = new AABB(0,0,0,0,0,0);
     }
     
-    public MapChunk(ChunkPos chunkPos, CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData> data, AABB aabb, FileChunkState state) {
+    public MapChunk(ChunkPos chunkPos, CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData> data, AABB aabb, MapChunkState state) {
         this.chunkPos = chunkPos;
         this.data = data;
         this.aabb = aabb;
         this.state = state;
     }
     
+    public enum MapChunkState {
+        EMPTY,
+        NORMAL,
+        DIRTY
+    }
 }

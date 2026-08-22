@@ -1,6 +1,5 @@
 package com.xkball.x3dmap.client.terrain.render;
 
-import com.xkball.x3dmap.client.terrain.file.FileChunkState;
 import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.x3dmap.client.terrain.file.MapRegion;
 
@@ -16,7 +15,7 @@ public class MapChunkView implements AutoCloseable{
     
     @Override
     public void close() throws Exception {
-        if(this.chunk.state == FileChunkState.NORMAL){
+        if(this.chunk.state == MapChunk.MapChunkState.NORMAL){
             this.parent.clearChunkData(this.chunk.chunkPos);
         }
     }

@@ -68,6 +68,31 @@ public class MapLevel {
         return dir;
     }
     
+    public void updateChunk(MapChunk chunk){
+        var pos = chunk.chunkPos;
+        this.regionCache.getAsync(RegionPos.ofChunk(pos))
+                .thenAccept(region -> region.setChunk(chunk))
+                .thenRun(() -> this.invalidateLODs(pos));
+    }
+    
+    private void invalidateLODs(ChunkPos pos){
+        this.invalidateLOD(pos, 1, this.lod0Node);
+        this.invalidateLOD(pos, 2, this.lod1Node);
+        this.invalidateLOD(pos, 3, this.lod2Node);
+        this.invalidateLOD(pos, 4, this.lod3Node);
+        this.invalidateLOD(pos, 5, this.lod4Node);
+    }
+
+    private void invalidateLOD(ChunkPos pos, int shift, ExpiringResourceCache<BlockPos, MapNodeModel> cache) {
+        var x = pos.x() >> shift;
+        var z = pos.z() >> shift;
+        var minNodeY = SectionPos.blockToSectionCoord(this.minY) >> shift;
+        var maxNodeY = SectionPos.blockToSectionCoord(this.maxY) >> shift;
+        for (var y = minNodeY; y <= maxNodeY; y++) {
+            cache.remove(new BlockPos(x, y, z));
+        }
+    }
+    
     @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
     private CompletableFuture<MapNodeModel> createLod0Node(BlockPos pos) {
         var chunkPos = ChunkPos.containing(pos);

@@ -75,22 +75,7 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
                 var entry = iter.next();
                 if (entry.getValue().isExpire(cache.expireNano)) {
                     iter.remove();
-                    if (!(entry.getValue().value instanceof AutoCloseable closeable)) continue;
-                    try {
-                        if (cache.unloaderExecutor == null) {
-                            closeable.close();
-                        } else {
-                            cache.unloaderExecutor.execute(() -> {
-                                try {
-                                    closeable.close();
-                                } catch (Exception e) {
-                                    LOGGER.error("Failed to close {}", closeable, e);
-                                }
-                            });
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to close {}", closeable, e);
-                    }
+                    cache.closeValue(entry.getValue().value);
                 }
             }
         }
@@ -106,6 +91,33 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     
     public @Nullable V getOrCreateAsync(K key) {
         return this.getAsync(key).getNow(null);
+    }
+
+    public void remove(K key) {
+        var entry = this.cache.remove(key);
+        if (entry == null) return;
+        this.closeValue(entry.value);
+    }
+
+    private void closeValue(Object value) {
+        if (!(value instanceof AutoCloseable closeable)) return;
+        if (this.unloaderExecutor == null) {
+            closeResource(closeable);
+            return;
+        }
+        try {
+            this.unloaderExecutor.execute(() -> closeResource(closeable));
+        } catch (Exception e) {
+            LOGGER.error("Failed to close {}", closeable, e);
+        }
+    }
+
+    private static void closeResource(AutoCloseable closeable) {
+        try {
+            closeable.close();
+        } catch (Exception e) {
+            LOGGER.error("Failed to close {}", closeable, e);
+        }
     }
     
     public V getBlocked(K key) {
@@ -155,22 +167,9 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     }
     
     @Override
-    public void close() throws Exception {
+    public void close() {
         for(var c : this.cache.values()){
-            if(c.value instanceof AutoCloseable closeable) {
-                if(this.unloaderExecutor != null) {
-                    this.unloaderExecutor.execute(() -> {
-                        try {
-                            closeable.close();
-                        } catch (Exception e) {
-                            LOGGER.error("Failed to close {}", closeable, e);
-                        }
-                    });
-                }
-                else {
-                    closeable.close();
-                }
-            }
+            this.closeValue(c.value);
         }
         this.closed = true;
     }

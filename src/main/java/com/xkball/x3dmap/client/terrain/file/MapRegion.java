@@ -49,20 +49,26 @@ public class MapRegion implements AutoCloseable{
         this.file = dir.resolve(this.regionPos.x() + "," + this.regionPos.z());
     }
     
+    public void setChunk(MapChunk chunk) {
+        var idx = this.getChunkIndex(chunk.chunkPos);
+        chunk.state = MapChunk.MapChunkState.DIRTY;
+        this.chunks[idx] = chunk;
+    }
+    
     public void clearChunkData(ChunkPos chunkPos){
         var idx = this.getChunkIndex(chunkPos);
         var chunk = this.chunks[idx];
-        if(chunk == null || chunk.state != FileChunkState.NORMAL) return;
-        chunks[idx] = new MapChunk(chunkPos);
+        if(chunk == null || chunk.state != MapChunk.MapChunkState.NORMAL) return;
+        this.chunks[idx] = new MapChunk(chunkPos);
     }
     
     private MapChunkView createChunkView(ChunkPos chunkPos){
         var idx = this.getChunkIndex(chunkPos);
         var chunk = this.chunks[idx];
-        if(chunk != null && chunk.state != FileChunkState.EMPTY) return new MapChunkView(this, chunk);
+        if(chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY) return new MapChunkView(this, chunk);
         this.readMapChunk(chunkPos);
         chunk = this.chunks[idx];
-        assert chunk != null && chunk.state == FileChunkState.EMPTY;
+        assert chunk != null && chunk.state == MapChunk.MapChunkState.EMPTY;
         return new MapChunkView(this, chunk);
     }
     
@@ -85,7 +91,7 @@ public class MapRegion implements AutoCloseable{
     public synchronized void readMapChunk(ChunkPos chunkPos) {
         var idx = this.getChunkIndex(chunkPos);
         var old = chunks[idx];
-        if(old != null && old.state == FileChunkState.DIRTY) return;
+        if(old != null && old.state == MapChunk.MapChunkState.DIRTY) return;
         LOGGER.trace("Reading map single chunk {}/{}/{}", this.level, this.regionPos, chunkPos);
         try (var raf = new RandomAccessFile(this.file.toFile(), "r")) {
             raf.seek(HEADER_SIZE + idx * 12L);
@@ -155,8 +161,8 @@ public class MapRegion implements AutoCloseable{
                 for(int i = 0; i < 32 * 32; i++) {
                     var chunk = this.chunks[i];
                     if(chunk != null) {
-                        if(chunk.state == FileChunkState.DIRTY){
-                            chunk.state = FileChunkState.NORMAL;
+                        if(chunk.state == MapChunk.MapChunkState.DIRTY){
+                            chunk.state = MapChunk.MapChunkState.NORMAL;
                         }
                         var byteBuf = Unpooled.buffer();
                         MapChunk.STREAM_CODEC.encode(byteBuf, chunk);
@@ -185,8 +191,8 @@ public class MapRegion implements AutoCloseable{
                 for(int i = 0; i < 32 * 32; i++) {
                     var chunk = this.chunks[i];
                     if(chunk != null) {
-                        if(chunk.state != FileChunkState.EMPTY) {
-                            chunk.state = FileChunkState.NORMAL;
+                        if(chunk.state != MapChunk.MapChunkState.EMPTY) {
+                            chunk.state = MapChunk.MapChunkState.NORMAL;
                             var byteBuf = Unpooled.buffer();
                             MapChunk.STREAM_CODEC.encode(byteBuf, chunk);
                             var data = VanillaUtils.gzip(byteBuf.array(), 0, byteBuf.readableBytes());
