@@ -1,6 +1,6 @@
 package com.xkball.x3dmap.client.render.pip.layers;
 
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.xkball.x3dmap.api.client.render.IMap3dLayer;
@@ -12,6 +12,7 @@ import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.api.client.mixin.IExtendedRenderPass;
+import com.xkball.xklibmc.client.b3d.IndirectDrawCommand;
 import com.xkball.xklibmc.client.b3d.mesh.CachedMesh;
 import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.client.Minecraft;
@@ -23,6 +24,7 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
@@ -30,7 +32,6 @@ import java.util.OptionalInt;
 public class TerrainRenderer implements IMap3dLayer {
 
     private static final int LOD4_NODE_SIZE = 512;
-    private static final int NODE_ENTRY_SIZE = 16;
 
     public static final CachedMesh CUBE = new CachedMesh("cube", X3dMapRenderPipelines.WORLD_TERRAIN_PIP, TerrainRenderer::createCubeMesh, true).setCloseOnExit();
     public static final CachedMesh CHUNK1 = new CachedMesh("lod1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 16, 1), true).setCloseOnExit();
@@ -56,7 +57,7 @@ public class TerrainRenderer implements IMap3dLayer {
         var cameraPosition = new Vector3f(frame.cameraPosition());
         var minNodeY = Math.floorDiv(mapLevel.getMinY(), LOD4_NODE_SIZE);
         var maxNodeY = Math.floorDiv(mapLevel.getMaxY() - 1, LOD4_NODE_SIZE);
-        var nodes = new ArrayList<RenderNode>();
+        var nodesByBuffer = new IdentityHashMap<GpuBuffer, ArrayList<RenderNode>>();
         for (var region : mapLevel.getRegions()) {
             for (var nodeY = minNodeY; nodeY <= maxNodeY; nodeY++) {
                 var y = nodeY * LOD4_NODE_SIZE;
@@ -65,39 +66,66 @@ public class TerrainRenderer implements IMap3dLayer {
                 var future = mapLevel.getLod4NodeAsync(new BlockPos(region.getMinX(), y, region.getMinZ()));
                 if (!future.isDone() || future.isCompletedExceptionally()) continue;
                 var model = future.getNow(null);
-                if (model == null || model.len() == 0 || model.allocation() == null) continue;
-                nodes.add(new RenderNode(model.buffer().getGpuBuffer(model.allocation()).slice(model.allocation().getOffsetFromHeap(), (long) model.len() * NODE_ENTRY_SIZE), model.len()));
+                if (model == null || model.len() == 0 || model.allocation() == null
+                        || model.buffer().getAllocation(model.key()) != model.allocation()) continue;
+                nodesByBuffer.computeIfAbsent(model.buffer().getGpuBuffer(model.allocation()), _ -> new ArrayList<>())
+                        .add(new RenderNode(model.offset(), model.len()));
             }
         }
-        if (nodes.isEmpty()) return;
-        RenderSystem.getModelViewStack().pushMatrix();
+        if (nodesByBuffer.isEmpty()) return;
+        var batches = new ArrayList<RenderBatch>(nodesByBuffer.size());
         try {
-            var modelView = RenderSystem.getModelViewStack().mul(context.poseStack().last().pose(), new Matrix4f());
-            var transformUBO = RenderSystem.getDynamicUniforms().writeTransform(modelView, new Vector4f(1, 1, 1, 1), new Vector3f(), new Matrix4f());
-            X3dMapRenderPipelines.PHONE_LIGHT.updateUnsafe(b ->
-                    b.putVec3(VanillaUtils.dirVec(Mth.clamp(camera.xRotation(), 45, 90), camera.yRotation() + 2))
-                            .putVec3(cameraPosition));
-//                            if(infoBlock.lod() > 0) continue;
-            try (var renderpass = ClientUtils.getCommandEncoder().createRenderPass(
-                    () -> "world terrain lod4 rendering", context.colorTarget(), OptionalInt.empty(), context.depthTarget(), OptionalDouble.empty())) {
-                RenderSystem.bindDefaultUniforms(renderpass);
-                renderpass.setVertexBuffer(0, CUBE.getVertexBuffer());
-                renderpass.setIndexBuffer(CUBE.getIndexBuffer(), CUBE.getIndexType());
+            for (var entry : nodesByBuffer.entrySet()) {
+                var batch = new RenderBatch(entry.getKey(), new ArrayList<>(VanillaUtils.DIRECTIONS.length), entry.getValue().size());
+                batches.add(batch);
                 for (var direction : VanillaUtils.DIRECTIONS) {
-                    renderpass.setPipeline(X3dMapRenderPipelines.WORLD_TERRAIN_NEW[direction.get3DDataValue()]);
-                    renderpass.setUniform("DynamicTransforms", transformUBO);
-                    for (var node : nodes) {
-                        IExtendedRenderPass.cast(renderpass).xklib$setSSBO("ABlock", node.buffer());
-                        renderpass.drawIndexed(0, direction.get3DDataValue() * 6, 6, node.len());
+                    var commands = new ArrayList<IndirectDrawCommand>(entry.getValue().size());
+                    for (var node : entry.getValue()) {
+                        commands.add(new IndirectDrawCommand(6, node.len(), direction.get3DDataValue() * 6, 0, node.offset()));
                     }
+                    batch.commandBuffers().add(IndirectDrawCommand.buildCommandList(commands));
                 }
             }
+            RenderSystem.getModelViewStack().pushMatrix();
+            try {
+                var modelView = RenderSystem.getModelViewStack().mul(context.poseStack().last().pose(), new Matrix4f());
+                var transformUBO = RenderSystem.getDynamicUniforms().writeTransform(modelView, new Vector4f(1, 1, 1, 1), new Vector3f(), new Matrix4f());
+                X3dMapRenderPipelines.PHONE_LIGHT.updateUnsafe(b -> b.putVec3(VanillaUtils.dirVec(Mth.clamp(camera.xRotation(), 45, 90), camera.yRotation() + 2)).putVec3(cameraPosition));
+                try (var renderpass = ClientUtils.getCommandEncoder().createRenderPass(
+                        () -> "world terrain lod4 rendering", context.colorTarget(), OptionalInt.empty(), context.depthTarget(), OptionalDouble.empty())) {
+                    RenderSystem.bindDefaultUniforms(renderpass);
+                    renderpass.setVertexBuffer(0, CUBE.getVertexBuffer());
+                    renderpass.setIndexBuffer(CUBE.getIndexBuffer(), CUBE.getIndexType());
+                    renderpass.setUniform("DynamicTransforms", transformUBO);
+                    for (var direction : VanillaUtils.DIRECTIONS) {
+                        renderpass.setPipeline(X3dMapRenderPipelines.WORLD_TERRAIN_NEW[direction.get3DDataValue()]);
+                        for (var batch : batches) {
+                            IExtendedRenderPass.cast(renderpass).xklib$setSSBO("ABlock", batch.blockBuffer().slice());
+                            IExtendedRenderPass.cast(renderpass).xklib$multiDrawElementsIndirect(batch.commandBuffers().get(direction.get3DDataValue()), batch.drawCount());
+                        }
+                    }
+                }
+            } finally {
+                RenderSystem.getModelViewStack().popMatrix();
+            }
         } finally {
-            RenderSystem.getModelViewStack().popMatrix();
+            for (var batch : batches) {
+                batch.close();
+            }
         }
     }
 
-    private record RenderNode(GpuBufferSlice buffer, int len) {
+    private record RenderNode(int offset, int len) {
+    }
+
+    private record RenderBatch(GpuBuffer blockBuffer, ArrayList<GpuBuffer> commandBuffers, int drawCount) implements AutoCloseable {
+
+        @Override
+        public void close() {
+            for (var commandBuffer : this.commandBuffers) {
+                commandBuffer.close();
+            }
+        }
     }
 
     private static void createCubeMesh(BufferBuilder builder) {

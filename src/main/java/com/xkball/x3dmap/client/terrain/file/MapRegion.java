@@ -20,8 +20,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @NonNullByDefault
 public class MapRegion implements AutoCloseable{
@@ -40,11 +43,13 @@ public class MapRegion implements AutoCloseable{
     private boolean dirty;
     
     //todo: 区块在拿到一次后才会过期. -> 现在暂时不过期
-    private final ExpiringResourceCache<ChunkPos, MapChunkView> chunkViewCache = ExpiringResourceCache.<ChunkPos, MapChunkView>builder()
-            .loader(this::createChunkView)
-            .loadOn(X3dMapClient.taskExecutor)
-//            .expireAfterRead(60)
-            .build();
+//    private final ExpiringResourceCache<ChunkPos, MapChunkView> chunkViewCache = ExpiringResourceCache.<ChunkPos, MapChunkView>builder()
+//            .loader(this::createChunkView)
+//            .loadOn(X3dMapClient.taskExecutor)
+////            .expireAfterRead(60)
+//            .build();
+
+    private final Map<ChunkPos, MapChunkView> chunkViews = new ConcurrentHashMap<>();
     
     public MapRegion(Identifier level, RegionPos regionPos, Path dir) {
         this.regionPos = regionPos;
@@ -55,7 +60,7 @@ public class MapRegion implements AutoCloseable{
     
     public void setChunk(MapChunk chunk) {
         var idx = this.getChunkIndex(chunk.chunkPos);
-        this.chunkViewCache.remove(chunk.chunkPos);
+//        this.chunkViewCache.remove(chunk.chunkPos);
         chunk.state = MapChunk.MapChunkState.DIRTY;
         this.chunks[idx] = chunk;
         this.dirty = true;
@@ -96,7 +101,7 @@ public class MapRegion implements AutoCloseable{
     }
 
     public void deleteChunk(ChunkPos chunkPos) {
-        this.chunkViewCache.remove(chunkPos);
+//        this.chunkViewCache.remove(chunkPos);
         this.chunks[this.getChunkIndex(chunkPos)] = null;
         this.dirty = true;
         for (var x = chunkPos.getMinBlockX(); x <= chunkPos.getMaxBlockX(); x++) {
@@ -118,7 +123,7 @@ public class MapRegion implements AutoCloseable{
         var idx = this.getChunkIndex(chunkPos);
         var chunk = this.chunks[idx];
         if(chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY) return new MapChunkView(this, chunk);
-        if (this.file.toFile().exists()) this.readMapChunk(chunkPos);
+        if (chunk != null && this.file.toFile().exists()) this.readMapChunk(chunkPos);
         chunk = this.chunks[idx];
         if (chunk == null) {
             chunk = new MapChunk(chunkPos);
@@ -128,11 +133,18 @@ public class MapRegion implements AutoCloseable{
     }
     
     public CompletableFuture<MapChunkView> getMapChunkView(ChunkPos chunkPos){
-        return this.chunkViewCache.getAsync(chunkPos);
+//        return this.chunkViewCache.getAsync(chunkPos);
+        return CompletableFuture.supplyAsync(() -> this.createChunkView(chunkPos), X3dMapClient.taskExecutor);
     }
     
     public CompletableFuture<List<MapChunkView>> getMapChunkViews(List<ChunkPos> chunkPosList){
-        return this.chunkViewCache.getListAsync(chunkPosList);
+//        return this.chunkViewCache.getListAsync(chunkPosList);
+        List<MapChunkView> list = new ArrayList<>();
+        for (ChunkPos chunkPos : chunkPosList) {
+            MapChunkView chunkView = chunkViews.computeIfAbsent(chunkPos, this::createChunkView);
+            list.add(chunkView);
+        }
+        return CompletableFuture.completedFuture(list);
     }
     
     public int getChunkIndex(ChunkPos chunkPos){
@@ -321,7 +333,7 @@ public class MapRegion implements AutoCloseable{
     
     @Override
     public void close() {
-        this.chunkViewCache.close();
+//        this.chunkViewCache.close();
         if (this.dirty) CompletableFuture.runAsync(this::save, X3dMapClient.ioExecutor);
     }
 }

@@ -126,6 +126,10 @@ public class MapNodeModel {
         return mask;
     }
 
+    public boolean isEmpty(){
+        return this.data.isEmpty();
+    }
+    
     private static class ColorAccumulator {
         private int alpha;
         private int red;
