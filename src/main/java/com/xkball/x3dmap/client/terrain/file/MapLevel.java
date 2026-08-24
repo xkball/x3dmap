@@ -269,9 +269,12 @@ public class MapLevel implements AutoCloseable{
     }
     
     public synchronized void save(){
-        for(var region : this.regionCache.values()){
-            region.saveAll();
-        }
+        X3dMapClient.submitTaskExecutorBarrier();
+        X3dMapClient.taskExecutor.execute(() -> {
+            for(var region : this.regionCache.values()){
+                region.saveAll();
+            }
+        });
     }
     
     @Override

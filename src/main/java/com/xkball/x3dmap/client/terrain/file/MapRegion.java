@@ -157,15 +157,15 @@ public class MapRegion implements AutoCloseable{
         return this.heightMap.getColor(x, z);
     }
     
-    public void saveAll(){
-        X3dMapClient.ioExecutor.execute(() -> {
+    public CompletableFuture<Void> saveAll(){
+        return CompletableFuture.runAsync(() -> {
             this.heightMap.save(this.dir);
             this.saveCache(this.chunks);
             this.saveCache(this.lod1);
             this.saveCache(this.lod2);
             this.saveCache(this.lod3);
             this.saveCache(this.lod4);
-        });
+        }, X3dMapClient.ioExecutor);
     }
     
     @Override

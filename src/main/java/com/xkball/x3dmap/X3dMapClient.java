@@ -11,6 +11,7 @@ import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.ChunkComplier;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.ui.WorldTerrainScreen;
+import com.xkball.x3dmap.utils.BarrierExecutor;
 import com.xkball.x3dmap.utils.MonitoredExecutor;
 import com.xkball.x3dmap.utils.TimeBudgetExecutor;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -61,10 +62,11 @@ public class X3dMapClient {
             KeyMapping.Category.MISC
     ));
     
-    public static final Executor taskExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_task_",8)) : VanillaUtils.fixedSizeExecutor("x3dmap_task_",8);
+    private static final BarrierExecutor taskExecutorInner = VanillaUtils.fixedSizeExecutor("x3dmap_task_",8);
+    public static final Executor taskExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(taskExecutorInner) : taskExecutorInner;
     public static final Executor ioExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_io_",8)) : VanillaUtils.fixedSizeExecutor("x3dmap_io_",8);
-    private static final TimeBudgetExecutor mainThreadTaskExecutor = new TimeBudgetExecutor();
-    public static final Executor mainThreadExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(mainThreadTaskExecutor) : mainThreadTaskExecutor;
+    private static final TimeBudgetExecutor mainThreadExecutorInner = new TimeBudgetExecutor();
+    public static final Executor mainThreadExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(mainThreadExecutorInner) : mainThreadExecutorInner;
     
     //todo 很不优雅
     public static boolean loading = false;
@@ -79,6 +81,10 @@ public class X3dMapClient {
             }
             TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
         };
+    }
+    
+    public static void submitTaskExecutorBarrier(){
+        X3dMapClient.taskExecutorInner.submitBarrier();
     }
     
     private static void closeExecutor(Executor executor) {
@@ -111,7 +117,7 @@ public class X3dMapClient {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
-        X3dMapClient.mainThreadTaskExecutor.runFor(5, TimeUnit.MILLISECONDS);
+        X3dMapClient.mainThreadExecutorInner.runFor(5, TimeUnit.MILLISECONDS);
         while (OPEN_MAP_KEY.get().consumeClick()) {
             var mc = Minecraft.getInstance();
             if (mc.screen == null && mc.level != null) {
