@@ -14,34 +14,34 @@ import java.util.List;
 @NonNullByDefault
 public class MapNodeModel {
     
-    public static final StreamCodec<ByteBuf, MapNodeModel> STREAM_CODEC = new StreamCodec<>() {
-        @Override
-        public MapNodeModel decode(ByteBuf input) {
-            var depth = input.readInt();
-            var x = input.readInt();
-            var y = input.readInt();
-            var z = input.readInt();
-            var size = input.readInt();
-            var map = new Int2ObjectOpenHashMap<TerrainBlockData>();
-            for (int i = 0; i < size; i++) {
-                map.put(input.readInt(), TerrainBlockData.STREAM_CODEC.decode(input));
-            }
-            return new MapNodeModel(depth, x, y, z, map);
-        }
-        
-        @Override
-        public void encode(ByteBuf output, MapNodeModel value) {
-            output.writeInt(value.depth);
-            output.writeInt(value.x);
-            output.writeInt(value.y);
-            output.writeInt(value.z);
-            output.writeInt(value.data.size());
-            for (var entry : value.data.int2ObjectEntrySet()) {
-                output.writeInt(entry.getIntKey());
-                TerrainBlockData.STREAM_CODEC.encode(output, entry.getValue());
-            }
-        }
-    };
+//    public static final StreamCodec<ByteBuf, MapNodeModel> STREAM_CODEC = new StreamCodec<>() {
+//        @Override
+//        public MapNodeModel decode(ByteBuf input) {
+//            var depth = input.readInt();
+//            var x = input.readInt();
+//            var y = input.readInt();
+//            var z = input.readInt();
+//            var size = input.readInt();
+//            var map = new Int2ObjectOpenHashMap<TerrainBlockData>();
+//            for (int i = 0; i < size; i++) {
+//                map.put(input.readInt(), TerrainBlockData.STREAM_CODEC.decode(input));
+//            }
+//            return new MapNodeModel(depth, x, y, z, map);
+//        }
+//
+//        @Override
+//        public void encode(ByteBuf output, MapNodeModel value) {
+//            output.writeInt(value.depth);
+//            output.writeInt(value.x);
+//            output.writeInt(value.y);
+//            output.writeInt(value.z);
+//            output.writeInt(value.data.size());
+//            for (var entry : value.data.int2ObjectEntrySet()) {
+//                output.writeInt(entry.getIntKey());
+//                TerrainBlockData.STREAM_CODEC.encode(output, entry.getValue());
+//            }
+//        }
+//    };
     
     private static final int SIDE_LENGTH = 32;
     private static final int COORDINATE_MASK = SIDE_LENGTH - 1;

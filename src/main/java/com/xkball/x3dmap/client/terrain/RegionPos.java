@@ -1,6 +1,7 @@
 package com.xkball.x3dmap.client.terrain;
 
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 
 @NonNullByDefault
@@ -11,6 +12,10 @@ public record RegionPos(int x, int z) {
     
     public static RegionPos ofChunk(ChunkPos chunkPos) {
         return new RegionPos(chunkPos.x() >> REGION_SHIFT, chunkPos.z() >> REGION_SHIFT);
+    }
+    
+    public static RegionPos ofBlock(BlockPos blockPos) {
+        return new RegionPos(blockPos.getX() >> 9, blockPos.getZ() >> 9);
     }
     
     public ChunkPos toChunkPos() {

@@ -36,63 +36,67 @@ public interface IMapFile {
     }
     
     default void load(Path dir){
-        var file = this.getFile(dir);
-        if(!file.toFile().exists()) return;
-        var delete = false;
-        try (var raf = new RandomAccessFile(file.toFile(), "r")) {
-            var magic = raf.readInt();
-            var version = raf.readInt();
-            if(magic != MAGIC || version != FILE_VERSION) {
-                LOGGER.warn("Invalid map file {} , mismatch magic number or file version or region pos {}:{}, {}:{}", file, MAGIC, magic, FILE_VERSION, version);
+        synchronized (this) {
+            var file = this.getFile(dir);
+            if(!file.toFile().exists()) return;
+            var delete = false;
+            try (var raf = new RandomAccessFile(file.toFile(), "r")) {
+                var magic = raf.readInt();
+                var version = raf.readInt();
+                if(magic != MAGIC || version != FILE_VERSION) {
+                    LOGGER.warn("Invalid map file {} , mismatch magic number or file version or region pos {}:{}, {}:{}", file, MAGIC, magic, FILE_VERSION, version);
+                    delete = true;
+                }
+                else {
+                    raf.seek(0);
+                    this.read(raf);
+                }
+            } catch(Exception e){
+                LOGGER.error("Failed to load File {}",file, e);
                 delete = true;
             }
-            else {
-                raf.seek(0);
-                this.read(raf);
+            if(delete) {
+                file.toFile().delete();
             }
-        } catch(Exception e){
-            LOGGER.error("Failed to load File {}",file, e);
-            delete = true;
+            this.afterRead();
         }
-        if(delete) {
-            file.toFile().delete();
-        }
-        this.afterRead();
     }
     
     default void save(Path dir){
-        if(!this.dirty()) return;
-        var file = this.getFile(dir);
-        if(!dir.toFile().exists()){
-            //noinspection ResultOfMethodCallIgnored
-            dir.toFile().mkdirs();
-        }
-        var tempFile = new File(file.toFile().getAbsolutePath() + ".tmp");
-        if(!file.toFile().exists()) {
-            try (var raf = new RandomAccessFile(tempFile, "rw")){
-                this.write(raf,null);
-            } catch (Exception e){
-                LOGGER.error("Failed to save file {}", tempFile, e);
-                return;
+        synchronized (this) {
+            if(!this.dirty()) return;
+            var file = this.getFile(dir);
+            if(!dir.toFile().exists()){
+                //noinspection ResultOfMethodCallIgnored
+                dir.toFile().mkdirs();
             }
-        }
-        else {
-            try (var raf = new RandomAccessFile(tempFile, "rw");
-                 var old = new RandomAccessFile(file.toFile(), "r")) {
-                this.write(raf,old);
-            } catch (Exception e){
-                LOGGER.error("Failed to save file {}", tempFile, e);
-                return;
+            var tempFile = new File(file.toFile().getAbsolutePath() + ".tmp");
+            if(!file.toFile().exists()) {
+                try (var raf = new RandomAccessFile(tempFile, "rw")){
+                    this.write(raf,null);
+                } catch (Exception e){
+                    LOGGER.error("Failed to save file {}", tempFile, e);
+                    return;
+                }
             }
+            else {
+                try (var raf = new RandomAccessFile(tempFile, "rw");
+                     var old = new RandomAccessFile(file.toFile(), "r")) {
+                    this.write(raf,old);
+                } catch (Exception e){
+                    LOGGER.error("Failed to save file {}", tempFile, e);
+                    return;
+                }
+            }
+            try {
+                Files.move(tempFile.toPath(), file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (Exception e) {
+                LOGGER.error("Failed to move temp file {}", file.toFile().getAbsolutePath(), e);
+            } finally {
+                //noinspection ResultOfMethodCallIgnored
+                tempFile.delete();
+            }
+            this.afterWrite();
         }
-        try {
-            Files.move(tempFile.toPath(), file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (Exception e) {
-            LOGGER.error("Failed to move temp file {}", file.toFile().getAbsolutePath(), e);
-        } finally {
-            //noinspection ResultOfMethodCallIgnored
-            tempFile.delete();
-        }
-        this.afterWrite();
     }
 }

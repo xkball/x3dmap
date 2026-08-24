@@ -35,8 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 @EventBusSubscriber(Dist.CLIENT)
 @NonNullByDefault
@@ -109,6 +107,9 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         int saveInterval = ClientConfig.AUTO_SAVE_INTERVAL.get();
         if (saveInterval > 0 && XKLibMCClient.tickCount % saveInterval == 0) {
             this.mapPluginRegistry.saveData();
+            if (this.currentChunkStorage != null) {
+                this.currentChunkStorage.save();
+            }
         }
     }
     
@@ -146,7 +147,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 .resolve(dimension.getNamespace())
                 .resolve(dimension.getPath());
         this.mapPluginRegistry.openLevel(level.dimension(), dir);
-        this.currentChunkStorage = new MapLevel(level, dir, X3dMapClient.mainThreadExecutor, X3dMapClient.taskExecutor);
+        this.currentChunkStorage = new MapLevel(level, dir);
         
     }
     

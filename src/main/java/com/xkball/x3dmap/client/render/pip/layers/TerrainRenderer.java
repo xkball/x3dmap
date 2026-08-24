@@ -34,12 +34,12 @@ public class TerrainRenderer implements IMap3dLayer {
     private static final int LOD4_NODE_SIZE = 512;
 
     public static final CachedMesh CUBE = new CachedMesh("cube", X3dMapRenderPipelines.WORLD_TERRAIN_PIP, TerrainRenderer::createCubeMesh, true).setCloseOnExit();
-    public static final CachedMesh CHUNK1 = new CachedMesh("lod1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 16, 1), true).setCloseOnExit();
-    public static final CachedMesh REGION1 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 1), true).setCloseOnExit();
-    public static final CachedMesh REGION2 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 2), true).setCloseOnExit();
-    public static final CachedMesh REGION3 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 4), true).setCloseOnExit();
-    public static final CachedMesh REGION4 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 8), true).setCloseOnExit();
-    public static final CachedMesh[] LODS = new CachedMesh[]{CHUNK1, REGION1, REGION2, REGION3, REGION4};
+//    public static final CachedMesh CHUNK1 = new CachedMesh("lod1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 16, 1), true).setCloseOnExit();
+//    public static final CachedMesh REGION1 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 1), true).setCloseOnExit();
+//    public static final CachedMesh REGION2 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 2), true).setCloseOnExit();
+//    public static final CachedMesh REGION3 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 4), true).setCloseOnExit();
+//    public static final CachedMesh REGION4 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 8), true).setCloseOnExit();
+//    public static final CachedMesh[] LODS = new CachedMesh[]{CHUNK1, REGION1, REGION2, REGION3, REGION4};
 
     @Override
     public IMap3dRenderCommand prepareRender(IMapFrame frame) {
@@ -63,13 +63,12 @@ public class TerrainRenderer implements IMap3dLayer {
                 var y = nodeY * LOD4_NODE_SIZE;
                 if (!frame.isVisible(new AABB(region.getMinX(), y, region.getMinZ(), region.getMinX() + LOD4_NODE_SIZE,
                         y + LOD4_NODE_SIZE, region.getMinZ() + LOD4_NODE_SIZE))) continue;
-                var future = mapLevel.getLod4NodeAsync(new BlockPos(region.getMinX(), y, region.getMinZ()));
+                var future = mapLevel.getGpuNodeAsync(new BlockPos(region.getMinX(), y, region.getMinZ()),4);
                 if (!future.isDone() || future.isCompletedExceptionally()) continue;
-                var model = future.getNow(null);
-                if (model == null || model.len() == 0 || model.allocation() == null
-                        || model.buffer().getAllocation(model.key()) != model.allocation()) continue;
-                nodesByBuffer.computeIfAbsent(model.buffer().getGpuBuffer(model.allocation()), _ -> new ArrayList<>())
-                        .add(new RenderNode(model.offset(), model.len()));
+                var gpuModel = future.getNow(null);
+                if (gpuModel == null || gpuModel.allocation() == null) continue;
+                nodesByBuffer.computeIfAbsent(gpuModel.buffer().getGpuBuffer(gpuModel.allocation()), _ -> new ArrayList<>())
+                        .add(new RenderNode(gpuModel.offset(), gpuModel.len()));
             }
         }
         if (nodesByBuffer.isEmpty()) return;

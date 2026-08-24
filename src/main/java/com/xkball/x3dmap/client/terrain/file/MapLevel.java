@@ -11,7 +11,6 @@ import com.xkball.x3dmap.utils.ExpiringResourceMapCache;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.SectionPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 
 @NonNullByDefault
 public class MapLevel implements AutoCloseable{
@@ -39,10 +37,7 @@ public class MapLevel implements AutoCloseable{
     private final int maxY;
     private final int minY;
     private final Set<RegionPos> regions = ConcurrentHashMap.newKeySet();
-    private final Executor mainThreadExecutor;
-    private final Executor taskExecutor;
     private final ExpiringResourceMapCache<RegionPos, MapRegion> regionCache;
-    private final List<ExpiringResourceMapCache<BlockPos, MapNodeModel>> lodNodes;
     
     public final UberGpuBuffer<Long> lod0Buffer;
     public final UberGpuBuffer<Long> lod1Buffer;
@@ -52,39 +47,16 @@ public class MapLevel implements AutoCloseable{
     private final List<UberGpuBuffer<Long>> lodBuffers;
     private final List<ExpiringResourceMapCache<BlockPos, GpuNodeModel>> lodGpuNodes;
     
-    public MapLevel(Level level, Path dir, Executor mainThreadExecutor, Executor taskExecutor) {
+    public MapLevel(Level level, Path dir) {
         this.level = level.dimension().identifier();
         this.dir = dir;
         this.maxY = level.getMaxY();
         this.minY = level.getMinY();
-        this.mainThreadExecutor = mainThreadExecutor;
-        this.taskExecutor = taskExecutor;
         this.regionCache = ExpiringResourceMapCache.<RegionPos, MapRegion>builder()
                 .loader((pos) -> new MapRegion(this.getLevel(), pos, this.getDir()))
                 .expireAfterRead(300)
                 .loadOn(X3dMapClient.ioExecutor)
                 .build();
-        var lod0Node = ExpiringResourceMapCache.<BlockPos, MapNodeModel>builder()
-                .asyncLoader(this::createLod0Node)
-                .expireAfterRead(20)
-                .build();
-        var lod1Node = ExpiringResourceMapCache.<BlockPos, MapNodeModel>builder()
-                .asyncLoader((pos) -> this.createLodNode(pos, 64, lod0Node))
-                .expireAfterRead(20)
-                .build();
-        var lod2Node = ExpiringResourceMapCache.<BlockPos, MapNodeModel>builder()
-                .asyncLoader((pos) -> this.createLodNode(pos, 128, lod1Node))
-                .expireAfterRead(20)
-                .build();
-        var lod3Node = ExpiringResourceMapCache.<BlockPos, MapNodeModel>builder()
-                .asyncLoader((pos) -> this.createLodNode(pos, 256, lod2Node))
-                .expireAfterRead(20)
-                .build();
-        var lod4Node = ExpiringResourceMapCache.<BlockPos, MapNodeModel>builder()
-                .asyncLoader((pos) -> this.createLodNode(pos, 512, lod3Node))
-                .expireAfterRead(20)
-                .build();
-        this.lodNodes = List.of(lod0Node, lod1Node, lod2Node, lod3Node, lod4Node);
         var gpuDevice = ClientUtils.getGpuDevice();
         var gpuWorkaround = GraphicsWorkarounds.get(gpuDevice);
         this.lod0Buffer = new UberGpuBuffer<>("x3dmap_terrain_lod0", 64, 16 * 1024 * 1024, 16, gpuDevice, 4 * 1024 * 1024, gpuWorkaround);
@@ -136,10 +108,6 @@ public class MapLevel implements AutoCloseable{
         return this.lodGpuNodes.get(lodLevel).size();
     }
 
-    public CompletableFuture<GpuNodeModel> getLod4NodeAsync(BlockPos pos) {
-        return this.getGpuNodeAsync(pos, 4);
-    }
-
     public boolean containsChunk(ChunkPos pos) {
         var region = this.getRegion(pos);
         return region != null && region.containsChunk(pos);
@@ -161,10 +129,8 @@ public class MapLevel implements AutoCloseable{
 
     public void deleteChunk(ChunkPos pos) {
         this.regionCache.getAsync(RegionPos.ofChunk(pos))
-                .thenAcceptAsync(region -> {
-                    region.deleteChunk(pos);
-                    this.invalidateLODs(pos);
-                }, this.mainThreadExecutor);
+                .thenComposeAsync(region -> region.deleteChunk(pos), X3dMapClient.mainThreadExecutor)
+                .thenRun(() -> this.invalidateLODs(pos));
     }
 
     private @Nullable MapRegion getRegion(ChunkPos pos) {
@@ -175,22 +141,20 @@ public class MapLevel implements AutoCloseable{
         var pos = chunk.chunkPos;
         this.regions.add(RegionPos.ofChunk(pos));
         this.regionCache.getAsync(RegionPos.ofChunk(pos))
-                .thenAcceptAsync(region -> {
-                    region.setChunk(chunk);
-                    this.invalidateLODs(pos);
-                }, this.taskExecutor);
+                .thenCompose(region -> region.setChunk(chunk))
+                .thenRun(() -> this.invalidateLODs(pos));
     }
 
     private void loadRegions() {
         if (!Files.isDirectory(this.dir)) return;
         try (var paths = Files.list(this.dir)) {
-            paths.filter(Files::isRegularFile).forEach(path -> {
+            paths.filter(Files::isDirectory).forEach(path -> {
                 var parts = path.getFileName().toString().split(",", -1);
                 if (parts.length != 2) return;
                 try {
                     var pos = new RegionPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
                     this.regions.add(pos);
-                    this.regionCache.getAsync(pos);
+//                    this.regionCache.getAsync(pos);
                 } catch (NumberFormatException ignored) {
                 }
             });
@@ -199,13 +163,19 @@ public class MapLevel implements AutoCloseable{
         }
     }
     
-    public CompletableFuture<GpuNodeModel> uploadNodeModel(BlockPos pos, int lodLevel, ExpiringResourceMapCache<BlockPos, MapNodeModel> cache){
-        return cache.getAsync(pos).thenApplyAsync(model -> this.uploadNodeModel(pos, lodLevel, model), this.mainThreadExecutor);
+    public CompletableFuture<@Nullable MapNodeModel> getNodeModelAsync(BlockPos pos, int lodLevel) {
+        return this.regionCache.getAsync(RegionPos.ofBlock(pos))
+                .thenComposeAsync(region -> region.getNodeModel(pos, lodLevel), X3dMapClient.taskExecutor);
+    }
+    
+    public CompletableFuture<GpuNodeModel> uploadNodeModel(BlockPos pos, int lodLevel){
+        return this.getNodeModelAsync(pos, lodLevel)
+                .thenApplyAsync(model -> this.uploadNodeModel(pos, lodLevel, model), X3dMapClient.mainThreadExecutor);
     }
 
-    private GpuNodeModel uploadNodeModel(BlockPos pos, int lodLevel, MapNodeModel model) {
+    private GpuNodeModel uploadNodeModel(BlockPos pos, int lodLevel,@Nullable MapNodeModel model) {
         var buffer = this.lodBuffers.get(lodLevel);
-        if (model.data.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
+        if (model == null || model.data.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
         var key = pos.asLong();
         var uploadBuffer = MemoryUtil.memAlloc(model.data.size() * NODE_ENTRY_SIZE);
         try {
@@ -244,29 +214,28 @@ public class MapLevel implements AutoCloseable{
 
     private ExpiringResourceMapCache<BlockPos, GpuNodeModel> createGpuNodeCache(int lodLevel, int expireTime) {
         return ExpiringResourceMapCache.<BlockPos, GpuNodeModel>builder()
-                .asyncLoader(pos -> this.uploadNodeModel(pos, lodLevel, this.lodNodes.get(lodLevel)))
+                .asyncLoader(pos -> this.uploadNodeModel(pos, lodLevel))
                 .expireAfterRead(expireTime)
-                .unloadOn(this.mainThreadExecutor)
+                .unloadOn(X3dMapClient.mainThreadExecutor)
                 .build();
     }
 
-    private CompletableFuture<GpuNodeModel> getGpuNodeAsync(BlockPos pos, int lodLevel) {
-        var lodCache = this.lodGpuNodes.get(lodLevel);
-        var cached = lodCache.get(pos);
+    public CompletableFuture<GpuNodeModel> getGpuNodeAsync(BlockPos pos, int lodLevel) {
+        var gpuCache = this.lodGpuNodes.get(lodLevel);
+        var cached = gpuCache.get(pos);
         if (cached == null){
-            if(!lodCache.loading(pos)) CompletableFuture.runAsync(() -> lodCache.getAsync(pos), X3dMapClient.taskExecutor);
+            if(!gpuCache.loading(pos)) CompletableFuture.runAsync(() -> gpuCache.getAsync(pos), X3dMapClient.taskExecutor);
             return new CompletableFuture<>();
         }
         this.refreshGpuNode(cached, pos, lodLevel);
-        var current = lodCache.get(pos);
-        return CompletableFuture.completedFuture(current == null ? cached : current);
+        return CompletableFuture.completedFuture(cached);
     }
 
     private void refreshGpuNode(GpuNodeModel gpuNode, BlockPos pos, int lodLevel) {
         var revision = gpuNode.beginRefresh();
         if (revision < 0) return;
-        this.lodNodes.get(lodLevel).getAsync(pos).whenCompleteAsync((model, error) -> {
-            if (error != null || this.lodGpuNodes.get(lodLevel).get(pos) != gpuNode || !gpuNode.isRevisionCurrent(revision)) {
+        this.getNodeModelAsync(pos, lodLevel).whenCompleteAsync((model, _) -> {
+            if (this.lodGpuNodes.get(lodLevel).get(pos) != gpuNode || !gpuNode.isRevisionCurrent(revision)) {
                 gpuNode.finishRefresh();
                 return;
             }
@@ -276,11 +245,11 @@ public class MapLevel implements AutoCloseable{
                 gpuNode.finishRefresh();
                 throw e;
             }
-        }, this.mainThreadExecutor);
+        }, X3dMapClient.mainThreadExecutor);
     }
     
     private void invalidateLODs(ChunkPos pos){
-        for (var lodLevel = 0; lodLevel < this.lodNodes.size(); lodLevel++) {
+        for (var lodLevel = 0; lodLevel < 5; lodLevel++) {
             this.invalidateLOD(pos, lodLevel, lodLevel + 1);
         }
     }
@@ -293,50 +262,21 @@ public class MapLevel implements AutoCloseable{
         var maxNodeY = this.maxY - 1 >> nodeBlockBits;
         for (var y = minNodeY; y <= maxNodeY; y++) {
             var nodePos = new BlockPos(x, y << nodeBlockBits, z);
-            this.lodNodes.get(lodLevel).remove(nodePos);
             this.lodGpuNodes.get(lodLevel).cancelLoad(nodePos);
             var gpuNode = this.lodGpuNodes.get(lodLevel).get(nodePos);
             if (gpuNode != null) gpuNode.invalidate();
         }
     }
     
-    @SuppressWarnings("SequencedCollectionMethodCanBeUsed")
-    private CompletableFuture<MapNodeModel> createLod0Node(BlockPos pos) {
-        var chunkPos = ChunkPos.containing(pos);
-        var regionPos = RegionPos.ofChunk(chunkPos);
-        return this.regionCache.getAsync(regionPos)
-                .thenCompose((r) -> r.getMapChunkViews(List.of(
-                        chunkPos,
-                        new ChunkPos(chunkPos.x()+1, chunkPos.z()),
-                        new ChunkPos(chunkPos.x(), chunkPos.z()+1),
-                        new ChunkPos(chunkPos.x()+1, chunkPos.z()+1))))
-                .thenApplyAsync((list) -> new MapNodeModel(chunkPos, SectionPos.blockToSectionCoord(pos.getY()),list.get(0),list.get(1), list.get(2), list.get(3)), this.taskExecutor);
-    }
-    
-    private CompletableFuture<MapNodeModel> createLodNode(BlockPos pos, int sideLength, ExpiringResourceMapCache<BlockPos, MapNodeModel> subNodeSource){
-        var px = Math.floorDiv(pos.getX(), sideLength) * sideLength;
-        var py = Math.floorDiv(pos.getY(), sideLength) * sideLength;
-        var pz = Math.floorDiv(pos.getZ(), sideLength) * sideLength;
-        var subSideLength = sideLength / 2;
-        return subNodeSource.getListAsync(List.of(
-                        new BlockPos(px,py,pz),
-                        new BlockPos(px + subSideLength,py,pz),
-                        new BlockPos(px,py,pz + subSideLength),
-                        new BlockPos(px + subSideLength,py,pz + subSideLength),
-                        new BlockPos(px,py + subSideLength,pz),
-                        new BlockPos(px + subSideLength,py + subSideLength,pz),
-                        new BlockPos(px,py + subSideLength,pz + subSideLength),
-                        new BlockPos(px + subSideLength,py + subSideLength,pz + subSideLength)
-                ))
-                .thenApplyAsync(MapNodeModel::new, this.taskExecutor);
+    public synchronized void save(){
+        for(var region : this.regionCache.values()){
+            region.saveAll();
+        }
     }
     
     @Override
     public void close() {
         for (var cache : this.lodGpuNodes) {
-            cache.close();
-        }
-        for (var cache : this.lodNodes) {
             cache.close();
         }
         this.regionCache.close();

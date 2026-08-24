@@ -11,6 +11,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 @NonNullByDefault
 public class MapRegionHeightMap implements IMapFile{
@@ -19,6 +20,10 @@ public class MapRegionHeightMap implements IMapFile{
     public final int[] heightMap = new int[512 * 512];
     public final int[] color = new int[512 * 512];
     private volatile boolean dirty = false;
+    
+    public MapRegionHeightMap() {
+        Arrays.fill(chunkExists, false);
+    }
     
     public void setChunk(MapChunk chunk) {
         var cx = chunk.chunkPos.getRegionLocalX();
@@ -46,15 +51,15 @@ public class MapRegionHeightMap implements IMapFile{
     }
     
     private void setChunkExists(int cx, int cz, boolean value) {
-        cx &= 0x20;
-        cz &= 0x20;
-        this.chunkExists[(cx << 6) + cz] = value;
+        cx &= 0x1F;
+        cz &= 0x1F;
+        this.chunkExists[(cx << 5) + cz] = value;
     }
     
     public boolean chunkExists(int cx, int cz) {
-        cx &= 0x20;
-        cz &= 0x20;
-        return this.chunkExists[(cx << 6) + cz];
+        cx &= 0x1F;
+        cz &= 0x1F;
+        return this.chunkExists[(cx << 5) + cz];
     }
     
     public int getHeight(int x, int z) {
@@ -93,6 +98,7 @@ public class MapRegionHeightMap implements IMapFile{
     
     @Override
     public void read(RandomAccessFile raf) throws IOException {
+        raf.seek(8);
         for (int i = 0; i < 32 * 32; i++) {
             this.chunkExists[i] = raf.readBoolean();
         }
@@ -106,6 +112,8 @@ public class MapRegionHeightMap implements IMapFile{
     
     @Override
     public void write(RandomAccessFile raf, @Nullable RandomAccessFile oldFile) throws IOException {
+        raf.writeInt(MAGIC);
+        raf.writeInt(FILE_VERSION);
         for (int i = 0; i < 32 * 32; i++) {
             raf.writeBoolean(this.chunkExists[i]);
         }
