@@ -3,6 +3,7 @@ package com.xkball.x3dmap.client.terrain;
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.client.terrain.file.MapChunk;
+import com.xkball.x3dmap.client.terrain.render.TerrainBlockData;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.client.TextureSpriteAvgColorCache;
@@ -77,7 +78,7 @@ public class ChunkComplier {
         var directions = VanillaUtils.DIRECTIONS;
         var mc = Minecraft.getInstance();
         var modelManager = mc.getModelManager().getBlockStateModelSet();
-        var dataBuilder = new CompressedChunkCoordDataMap.Builder<ChunkStorage.TerrainBlockData>(chunkPos);
+        var dataBuilder = new CompressedChunkCoordDataMap.Builder<TerrainBlockData>(chunkPos);
         var pos = new BlockPos(0, 0, 0).mutable();
         var chunkMinY = level.getMaxY();
         var chunkMaxY = level.getMinY();
@@ -128,7 +129,7 @@ public class ChunkComplier {
                         continue;
                     }
                     var color = processBlockColor(context, bs, pos, modelManager);
-                    dataBuilder.append(pos, new ChunkStorage.TerrainBlockData(color, mask));
+                    dataBuilder.append(pos, new TerrainBlockData(color, mask));
                 }
             }
         }

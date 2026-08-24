@@ -1,7 +1,7 @@
 package com.xkball.x3dmap.client.terrain.file;
 
-import com.xkball.x3dmap.client.terrain.ChunkStorage;
 import com.xkball.x3dmap.client.terrain.CompressedChunkCoordDataMap;
+import com.xkball.x3dmap.client.terrain.render.TerrainBlockData;
 import com.xkball.x3dmap.utils.CodecUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import io.netty.buffer.ByteBuf;
@@ -12,7 +12,7 @@ import net.minecraft.world.phys.AABB;
 @NonNullByDefault
 public class MapChunk {
     
-    public static final StreamCodec<ByteBuf, CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData>> TERRAIN_BLOCK_DATA_STREAM_CODEC = CompressedChunkCoordDataMap.streamCodec(ChunkStorage.TerrainBlockData.STREAM_CODEC);
+    public static final StreamCodec<ByteBuf, CompressedChunkCoordDataMap<TerrainBlockData>> TERRAIN_BLOCK_DATA_STREAM_CODEC = CompressedChunkCoordDataMap.streamCodec(TerrainBlockData.STREAM_CODEC);
     public static final StreamCodec<ByteBuf, MapChunk> STREAM_CODEC = new StreamCodec<>() {
         @Override
         public MapChunk decode(ByteBuf input) {
@@ -31,7 +31,7 @@ public class MapChunk {
     };
     
     public final ChunkPos chunkPos;
-    public CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData> data;
+    public CompressedChunkCoordDataMap<TerrainBlockData> data;
     public AABB aabb ;
     public MapChunkState state = MapChunkState.EMPTY;
     
@@ -41,7 +41,7 @@ public class MapChunk {
         this.aabb = new AABB(0,0,0,0,0,0);
     }
     
-    public MapChunk(ChunkPos chunkPos, CompressedChunkCoordDataMap<ChunkStorage.TerrainBlockData> data, AABB aabb, MapChunkState state) {
+    public MapChunk(ChunkPos chunkPos, CompressedChunkCoordDataMap<TerrainBlockData> data, AABB aabb, MapChunkState state) {
         this.chunkPos = chunkPos;
         this.data = data;
         this.aabb = aabb;

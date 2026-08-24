@@ -1,16 +1,48 @@
 package com.xkball.x3dmap.client.terrain.render;
 
-import com.xkball.x3dmap.client.terrain.ChunkStorage;
+import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.core.Direction;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.List;
 
 @NonNullByDefault
 public class MapNodeModel {
+    
+    public static final StreamCodec<ByteBuf, MapNodeModel> STREAM_CODEC = new StreamCodec<>() {
+        @Override
+        public MapNodeModel decode(ByteBuf input) {
+            var depth = input.readInt();
+            var x = input.readInt();
+            var y = input.readInt();
+            var z = input.readInt();
+            var size = input.readInt();
+            var map = new Int2ObjectOpenHashMap<TerrainBlockData>();
+            for (int i = 0; i < size; i++) {
+                map.put(input.readInt(), TerrainBlockData.STREAM_CODEC.decode(input));
+            }
+            return new MapNodeModel(depth, x, y, z, map);
+        }
+        
+        @Override
+        public void encode(ByteBuf output, MapNodeModel value) {
+            output.writeInt(value.depth);
+            output.writeInt(value.x);
+            output.writeInt(value.y);
+            output.writeInt(value.z);
+            output.writeInt(value.data.size());
+            for (var entry : value.data.int2ObjectEntrySet()) {
+                output.writeInt(entry.getIntKey());
+                TerrainBlockData.STREAM_CODEC.encode(output, entry.getValue());
+            }
+        }
+    };
+    
     private static final int SIDE_LENGTH = 32;
     private static final int COORDINATE_MASK = SIDE_LENGTH - 1;
     private static final int DOWN_MASK = 1 << Direction.DOWN.get3DDataValue();
@@ -24,13 +56,22 @@ public class MapNodeModel {
     public final int x;
     public final int y;
     public final int z;
-    public final Int2ObjectMap<ChunkStorage.TerrainBlockData> data = new Int2ObjectOpenHashMap<>();
+    public final Int2ObjectMap<TerrainBlockData> data;
     
-    public MapNodeModel(ChunkPos pos, int sectionY, MapChunkView view00, MapChunkView view10, MapChunkView view01, MapChunkView view11) {
+    public MapNodeModel(int depth, int x, int y, int z, Int2ObjectMap<TerrainBlockData> data) {
+        this.depth = depth;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.data = data;
+    }
+    
+    public MapNodeModel(ChunkPos pos, int sectionY, MapChunk view00, MapChunk view10, MapChunk view01, MapChunk view11) {
         this.depth = 5;
         this.x = pos.x() >> 1;
         this.y = sectionY >> 1;
         this.z = pos.z() >> 1;
+        this.data = new Int2ObjectOpenHashMap<>();
         this.addChunk(view00);
         this.addChunk(view10);
         this.addChunk(view01);
@@ -45,6 +86,7 @@ public class MapNodeModel {
         this.x = subNode000.x >> 1;
         this.y = subNode000.y >> 1;
         this.z = subNode000.z >> 1;
+        this.data = new Int2ObjectOpenHashMap<>();
         var mergedData = new Int2ObjectOpenHashMap<ColorAccumulator>();
         for (var subNode : subNodes) {
             var offsetX = (subNode.x & 1) << 5;
@@ -65,12 +107,12 @@ public class MapNodeModel {
         }
         for (var entry : mergedData.int2ObjectEntrySet()) {
             var index = entry.getIntKey();
-            this.data.put(index, new ChunkStorage.TerrainBlockData(entry.getValue().averageColor(), calculateMask(mergedData, index)));
+            this.data.put(index, new TerrainBlockData(entry.getValue().averageColor(), calculateMask(mergedData, index)));
         }
     }
 
-    private void addChunk(MapChunkView view) {
-        view.chunk.data.forEach((entry, blockData) -> {
+    private void addChunk(MapChunk view) {
+        view.data.forEach((entry, blockData) -> {
             var px = entry.x() - (this.x << 5);
             var py = entry.y() - (this.y << 5);
             var pz = entry.z() - (this.z << 5);
@@ -92,7 +134,7 @@ public class MapNodeModel {
             if (py < COORDINATE_MASK && this.data.containsKey(index(px, py + 1, pz))) mask &= ~UP_MASK;
             if (pz > 0 && this.data.containsKey(index(px, py, pz - 1))) mask &= ~NORTH_MASK;
             if (pz < COORDINATE_MASK && this.data.containsKey(index(px, py, pz + 1))) mask &= ~SOUTH_MASK;
-            entry.setValue(new ChunkStorage.TerrainBlockData(entry.getValue().color(), mask));
+            entry.setValue(new TerrainBlockData(entry.getValue().color(), mask));
         }
     }
 
@@ -137,7 +179,7 @@ public class MapNodeModel {
         private int blue;
         private int count;
 
-        private void add(ChunkStorage.TerrainBlockData blockData) {
+        private void add(TerrainBlockData blockData) {
             this.alpha += blockData.color() >>> 24;
             this.red += blockData.color() >> 16 & 0xFF;
             this.green += blockData.color() >> 8 & 0xFF;

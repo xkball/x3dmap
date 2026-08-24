@@ -177,7 +177,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public void submitUpdate(@Nullable LevelChunk chunk, ChunkPos chunkPos, boolean force) {
         var level = Minecraft.getInstance().level;
-        if (level == null || chunkPos == null) {
+        if (level == null) {
             return;
         }
         var dim = level.dimension();
@@ -195,10 +195,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             if (chunk == null) mapChunk = COMPLIER.compile(level_, chunkPos);
             else mapChunk = COMPLIER.compile(level_, chunk, chunkPos, true);
             if (mapChunk != null) {
-                this.submitTaskOnMainThread(() -> {
-                    if (this.currentChunkStorage != storage) return;
-                    storage.updateChunk(mapChunk);
-                });
+                storage.updateChunk(mapChunk);
             }
         };
         X3dMapClient.taskExecutor.execute(task);
@@ -222,9 +219,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             this.currentLevel = null;
         }
         this.mapPluginRegistry.closeRuntime();
-        closeExecutor(X3dMapClient.taskExecutor);
-        closeExecutor(X3dMapClient.mainThreadExecutor);
-        closeExecutor(X3dMapClient.ioExecutor);
     }
     
     public long getMemAlloc() {
@@ -239,13 +233,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         return result;
     }
 
-    private static void closeExecutor(Executor executor) {
-        if (!(executor instanceof AutoCloseable closeable)) return;
-        try {
-            closeable.close();
-        } catch (Exception e) {
-            LOGGER.error("Failed to close terrain executor", e);
-        }
-    }
+
 
 }

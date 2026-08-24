@@ -6,350 +6,266 @@ import com.xkball.xklibmc.annotation.NonNullByDefault;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
-import java.lang.ref.WeakReference;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.RandomAccess;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @NonNullByDefault
-public class ExpiringResourceCache<K, V> implements AutoCloseable {
-    
+public class ExpiringResourceCache<T> implements AutoCloseable, ExpiringResourceCacheScheduler.CleanupTarget {
+
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1, r -> {
-        var thread = new Thread(r);
-        thread.setDaemon(true);
-        thread.setName("x3dmap-cache-cleanup");
-        return thread;
-    });
-    private static final Set<WeakReference<ExpiringResourceCache<?, ?>>> CACHES = ConcurrentHashMap.newKeySet();
-    
-    static {
-        SCHEDULER.scheduleAtFixedRate(ExpiringResourceCache::runCleanUp, 10, 10, TimeUnit.SECONDS);
-    }
-    
+
     private final @Nullable Executor loaderExecutor;
     private final @Nullable Executor unloaderExecutor;
-    private final @Nullable Function<K, ? extends V> loader;
-    private final @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader;
+    private final @Nullable Supplier<? extends T> loader;
+    private final @Nullable Supplier<? extends CompletableFuture<? extends T>> asyncLoader;
+    private final @Nullable Consumer<? super T> unloader;
     private final long expireNano;
-    private final Map<K, Entry<V>> cache = new ConcurrentHashMap<>();
-    private final Map<K, PendingLoad<V>> loading = new ConcurrentHashMap<>();
-    private volatile boolean closed = false;
+    private final AtomicReference<@Nullable Entry<T>> cache = new AtomicReference<>();
+    private final AtomicReference<@Nullable PendingLoad<T>> loading = new AtomicReference<>();
 
     private ExpiringResourceCache(@Nullable Executor loaderExecutor, @Nullable Executor unloaderExecutor,
-                                  @Nullable Function<K, ? extends V> loader,
-                                  @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader,
-                                  long expireS) {
+                                  @Nullable Supplier<? extends T> loader,
+                                  @Nullable Supplier<? extends CompletableFuture<? extends T>> asyncLoader,
+                                  @Nullable Consumer<? super T> unloader, long expireS) {
         this.loaderExecutor = loaderExecutor;
         this.unloaderExecutor = unloaderExecutor;
         this.loader = loader;
         this.asyncLoader = asyncLoader;
+        this.unloader = unloader;
         this.expireNano = TimeUnit.SECONDS.toNanos(expireS);
-        if (this.expireNano > 0) CACHES.add(new WeakReference<>(this));
+        if (this.expireNano > 0) ExpiringResourceCacheScheduler.register(this);
     }
-    
-    public static <K,V> Builder<K,V> builder(){
+
+    public static <T> Builder<T> builder() {
         return new Builder<>();
     }
-    
-    private static void runCleanUp() {
-        var iter_ = CACHES.iterator();
-        while (iter_.hasNext()) {
-            var ref = iter_.next();
-            var cache = ref.get();
-            if (cache == null || cache.closed) {
-                iter_.remove();
-                continue;
-            }
-            var iter = cache.cache.entrySet().iterator();
-            while (iter.hasNext()) {
-                var entry = iter.next();
-                if (entry.getValue().isExpire(cache.expireNano)) {
-                    iter.remove();
-                    cache.closeValue(entry.getValue().value);
-                }
-            }
-        }
-    }
-    
-    public @Nullable V get(K key) {
-        var entry = this.cache.get(key);
+
+    public @Nullable T get() {
+        var entry = this.cache.get();
         if (entry != null && entry.require()) {
             return entry.value;
         }
         return null;
     }
-    
-    public boolean loading(K key){
-        return loading.containsKey(key);
-    }
-    
-    public @Nullable V getOrCreateAsync(K key) {
-        return this.getAsync(key).getNow(null);
+
+    public boolean loading() {
+        return this.loading.get() != null;
     }
 
-    public void remove(K key) {
-        this.cancelLoad(key);
-        var entry = this.cache.remove(key);
-        if (entry == null) return;
-        this.closeValue(entry.value);
+    public @Nullable T getOrCreateAsync() {
+        return this.getAsync().getNow(null);
     }
 
-    public void cancelLoad(K key) {
-        var pendingLoad = this.loading.remove(key);
-        if (pendingLoad != null) pendingLoad.cancel();
+    public T getBlocked() {
+        return this.getAsync().join();
     }
 
-    public void replace(K key, V value) {
-        this.cancelLoad(key);
-        if (this.closed) {
-            this.closeValue(value);
-            return;
-        }
-        var oldEntry = this.cache.put(key, new Entry<>(value));
-        if (oldEntry != null) this.closeValue(oldEntry.value);
-    }
-
-    public List<V> values() {
-        var result = new ArrayList<V>(this.cache.size());
-        for (var entry : this.cache.values()) {
-            result.add(entry.value);
-        }
-        return result;
-    }
-
-    public int size() {
-        return this.cache.size();
-    }
-
-    private void closeValue(Object value) {
-        if (!(value instanceof AutoCloseable closeable)) return;
-        if (this.unloaderExecutor == null) {
-            closeResource(closeable);
-            return;
-        }
-        try {
-            this.unloaderExecutor.execute(() -> closeResource(closeable));
-        } catch (Exception e) {
-            LOGGER.error("Failed to close {}", closeable, e);
+    public CompletableFuture<T> getAsync() {
+        var value = this.get();
+        if (value != null) return CompletableFuture.completedFuture(value);
+        PendingLoad<T> pending;
+        synchronized (this) {
+            value = this.get();
+            if (value != null) return CompletableFuture.completedFuture(value);
+            var current = this.loading.get();
+            if (current != null) return current.future;
+            pending = new PendingLoad<>();
+            this.loading.set(pending);
+            this.startLoad(pending);
+            return pending.future;
         }
     }
 
-    private static void closeResource(AutoCloseable closeable) {
-        try {
-            closeable.close();
-        } catch (Exception e) {
-            LOGGER.error("Failed to close {}", closeable, e);
-        }
+    public synchronized void replace(T value) {
+        var pending = this.loading.getAndSet(null);
+        var oldEntry = this.cache.getAndSet(new Entry<>(value));
+        if (pending != null) pending.cancel();
+        if (oldEntry != null) this.unloadValue(oldEntry.value);
     }
-    
-    public V getBlocked(K key) {
-        return this.getAsync(key).join();
+
+    public synchronized void remove() {
+        var pending = this.loading.getAndSet(null);
+        var oldEntry = this.cache.getAndSet(null);
+        if (pending != null) pending.cancel();
+        if (oldEntry != null) this.unloadValue(oldEntry.value);
     }
-    
-    public CompletableFuture<V> getAsync(K key) {
-        if (this.closed) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Cache is closed"));
+
+    @Override
+    public boolean cleanupExpired() {
+        var entry = this.cache.get();
+        if (entry != null && entry.isExpire(this.expireNano) && this.cache.compareAndSet(entry, null)) {
+            this.unloadValue(entry.value);
         }
-        var r = this.get(key);
-        if (r != null) return CompletableFuture.completedFuture(r);
-        return this.loading.computeIfAbsent(key, this::load).future;
+        return true;
     }
-    
-    public CompletableFuture<List<V>> getListAsync(List<K> list){
-        if (list.isEmpty()) return CompletableFuture.completedFuture(List.of());
-        var result = new CompletableFuture<List<V>>();
-        var size = list.size();
-        var values = new Object[size];
-        var remaining = new AtomicInteger(size);
-        for (var i = 0; i < size; i++) {
-            var index = i;
-            this.getAsync(list.get(i)).whenComplete((value, error) -> {
-                if (error != null) {
-                    result.completeExceptionally(error);
-                    return;
-                }
-                values[index] = value;
-                if (remaining.decrementAndGet() == 0) {
-                    result.complete(new ArrayBackedList<>(values));
-                }
-            });
-        }
-        return result;
-    }
-    
-    private static final class ArrayBackedList<V> extends AbstractList<V> implements RandomAccess {
-        
-        private final Object[] values;
-        
-        private ArrayBackedList(Object[] values) {
-            this.values = values;
-        }
-        
-        @Override
-        @SuppressWarnings("unchecked")
-        public V get(int index) {
-            return (V) this.values[index];
-        }
-        
-        @Override
-        public int size() {
-            return this.values.length;
-        }
-    }
-    
-    private PendingLoad<V> load(K key) {
-        var pendingLoad = new PendingLoad<V>();
-        CompletableFuture<? extends V> source;
+
+    private void startLoad(PendingLoad<T> pending) {
+        CompletableFuture<? extends T> source;
         if (this.asyncLoader != null) {
-            source = this.asyncLoader.apply(key);
+            source = this.asyncLoader.get();
         } else {
             assert this.loader != null;
-            var executor = this.loaderExecutor == null ? ForkJoinPool.commonPool() : this.loaderExecutor;
-            source = CompletableFuture.supplyAsync(() -> this.loader.apply(key), executor);
+            source = CompletableFuture.supplyAsync(this.loader, this.loaderExecutor == null ? X3dMapClient.taskExecutor : this.loaderExecutor);
         }
-        source.whenCompleteAsync((loadedValue, error) -> this.finishLoad(key, pendingLoad, loadedValue, error), X3dMapClient.taskExecutor);
-        pendingLoad.source = source;
-        return pendingLoad;
+        pending.source = source;
+        source.whenCompleteAsync((value, error) -> this.finishLoad(pending, value, error), X3dMapClient.taskExecutor);
     }
 
-    private void finishLoad(K key, PendingLoad<V> pendingLoad, V value, @Nullable Throwable error) {
+    private void finishLoad(PendingLoad<T> pending, @Nullable T value, @Nullable Throwable error) {
         if (error != null) {
-            this.loading.remove(key, pendingLoad);
-            pendingLoad.future.completeExceptionally(error);
+            this.loading.compareAndSet(pending, null);
+            pending.future.completeExceptionally(error);
             return;
         }
-        this.loading.compute(key, (_, current) -> {
-            if (current != pendingLoad || this.closed) return current;
-            this.put(key, value);
-            pendingLoad.accepted = true;
-            return null;
-        });
-        if (pendingLoad.accepted) {
-            pendingLoad.future.complete(value);
+        Entry<T> oldEntry = null;
+        boolean accepted = !pending.cancelled;
+        synchronized (this) {
+            accepted &= this.loading.compareAndSet(pending, null);
+            if (accepted) oldEntry = this.cache.getAndSet(new Entry<>(value));
+        }
+        if (accepted) {
+            if (oldEntry != null) this.unloadValue(oldEntry.value);
+            pending.future.complete(value);
         } else {
-            this.closeValue(value);
-            pendingLoad.future.cancel(false);
+            this.unloadValue(value);
+            pending.future.cancel(false);
         }
-    }
-    
-    private void put(K key, V value) {
-        this.cache.put(key, new Entry<>(value));
-    }
-    
-    @Override
-    public void close() {
-        this.closed = true;
-        for (var pendingLoad : this.loading.values()) {
-            pendingLoad.cancel();
-        }
-        this.loading.clear();
-        for(var c : this.cache.values()){
-            this.closeValue(c.value);
-        }
-        this.cache.clear();
     }
 
-    private static class PendingLoad<V> {
-        private final CompletableFuture<V> future = new CompletableFuture<>();
-        private @Nullable CompletableFuture<? extends V> source;
-        private boolean accepted;
+    private void unloadValue(@Nullable T value) {
+        if (value == null) return;
+        Runnable action = () -> {
+            if (this.unloader != null) {
+                try {
+                    this.unloader.accept(value);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to unload {}", value, e);
+                }
+            } else if (value instanceof AutoCloseable closeable) {
+                try {
+                    closeable.close();
+                } catch (Exception e) {
+                    LOGGER.error("Failed to close {}", closeable, e);
+                }
+            }
+        };
+        if (this.unloaderExecutor == null) {
+            action.run();
+            return;
+        }
+        try {
+            this.unloaderExecutor.execute(action);
+        } catch (Exception e) {
+            LOGGER.error("Failed to schedule unload for {}", value, e);
+        }
+    }
+
+    @Override
+    public void close() {
+        PendingLoad<T> pending;
+        Entry<T> entry;
+        synchronized (this) {
+            pending = this.loading.getAndSet(null);
+            entry = this.cache.getAndSet(null);
+        }
+        if (pending != null) pending.cancel();
+        if (entry != null) this.unloadValue(entry.value);
+    }
+
+    private static final class PendingLoad<T> {
+        private final CompletableFuture<T> future = new CompletableFuture<>();
+        private volatile @Nullable CompletableFuture<? extends T> source;
+        private volatile boolean cancelled;
 
         private void cancel() {
             this.future.cancel(false);
-            if (this.source != null) this.source.cancel(false);
+            this.cancelled = true;
         }
     }
 
-    private static class Entry<V> {
-        @SuppressWarnings("rawtypes")
-        private static final AtomicIntegerFieldUpdater<Entry> CAS_HELPER = AtomicIntegerFieldUpdater.newUpdater(Entry.class, "read");
-        public final V value;
+    private static final class Entry<T> {
+        private final T value;
         private volatile long time;
-        private volatile int read = 0;
-        
-        public Entry(V value) {
+        private volatile int read;
+
+        private Entry(T value) {
             this.value = value;
             this.time = System.nanoTime();
         }
-        
-        public boolean require(){
-            while (true){
-                if (read == -1) return false;
-                else if(CAS_HELPER.compareAndSet(this, read, read+1)) break;
-            }
+
+        private synchronized boolean require() {
+            if (this.read < 0) return false;
+            this.read++;
             this.time = System.nanoTime();
-            CAS_HELPER.decrementAndGet(this);
+            this.read--;
             return true;
         }
-        
-        public boolean isExpire(long expire) {
-            if (System.nanoTime() - this.time <= expire) {
-                return false;
-            }
-            return CAS_HELPER.compareAndSet(this,0, -1);
+
+        private synchronized boolean isExpire(long expire) {
+            if (System.nanoTime() - this.time <= expire) return false;
+            if (this.read != 0) return false;
+            this.read = -1;
+            return true;
         }
     }
-    
-    public static class Builder<K, V> {
-        
+
+    public static class Builder<T> {
+
         private @Nullable Executor loaderExecutor;
         private @Nullable Executor unloaderExecutor;
-        private @Nullable Function<K, ? extends V> loader;
-        private @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader;
+        private @Nullable Supplier<? extends T> loader;
+        private @Nullable Supplier<? extends CompletableFuture<? extends T>> asyncLoader;
+        private @Nullable Consumer<? super T> unloader;
         private long expireS = -1;
-        
-        public Builder() {
-        
-        }
-        
-        public Builder<K, V> loader(Function<K, ? extends V> loader) {
+
+        public Builder<T> loader(Supplier<? extends T> loader) {
             this.loader = loader;
             return this;
         }
 
-        public Builder<K, V> asyncLoader(Function<K, ? extends CompletableFuture<? extends V>> loader) {
+        public Builder<T> asyncLoader(Supplier<? extends CompletableFuture<? extends T>> loader) {
             this.asyncLoader = loader;
             return this;
         }
-        
-        public Builder<K, V> loadOn(Executor executor) {
+
+        public Builder<T> unloader(Consumer<? super T> unloader) {
+            this.unloader = unloader;
+            return this;
+        }
+
+        public Builder<T> unload(Consumer<? super T> unloader) {
+            return this.unloader(unloader);
+        }
+
+        public Builder<T> loadOn(Executor executor) {
             this.loaderExecutor = executor;
             return this;
         }
-        
-        public Builder<K, V> unloadOn(Executor executor) {
+
+        public Builder<T> unloadOn(Executor executor) {
             this.unloaderExecutor = executor;
             return this;
         }
-        
-        public Builder<K, V> expireAfterRead(long duration) {
+
+        public Builder<T> expireAfterRead(long duration) {
             this.expireS = duration;
             return this;
         }
-        
-        public ExpiringResourceCache<K, V> build() {
+
+        public ExpiringResourceCache<T> build() {
             if (this.loader == null && this.asyncLoader == null) {
                 throw new IllegalStateException("Cache loader can not be null.");
             }
             if (this.loader != null && this.asyncLoader != null) {
                 throw new IllegalStateException("Only one cache loader can be configured.");
             }
-            return new ExpiringResourceCache<>(loaderExecutor, unloaderExecutor, loader, asyncLoader, expireS);
+            return new ExpiringResourceCache<>(this.loaderExecutor, this.unloaderExecutor,
+                    this.loader, this.asyncLoader, this.unloader, this.expireS);
         }
-        
     }
 }

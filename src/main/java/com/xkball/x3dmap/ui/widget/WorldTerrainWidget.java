@@ -231,46 +231,46 @@ public class WorldTerrainWidget extends ContainerWidget {
                 ClientPacketDistributor.sendToServer(new RequestServerChunk(list, false));
             }).setCSSClassName("update_button").withTooltip(IComponent.translatable("xklibmc.world_terrain.request_geomatics")));
         }
-        toolbar.addChild(new Button(IComponent.translatable("xklibmc.world_terrain.delete"), this::showDeleteConfirmation)
-                .setCSSClassName("update_button")
-                .inlineStyle("""
-                            button-bg-color: rgb(221,0,27);
-                            margin-right: 5rpx;
-                            text-color: -1;
-                        """));
+//        toolbar.addChild(new Button(IComponent.translatable("xklibmc.world_terrain.delete"), this::showDeleteConfirmation)
+//                .setCSSClassName("update_button")
+//                .inlineStyle("""
+//                            button-bg-color: rgb(221,0,27);
+//                            margin-right: 5rpx;
+//                            text-color: -1;
+//                        """));
         return toolbar;
     }
 
-    private void showDeleteConfirmation() {
-        var content = new MapWindowRefContainer();
-        content.inlineStyle("flex-direction: column; size: 100% 100%;")
-                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_confirm_msg")).inlineStyle("text-color: 0xFFFF5555; size: 100% 12rpx; text-scale: fit_to_max;"))
-                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_irreversible"))
-                        .inlineStyle("text-color: 0xFFFF5555; margin-top: 4px; size: 100% 12rpx; text-scale: fit_to_max;"));
-
-        var bottomRow = new ContainerWidget()
-                .inlineStyle("flex-direction: row; align-items: center; margin-top: auto;");
-
-        var cancelButton = new Button(IComponent.translatable("xklibmc.common.cancel"), content::closeWindow);
-        cancelButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; margin-left: auto; margin-right: 8px; button-shape: rect; button-bg-color: rgb(75,85,99); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
-
-        var confirmButton = new Button(IComponent.translatable("xklibmc.world_terrain.delete"), () -> {
-            var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
-            if (storage != null) {
-                for (var chunk : storage.getChunks()) {
-                    storage.deleteChunk(chunk.chunkPos);
-                }
-            }
-            content.closeWindow();
-        });
-        confirmButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; button-shape: rect; button-bg-color: rgb(221,0,27); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
-
-        bottomRow.addChild(cancelButton);
-        bottomRow.addChild(confirmButton);
-        content.addChild(bottomRow);
-
-        this.mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.world_terrain.confirm_delete_title"), false, CssLengthUnit.rpx(180), CssLengthUnit.rpx(120)), content);
-    }
+//    private void showDeleteConfirmation() {
+//        var content = new MapWindowRefContainer();
+//        content.inlineStyle("flex-direction: column; size: 100% 100%;")
+//                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_confirm_msg")).inlineStyle("text-color: 0xFFFF5555; size: 100% 12rpx; text-scale: fit_to_max;"))
+//                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.delete_irreversible"))
+//                        .inlineStyle("text-color: 0xFFFF5555; margin-top: 4px; size: 100% 12rpx; text-scale: fit_to_max;"));
+//
+//        var bottomRow = new ContainerWidget()
+//                .inlineStyle("flex-direction: row; align-items: center; margin-top: auto;");
+//
+//        var cancelButton = new Button(IComponent.translatable("xklibmc.common.cancel"), content::closeWindow);
+//        cancelButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; margin-left: auto; margin-right: 8px; button-shape: rect; button-bg-color: rgb(75,85,99); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
+//
+//        var confirmButton = new Button(IComponent.translatable("xklibmc.world_terrain.delete"), () -> {
+//            var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
+//            if (storage != null) {
+//                for (var chunk : storage.getChunks()) {
+//                    storage.deleteChunk(chunk.chunkPos);
+//                }
+//            }
+//            content.closeWindow();
+//        });
+//        confirmButton.inlineStyle("size: content 12rpx; text-scale: expand-width; text-align: center; button-shape: rect; button-bg-color: rgb(221,0,27); text-color: -1; text-drop-shadow: false; text-extra-width: 2rpx; text-height: 10rpx;");
+//
+//        bottomRow.addChild(cancelButton);
+//        bottomRow.addChild(confirmButton);
+//        content.addChild(bottomRow);
+//
+//        this.mapGui.openWindow(MapWindowSpec.blocking(IComponent.translatable("xklibmc.world_terrain.confirm_delete_title"), false, CssLengthUnit.rpx(180), CssLengthUnit.rpx(120)), content);
+//    }
 
     public Widget createToolbarTop2() {
         return new ContainerWidget()

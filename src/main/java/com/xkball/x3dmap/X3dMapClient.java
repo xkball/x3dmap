@@ -3,6 +3,7 @@ package com.xkball.x3dmap;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
@@ -34,11 +35,13 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
+import net.neoforged.neoforge.client.event.lifecycle.ClientStoppedEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.common.util.Lazy;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
 
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -48,6 +51,8 @@ import java.util.concurrent.TimeUnit;
 @EventBusSubscriber(modid = X3dMap.MODID, value = Dist.CLIENT)
 @NonNullByDefault
 public class X3dMapClient {
+    
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final Lazy<KeyMapping> OPEN_MAP_KEY = Lazy.of(() -> new KeyMapping(
             "keys.xklibmc.open_map",
@@ -75,7 +80,24 @@ public class X3dMapClient {
             TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
         };
     }
-
+    
+    private static void closeExecutor(Executor executor) {
+        if (!(executor instanceof AutoCloseable closeable)) return;
+        try {
+            closeable.close();
+        } catch (Exception e) {
+            LOGGER.error("Failed to close terrain executor", e);
+        }
+    }
+    
+    @SubscribeEvent
+    public static void onGameExit(ClientStoppedEvent event) {
+        closeExecutor(X3dMapClient.taskExecutor);
+        closeExecutor(X3dMapClient.mainThreadExecutor);
+        closeExecutor(X3dMapClient.ioExecutor);
+    }
+    
+    
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         TerrainChunkManager.INSTANCE.initializeMapApi();
