@@ -9,12 +9,15 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.xkball.x3dmap.client.b3d.X3dMapUniforms;
 import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.client.b3d.pipeline.ExtendedRenderPipeline;
 import com.xkball.xklibmc.client.b3d.uniform.UpdatableUBO;
 import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
 import com.xkball.xklibmc.x3d.backend.b3d.pipeline.B3dRenderPipelines;
+import net.minecraft.core.Direction;
 import org.joml.Vector3f;
 
+@NonNullByDefault
 public class X3dMapRenderPipelines {
     
     public static final UpdatableUBO PHONE_LIGHT = new UpdatableUBO.UBOBuilder("PhongLight")
@@ -40,6 +43,8 @@ public class X3dMapRenderPipelines {
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withCull(true)
             .buildExtended();
+
+    public static final ExtendedRenderPipeline[] WORLD_TERRAIN_NEW = createWorldTerrainNewPipelines();
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP_FULL_MESH = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("world_terrain_pip_full_mesh"))
@@ -100,5 +105,27 @@ public class X3dMapRenderPipelines {
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withCull(false)
             .buildExtended();
+
+    private static ExtendedRenderPipeline[] createWorldTerrainNewPipelines() {
+        var result = new ExtendedRenderPipeline[Direction.values().length];
+        for (var direction : VanillaUtils.DIRECTIONS) {
+            result[direction.get3DDataValue()] = ExtendedRenderPipeline.builder()
+                    .withLocation(VanillaUtils.modRL("world_terrain_new_" + direction.get3DDataValue()))
+                    .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.TRIANGLES)
+                    .withVertexShader(VanillaUtils.modRL("core/world_terrain_new"))
+                    .withFragmentShader(VanillaUtils.modRL("core/world_terrain_pip"))
+                    .withShaderDefine("FACE_DIRECTION", direction.get3DDataValue())
+                    .withShaderDefine("BLOCK_SIZE", 16)
+                    .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                    .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                    .withUniform("PhongLight", UniformType.UNIFORM_BUFFER)
+                    .bindUniform("PhongLight", PHONE_LIGHT)
+                    .withSSBO("ABlock")
+                    .withDepthStencilState(DepthStencilState.DEFAULT)
+                    .withCull(true)
+                    .buildExtended();
+        }
+        return result;
+    }
     
 }

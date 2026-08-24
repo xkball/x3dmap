@@ -42,7 +42,7 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     private final @Nullable Function<K, ? extends CompletableFuture<? extends V>> asyncLoader;
     private final long expireNano;
     private final Map<K, Entry<V>> cache = new ConcurrentHashMap<>();
-    private final Map<K, CompletableFuture<V>> loading = new ConcurrentHashMap<>();
+    private final Map<K, PendingLoad<V>> loading = new ConcurrentHashMap<>();
     private volatile boolean closed = false;
 
     private ExpiringResourceCache(@Nullable Executor loaderExecutor, @Nullable Executor unloaderExecutor,
@@ -94,9 +94,19 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     }
 
     public void remove(K key) {
+        var pendingLoad = this.loading.remove(key);
+        if (pendingLoad != null) pendingLoad.cancel();
         var entry = this.cache.remove(key);
         if (entry == null) return;
         this.closeValue(entry.value);
+    }
+
+    public List<V> values() {
+        var result = new ArrayList<V>(this.cache.size());
+        for (var entry : this.cache.values()) {
+            result.add(entry.value);
+        }
+        return result;
     }
 
     private void closeValue(Object value) {
@@ -125,9 +135,12 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     }
     
     public CompletableFuture<V> getAsync(K key) {
+        if (this.closed) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Cache is closed"));
+        }
         var r = this.get(key);
         if (r != null) return CompletableFuture.completedFuture(r);
-        return this.loading.computeIfAbsent(key, this::load);
+        return this.loading.computeIfAbsent(key, this::load).future;
     }
     
     public CompletableFuture<List<V>> getListAsync(List<K> list){
@@ -146,34 +159,76 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
                 });
     }
     
-    private CompletableFuture<V> load(K key) {
+    private PendingLoad<V> load(K key) {
         var value = this.get(key);
-        if (value != null) return CompletableFuture.completedFuture(value);
+        var pendingLoad = new PendingLoad<V>();
         var executor = this.loaderExecutor == null ? ForkJoinPool.commonPool() : this.loaderExecutor;
-        if (this.asyncLoader != null) {
-            return this.asyncLoader.apply(key)
-                    .thenApplyAsync(v -> this.put(key, v),executor)
-                    .whenComplete((_, _) -> this.loading.remove(key));
+        CompletableFuture<? extends V> source;
+        if (value != null) {
+            source = CompletableFuture.completedFuture(value);
+        } else if (this.asyncLoader != null) {
+            try {
+                source = this.asyncLoader.apply(key);
+            } catch (RuntimeException e) {
+                source = CompletableFuture.failedFuture(e);
+            }
+        } else {
+            assert this.loader != null;
+            source = CompletableFuture.supplyAsync(() -> this.loader.apply(key), executor);
         }
-        assert this.loader != null;
-        return CompletableFuture.supplyAsync(() -> this.loader.apply(key), executor)
-                .thenApply(v -> this.put(key, v))
-                .whenComplete((_, _) -> this.loading.remove(key));
+        pendingLoad.source = source;
+        source.whenCompleteAsync((loadedValue, error) -> this.finishLoad(key, pendingLoad, loadedValue, error), executor);
+        return pendingLoad;
+    }
+
+    private void finishLoad(K key, PendingLoad<V> pendingLoad, V value, @Nullable Throwable error) {
+        if (error != null) {
+            this.loading.remove(key, pendingLoad);
+            pendingLoad.future.completeExceptionally(error);
+            return;
+        }
+        this.loading.compute(key, (_, current) -> {
+            if (current != pendingLoad || this.closed) return current;
+            this.put(key, value);
+            pendingLoad.accepted = true;
+            return null;
+        });
+        if (pendingLoad.accepted) {
+            pendingLoad.future.complete(value);
+        } else {
+            this.closeValue(value);
+            pendingLoad.future.cancel(false);
+        }
     }
     
-    private V put(K key, V value) {
+    private void put(K key, V value) {
         this.cache.put(key, new Entry<>(value));
-        return value;
     }
     
     @Override
     public void close() {
+        this.closed = true;
+        for (var pendingLoad : this.loading.values()) {
+            pendingLoad.cancel();
+        }
+        this.loading.clear();
         for(var c : this.cache.values()){
             this.closeValue(c.value);
         }
-        this.closed = true;
+        this.cache.clear();
     }
-    
+
+    private static class PendingLoad<V> {
+        private final CompletableFuture<V> future = new CompletableFuture<>();
+        private @Nullable CompletableFuture<? extends V> source;
+        private boolean accepted;
+
+        private void cancel() {
+            this.future.cancel(false);
+            if (this.source != null) this.source.cancel(false);
+        }
+    }
+
     private static class Entry<V> {
         @SuppressWarnings("rawtypes")
         private static final AtomicIntegerFieldUpdater<Entry> CAS_HELPER = AtomicIntegerFieldUpdater.newUpdater(Entry.class, "read");

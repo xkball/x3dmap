@@ -18,6 +18,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,6 +36,7 @@ public class MapRegion implements AutoCloseable{
     private final Path file;
     private final MapRegionHeightMap heightMap = new MapRegionHeightMap();
     private final @Nullable MapChunk[] chunks = new MapChunk[32 * 32];
+    private boolean dirty;
     
     //todo: 区块在拿到一次后才会过期.
     private final ExpiringResourceCache<ChunkPos, MapChunkView> chunkViewCache = ExpiringResourceCache.<ChunkPos, MapChunkView>builder()
@@ -51,8 +53,56 @@ public class MapRegion implements AutoCloseable{
     
     public void setChunk(MapChunk chunk) {
         var idx = this.getChunkIndex(chunk.chunkPos);
+        this.chunkViewCache.remove(chunk.chunkPos);
         chunk.state = MapChunk.MapChunkState.DIRTY;
         this.chunks[idx] = chunk;
+        this.dirty = true;
+        for (var x = chunk.chunkPos.getMinBlockX(); x <= chunk.chunkPos.getMaxBlockX(); x++) {
+            for (var z = chunk.chunkPos.getMinBlockZ(); z <= chunk.chunkPos.getMaxBlockZ(); z++) {
+                this.heightMap.setHeight(x, z, (int) chunk.aabb.minY);
+                this.heightMap.setColor(x, z, 0);
+            }
+        }
+        chunk.data.forEach((entry, blockData) -> {
+            if (entry.y() < this.heightMap.getHeight(entry.x(), entry.z())) return;
+            this.heightMap.setHeight(entry.x(), entry.z(), entry.y());
+            this.heightMap.setColor(entry.x(), entry.z(), blockData.color());
+        });
+    }
+
+    public boolean containsChunk(ChunkPos chunkPos) {
+        var chunk = this.chunks[this.getChunkIndex(chunkPos)];
+        return chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY;
+    }
+
+    public List<MapChunk> getChunks() {
+        var result = new ArrayList<MapChunk>();
+        for (var chunk : this.chunks) {
+            if (chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY) {
+                result.add(chunk);
+            }
+        }
+        return result;
+    }
+
+    public int getHeight(int x, int z) {
+        return this.heightMap.getHeight(x, z);
+    }
+
+    public int getColor(int x, int z) {
+        return this.heightMap.getColor(x, z);
+    }
+
+    public void deleteChunk(ChunkPos chunkPos) {
+        this.chunkViewCache.remove(chunkPos);
+        this.chunks[this.getChunkIndex(chunkPos)] = null;
+        this.dirty = true;
+        for (var x = chunkPos.getMinBlockX(); x <= chunkPos.getMaxBlockX(); x++) {
+            for (var z = chunkPos.getMinBlockZ(); z <= chunkPos.getMaxBlockZ(); z++) {
+                this.heightMap.setHeight(x, z, 0);
+                this.heightMap.setColor(x, z, 0);
+            }
+        }
     }
     
     public void clearChunkData(ChunkPos chunkPos){
@@ -66,9 +116,12 @@ public class MapRegion implements AutoCloseable{
         var idx = this.getChunkIndex(chunkPos);
         var chunk = this.chunks[idx];
         if(chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY) return new MapChunkView(this, chunk);
-        this.readMapChunk(chunkPos);
+        if (this.file.toFile().exists()) this.readMapChunk(chunkPos);
         chunk = this.chunks[idx];
-        assert chunk != null && chunk.state == MapChunk.MapChunkState.EMPTY;
+        if (chunk == null) {
+            chunk = new MapChunk(chunkPos);
+            this.chunks[idx] = chunk;
+        }
         return new MapChunkView(this, chunk);
     }
     
@@ -94,7 +147,10 @@ public class MapRegion implements AutoCloseable{
         if(old != null && old.state == MapChunk.MapChunkState.DIRTY) return;
         LOGGER.trace("Reading map single chunk {}/{}/{}", this.level, this.regionPos, chunkPos);
         try (var raf = new RandomAccessFile(this.file.toFile(), "r")) {
-            raf.seek(HEADER_SIZE + idx * 12L);
+            var l = raf.length();
+            var p = HEADER_SIZE + idx * 12L;
+            if(l < p) return;
+            raf.seek(p);
             var offset = raf.readLong();
             var len = raf.readInt();
             chunks[idx] = readMapChunkInternal(raf, offset, len);
@@ -106,6 +162,7 @@ public class MapRegion implements AutoCloseable{
     public synchronized void load(){
         if(!this.file.toFile().exists()) return;
         LOGGER.info("Loading map at {}, region {}", this.level, this.regionPos);
+        var delete = false;
         try (var raf = new RandomAccessFile(this.file.toFile(), "r")) {
             var magic = raf.readInt();
             var version = raf.readInt();
@@ -113,25 +170,30 @@ public class MapRegion implements AutoCloseable{
             var rz = raf.readInt();
             if(magic != MAGIC || version != FILE_VERSION || rx != this.regionPos.x() || rz != this.regionPos.z()) {
                 LOGGER.warn("Invalid map file at {}, mismatch magic number or file version or region pos {}:{}, {}:{}, {}:({},{})",this.regionPos, MAGIC, magic, FILE_VERSION, version, this.regionPos, rx, rz);
-                return;
+                delete = true;
             }
-            this.heightMap.read(raf);
-            long[] offsets = new long[32 * 32];
-            int[] lengths = new int[32 * 32];
-            for (int i = 0; i < 32 * 32; i++) {
-                offsets[i] = raf.readLong();
-                lengths[i] = raf.readInt();
-            }
-            
-            for (int dx = 0; dx < 32; dx++) {
-                for (int dz = 0; dz < 32; dz++) {
-                    var idx = dx * 32 + dz;
-                    chunks[idx] = readMapChunkInternal(raf, offsets[idx], lengths[idx]);
+            else {
+                this.heightMap.read(raf);
+                long[] offsets = new long[32 * 32];
+                int[] lengths = new int[32 * 32];
+                for (int i = 0; i < 32 * 32; i++) {
+                    offsets[i] = raf.readLong();
+                    lengths[i] = raf.readInt();
+                }
+                
+                for (int dx = 0; dx < 32; dx++) {
+                    for (int dz = 0; dz < 32; dz++) {
+                        var idx = dx * 32 + dz;
+                        chunks[idx] = readMapChunkInternal(raf, offsets[idx], lengths[idx]);
+                    }
                 }
             }
-            
         } catch(Exception e){
             LOGGER.error("Failed to load Region {}",this.regionPos, e);
+            delete = true;
+        }
+        if(delete) {
+            this.file.toFile().delete();
         }
     }
     
@@ -160,7 +222,7 @@ public class MapRegion implements AutoCloseable{
                 var offset = HEADER_SIZE + 32 * 32 * 12L;
                 for(int i = 0; i < 32 * 32; i++) {
                     var chunk = this.chunks[i];
-                    if(chunk != null) {
+                    if(chunk != null && chunk.state != MapChunk.MapChunkState.EMPTY) {
                         if(chunk.state == MapChunk.MapChunkState.DIRTY){
                             chunk.state = MapChunk.MapChunkState.NORMAL;
                         }
@@ -203,11 +265,17 @@ public class MapRegion implements AutoCloseable{
                             in.seek(HEADER_SIZE + i * 12);
                             var cOffset = in.readLong();
                             var cLen = in.readInt();
-                            var buf = new byte[cLen];
-                            in.seek(cOffset);
-                            in.readFully(buf);
-                            this.writeMapChunkInternal(raf, i, offset, buf);
-                            offset += cLen;
+                            if (cOffset < 0) {
+                                raf.seek(HEADER_SIZE + i * 12L);
+                                raf.writeLong(-1);
+                                raf.writeInt(0);
+                            } else {
+                                var buf = new byte[cLen];
+                                in.seek(cOffset);
+                                in.readFully(buf);
+                                this.writeMapChunkInternal(raf, i, offset, buf);
+                                offset += cLen;
+                            }
                         }
                     }
                     else {
@@ -224,9 +292,9 @@ public class MapRegion implements AutoCloseable{
         }
         try {
             Files.move(tempFile.toPath(), this.file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            this.dirty = false;
         } catch (Exception e) {
             LOGGER.error("Failed to move temp file {}", file.toFile().getAbsolutePath(), e);
-            throw new RuntimeException(e);
         } finally {
             //noinspection ResultOfMethodCallIgnored
             tempFile.delete();
@@ -250,7 +318,8 @@ public class MapRegion implements AutoCloseable{
     }
     
     @Override
-    public void close() throws Exception {
-    
+    public void close() {
+        this.chunkViewCache.close();
+        if (this.dirty) this.save();
     }
 }

@@ -2,6 +2,7 @@ package com.xkball.x3dmap.client.terrain;
 
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
+import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.client.TextureSpriteAvgColorCache;
@@ -67,35 +68,30 @@ public class ChunkComplier {
         NeoForge.EVENT_BUS.post(new RegisterChunkComplierBlackListEvent(IGNORED_BLOCKS));
     }
     
-    public @Nullable ChunkStorage compile(LevelChunkStorage storage, ClientLevel level, ChunkPos chunkPos) {
+    public @Nullable MapChunk compile(ClientLevel level, ChunkPos chunkPos) {
         if (level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) == null) return null;
-        return compile(storage, level, level.getChunk(chunkPos.x(), chunkPos.z()), chunkPos, false);
+        return compile(level, level.getChunk(chunkPos.x(), chunkPos.z()), chunkPos, false);
     }
     
-    public @Nullable ChunkStorage compile(LevelChunkStorage storage, ClientLevel level, ChunkAccess chunk, ChunkPos chunkPos, boolean calcuColor) {
-        var chunkStorage = new ChunkStorage(chunkPos, storage);
+    public @Nullable MapChunk compile(ClientLevel level, ChunkAccess chunk, ChunkPos chunkPos, boolean calcuColor) {
         var directions = VanillaUtils.DIRECTIONS;
         var mc = Minecraft.getInstance();
         var modelManager = mc.getModelManager().getBlockStateModelSet();
         var dataBuilder = new CompressedChunkCoordDataMap.Builder<ChunkStorage.TerrainBlockData>(chunkPos);
         var pos = new BlockPos(0, 0, 0).mutable();
-        var chunkMinY = level.getMinY();
-        var chunkMaxY = level.getMaxY();
+        var chunkMinY = level.getMaxY();
+        var chunkMaxY = level.getMinY();
         var seaLevel = ServerConfig.getSeaLevel(level.getSeaLevel());
-        var heightMap = new ChunkHeightMap();
         var context = new ComplierContext(level, chunk, chunkPos, calcuColor);
         for (int px = chunkPos.getMinBlockX(); px <= chunkPos.getMaxBlockX(); px++) {
             for (int pz = chunkPos.getMinBlockZ(); pz <= chunkPos.getMaxBlockZ(); pz++) {
                 var hMax = context.getHeight(Heightmap.Types.WORLD_SURFACE, px, pz) + 1;
                 var hMin = context.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz) - 1;
                 var hm = hMax - 1;
-                while (context.getBlockState(pos.set(px, hm, pz)).isAir() && hm > chunkMinY) {
+                while (context.getBlockState(pos.set(px, hm, pz)).isAir() && hm > level.getMinY()) {
                     hm -= 1;
                 }
-                heightMap.set(px, pz, hm);
                 pos.set(px, hm, pz);
-                var bs_ = context.getBlockState(pos);
-                heightMap.setColor(px, pz, processBlockColor(context, bs_, pos, modelManager));
                 var h1 = context.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px + 1, pz) - 1;
                 if (h1 > level.getMinY()) hMin = Math.min(hMin, h1);
                 var h2 = context.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px - 1, pz) - 1;
@@ -136,10 +132,8 @@ public class ChunkComplier {
                 }
             }
         }
-        chunkStorage.aabb = new AABB(chunkPos.getMinBlockX(), chunkMinY, chunkPos.getMinBlockZ(), chunkPos.getMaxBlockX(), chunkMaxY, chunkPos.getMaxBlockZ());
-        chunkStorage.writeData(dataBuilder.build());
-        chunkStorage.heightMap = heightMap;
-        return chunkStorage;
+        var aabb = new AABB(chunkPos.getMinBlockX(), chunkMinY, chunkPos.getMinBlockZ(), chunkPos.getMaxBlockX(), chunkMaxY, chunkPos.getMaxBlockZ());
+        return new MapChunk(chunkPos, dataBuilder.build(), aabb, MapChunk.MapChunkState.DIRTY);
     }
     
     private static int processBlockColor(ComplierContext context, BlockState bs, BlockPos pos, BlockStateModelSet modelManager) {

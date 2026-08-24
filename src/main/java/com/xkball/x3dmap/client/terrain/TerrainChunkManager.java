@@ -2,15 +2,15 @@ package com.xkball.x3dmap.client.terrain;
 
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
 import com.xkball.x3dmap.client.map.plugin.X3dMapPluginRegistry;
+import com.xkball.x3dmap.client.terrain.file.MapChunk;
+import com.xkball.x3dmap.client.terrain.file.MapLevel;
 import com.xkball.x3dmap.utils.DualQueueThreadPool;
 import com.xkball.x3dmap.utils.X3dClientUtils;
 import com.xkball.xklibmc.XKLibMCClient;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.api.client.b3d.ICloseOnExit;
-import com.xkball.xklibmc.utils.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -21,6 +21,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
@@ -41,17 +42,16 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public static final TerrainChunkManager INSTANCE = new TerrainChunkManager();
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final ChunkComplier COMPLIER = new ChunkComplier();
     public final DualQueueThreadPool taskQueue = new DualQueueThreadPool();
     public final X3dMapPluginRegistry mapPluginRegistry = new X3dMapPluginRegistry();
     private final ArrayDeque<ChunkPos> updateQueue = new ArrayDeque<>();
     private final Set<ChunkPos> updateChunkSet = new HashSet<>();
-    private final TerrainRenderCommandEncoder commandEncoder = new TerrainRenderCommandEncoder(this);
     public boolean compatibleMode = false;
     public List<String> compatibilityReasons = Collections.emptyList();
     public boolean compatibilityWarningSuppressed = false;
-    public int viewDistance = 1024;
     public @Nullable ResourceKey<Level> currentLevel;
-    public @Nullable LevelChunkStorage currentChunkStorage;
+    public @Nullable MapLevel currentChunkStorage;
     
     public TerrainChunkManager() {
     
@@ -104,16 +104,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         if (!Minecraft.getInstance().isPaused() && Minecraft.getInstance().level != null) {
             this.tryLoadLevel(Minecraft.getInstance().level);
             this.taskQueue.runFor10ms();
-            if (this.currentChunkStorage != null) {
-                for (var b : this.currentChunkStorage.getGpuBuffers()) {
-                    if (!b.stagedAllocations.isEmpty()) {
-                        b.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
-                    }
-                }
-            }
-        }
-        if (XKLibMCClient.tickCount % 100 == 0 && this.currentChunkStorage != null) {
-            this.checkRegionResidency(this.currentChunkStorage);
         }
         int drawInterval = ClientConfig.DRAW_NEW_CHUNK_INTERVAL.get();
         if (drawInterval > 0 && XKLibMCClient.tickCount % drawInterval == 0) {
@@ -121,9 +111,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         }
         int saveInterval = ClientConfig.AUTO_SAVE_INTERVAL.get();
         if (saveInterval > 0 && XKLibMCClient.tickCount % saveInterval == 0) {
-            if (this.currentChunkStorage != null) {
-                this.currentChunkStorage.saveFile(true);
-            }
             this.mapPluginRegistry.saveData();
         }
     }
@@ -136,7 +123,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     private void processUpdateQueue(int count) {
-        if (X3dMapClient.loading) return;
         for (int i = 0; i < count && !updateQueue.isEmpty(); i++) {
             var chunkPos = updateQueue.pollFirst();
             updateChunkSet.remove(chunkPos);
@@ -156,14 +142,18 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         CompatibilityExtension.initCompatibilityMode();
         this.mapPluginRegistry.openRuntime(X3dClientUtils.getEncodedSaveOrServerName());
         this.currentLevel = level.dimension();
-        var s = new LevelChunkStorage(level.dimension(), level.getMinY(), level.getMaxY(), this.compatibleMode);
-        this.mapPluginRegistry.openLevel(s.dimension, s.getDirectory());
-        s.loadFile();
-        this.currentChunkStorage = s;
+        var dimension = level.dimension().identifier();
+        var dir = FMLPaths.GAMEDIR.get()
+                .resolve("x3dmap")
+                .resolve(X3dClientUtils.getEncodedSaveOrServerName())
+                .resolve(dimension.getNamespace())
+                .resolve(dimension.getPath());
+        this.mapPluginRegistry.openLevel(level.dimension(), dir);
+        this.currentChunkStorage = new MapLevel(level, dir);
         
     }
     
-    public @Nullable LevelChunkStorage getCurrentLevelChunkStorage() {
+    public @Nullable MapLevel getCurrentLevelChunkStorage() {
         return this.currentChunkStorage;
     }
     
@@ -203,27 +193,14 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 LOGGER.debug("task in {} not in current dimension. did you just changed dimension?", chunkPos);
                 return;
             }
-            var chunkOld = storage.getChunk(chunkPos);
-            if (chunkOld != null && !force) return;
-            ChunkStorage chunkStorage;
-            if (chunk == null) chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunkPos);
-            else chunkStorage = LevelChunkStorage.COMPLIER.compile(storage, level_, chunk, chunkPos, true);
-            if (chunkStorage != null) {
+            if (!force && storage.containsChunk(chunkPos)) return;
+            MapChunk mapChunk;
+            if (chunk == null) mapChunk = COMPLIER.compile(level_, chunkPos);
+            else mapChunk = COMPLIER.compile(level_, chunk, chunkPos, true);
+            if (mapChunk != null) {
                 this.submitTaskOnMainThread(() -> {
-                    storage.putChunk(chunkStorage);
-                    if (!compatibleMode) {
-                        chunkStorage.uploadGpu0();
-                        chunkStorage.uploadToTexture();
-                    } else {
-                        for (int dx = 0; dx < 2; dx++) {
-                            for (int dz = 0; dz < 2; dz++) {
-                                var cp = storage.getChunk(new ChunkPos(chunkPos.x() - dx, chunkPos.z() - dz));
-                                if (cp == null) continue;
-                                cp.uploadGpuLodFullMesh();
-                            }
-                        }
-                    }
-                    
+                    if (this.currentChunkStorage != storage) return;
+                    storage.updateChunk(mapChunk);
                 });
             }
         };
@@ -232,8 +209,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     
     public void unloadCurrentLevel() {
         if (this.currentChunkStorage != null && this.currentLevel != null) {
-            this.currentChunkStorage.unloadGpu();
-            this.currentChunkStorage.saveFile(false);
+            this.currentChunkStorage.close();
             this.mapPluginRegistry.closeLevel(this.currentLevel);
             this.currentLevel = null;
             this.currentChunkStorage = null;
@@ -245,7 +221,9 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     @Override
     public void close() {
         if (this.currentChunkStorage != null) {
-            this.currentChunkStorage.unloadGpu();
+            this.currentChunkStorage.close();
+            this.currentChunkStorage = null;
+            this.currentLevel = null;
         }
         this.mapPluginRegistry.closeRuntime();
         this.taskQueue.shutdown();
@@ -262,78 +240,5 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
         }
         return result;
     }
-    
-    public boolean canRegionResident(RegionPos regionPos) {
-        var player = Minecraft.getInstance().player;
-        if (player == null) return false;
-        float threshold = this.viewDistance + 256f * 1.41421356f;
-        float px = (float) player.getX();
-        float pz = (float) player.getZ();
-        float regionCenterX = regionPos.x() * 512f + 256f;
-        float regionCenterZ = regionPos.z() * 512f + 256f;
-        float dx = regionCenterX - px;
-        float dz = regionCenterZ - pz;
-        float dist = (float) Math.sqrt(dx * dx + dz * dz);
-        return dist < threshold;
-    }
-    
-    private void checkRegionResidency(LevelChunkStorage storage) {
-        for (var region : storage.regionMap.values()) {
-            if (canRegionResident(region.regionPos)) {
-                if (!storage.residentRegions.contains(region.regionPos)) {
-                    storage.residentRegions.add(region.regionPos);
-                    if (region.haveNoDataChunk()) {
-                        this.submitTask(() -> {
-                            var file = region.getFile(storage.getDirectory());
-                            var newRegionStorage = RegionStorage.loadFromFile(file, storage);
-                            if (newRegionStorage == null) return;
-                            for (var chunk : region.chunks()) {
-                                this.submitTaskOnMainThread(() -> {
-                                    if (chunk.state == ChunkStorage.State.NO_DATA) {
-                                        var newChunk = newRegionStorage.getChunk(chunk.chunkPos);
-                                        if (newChunk == null) return;
-                                        chunk.writeData(newChunk.data);
-                                    }
-                                    if (storage.compatibleMode) {
-                                        chunk.uploadGpuLodFullMesh();
-                                    } else {
-                                        chunk.uploadGpu0();
-                                    }
-                                    chunk.releaseData();
-                                    chunk.state = ChunkStorage.State.ONLY_ON_GPU;
-                                });
-                            }
-                        });
-                    } else {
-                        for (var chunk : region.chunks()) {
-                            if (chunk.state == ChunkStorage.State.ONLY_ON_GPU) continue;
-                            this.submitTaskOnMainThread(() -> {
-                                if (storage.compatibleMode) {
-                                    chunk.uploadGpuLodFullMesh();
-                                } else {
-                                    chunk.uploadGpu0();
-                                }
-                            });
-                        }
-                    }
-                }
-            } else {
-                if (storage.residentRegions.contains(region.regionPos)) {
-                    storage.residentRegions.remove(region.regionPos);
-                    if (!region.haveDirtyChunk()) {
-                        for (var chunk : region.chunks()) {
-                            chunk.unloadGpu();
-                            chunk.releaseData();
-                            chunk.state = ChunkStorage.State.NO_DATA;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    public TerrainRenderCommandEncoder getTerrainCommandEncoder() {
-        return commandEncoder;
-    }
+
 }

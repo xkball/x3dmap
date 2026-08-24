@@ -30,6 +30,7 @@ import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.ChunkPos;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jspecify.annotations.Nullable;
 
@@ -48,7 +49,6 @@ public class WorldTerrainWidget extends ContainerWidget {
     public final IntLayoutVariable yMode = new IntLayoutVariable(1);
     public final IntLayoutVariable fixY = new IntLayoutVariable();
     public final IntLayoutVariable lodDistance = new IntLayoutVariable(512);
-    public final IntLayoutVariable viewDistance = new IntLayoutVariable(1024);
     public final WorldTerrainWidgetInner inner;
     private final ContainerWidget leftExtensionWidgets = new ContainerWidget();
     private final ContainerWidget top1ExtensionWidgets = new ContainerWidget();
@@ -65,8 +65,6 @@ public class WorldTerrainWidget extends ContainerWidget {
         var maxY = level == null ? 384 : level.getMaxY();
         fixY.set(level == null ? 64 : level.getSeaLevel());
         this.lodDistance.set(ClientConfig.WORLD_MAP_LOD_DISTANCE.get());
-        this.viewDistance.set(ClientConfig.WORLD_MAP_LOAD_DISTANCE.get());
-        TerrainChunkManager.INSTANCE.viewDistance = this.viewDistance.get();
         this.inner = new WorldTerrainWidgetInner(terrain, grid, player, cameraTarget, compass, depress_sphere, debug, yMode, fixY, lodDistance);
         this.mapGui = new MapGuiImpl(this);
         this.initExtensions();
@@ -206,14 +204,12 @@ public class WorldTerrainWidget extends ContainerWidget {
                 .addChild(new Widget().setCSSClassName("splitter"))
                 .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.lod_distance")).setCSSClassName("property_label").withTooltip(IComponent.translatable("xklibmc.world_terrain.in_blocks")))
                 .addChild(NumberInputWidget.ofInt(1, 114514, 16).bind(lodDistance))
-                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.load_distance")).setCSSClassName("property_label").withTooltip(IComponent.translatable("xklibmc.world_terrain.in_blocks")))
-                .addChild(NumberInputWidget.ofInt(256, 1145141919, 16).bind(viewDistance))
                 .addChild(this.top1ExtensionWidgets)
                 .addChild(new Button(IComponent.translatable("xklibmc.world_terrain.force_update"), () -> {
                     var player = Minecraft.getInstance().player;
-                    var viewDistance = Minecraft.getInstance().options.renderDistance().get();
+                    var renderDistance = Minecraft.getInstance().options.renderDistance().get();
                     if (player == null) return;
-                    TerrainChunkManager.INSTANCE.submitUpdate(player.blockPosition(), viewDistance - 1, true);
+                    TerrainChunkManager.INSTANCE.submitUpdate(player.blockPosition(), renderDistance - 1, true);
                 })
                         .setCSSClassName("update_button")
                         .withTooltip(IComponent.translatable("xklibmc.world_terrain.update_chunks"))
@@ -295,7 +291,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     }
 
     private void openConfigFile() {
-        var configFile = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("xklibmc_example-client.toml").toFile();
+        var configFile = FMLPaths.CONFIGDIR.get().resolve("xklibmc_example-client.toml").toFile();
         Util.getPlatform().openFile(configFile);
     }
 
@@ -374,10 +370,6 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.yMode.addCallback(value -> this.setIntState("y_mode", value));
         this.fixY.addCallback(value -> this.setIntState("fix_y", value));
         this.lodDistance.addCallback(ClientConfig.WORLD_MAP_LOD_DISTANCE::set);
-        this.viewDistance.addCallback(value -> {
-            ClientConfig.WORLD_MAP_LOAD_DISTANCE.set(value);
-            TerrainChunkManager.INSTANCE.viewDistance = value;
-        });
     }
 
     public void closeMap() {

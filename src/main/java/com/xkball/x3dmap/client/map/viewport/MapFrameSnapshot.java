@@ -3,7 +3,7 @@ package com.xkball.x3dmap.client.map.viewport;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
 import com.xkball.x3dmap.api.client.viewport.MapCameraState;
 import com.xkball.x3dmap.api.client.viewport.MapRay;
-import com.xkball.x3dmap.client.terrain.LevelChunkStorage;
+import com.xkball.x3dmap.client.terrain.file.MapLevel;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -34,7 +34,7 @@ public final class MapFrameSnapshot implements IMapFrame {
     private final int lodDistance;
     private final int minimapHighDetailRange;
     private final int baseY;
-    private final @Nullable LevelChunkStorage terrainStorage;
+    private final @Nullable MapLevel terrainStorage;
     private final Vector3f cameraDirection;
     private final Vector3f cameraPosition;
     private final Matrix4f projectionMatrix;
@@ -52,7 +52,7 @@ public final class MapFrameSnapshot implements IMapFrame {
             int lodDistance,
             int minimapHighDetailRange,
             int baseY,
-            @Nullable LevelChunkStorage terrainStorage
+            @Nullable MapLevel terrainStorage
     ) {
         this.dimension = dimension;
         this.preset = preset;
@@ -270,7 +270,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         }
         var x = (int) Math.floor(point.x);
         var z = (int) Math.floor(point.z);
-        if (this.terrainStorage.getChunk(new ChunkPos(x >> 4, z >> 4)) == null) {
+        if (!this.terrainStorage.containsChunk(new ChunkPos(x >> 4, z >> 4))) {
             return point.y - this.baseY;
         }
         return point.y - this.terrainStorage.getHeight(x, z);

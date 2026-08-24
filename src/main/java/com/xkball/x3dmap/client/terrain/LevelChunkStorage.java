@@ -132,24 +132,15 @@ public class LevelChunkStorage {
                 }
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
                     this.regionMap.put(regionStorage.regionPos, regionStorage);
-                    if (TerrainChunkManager.INSTANCE.canRegionResident(regionStorage.regionPos)) {
-                        for (var chunkStorage : regionStorage.chunks()) {
-                            TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
-                                if (!compatibleMode) {
-                                    chunkStorage.uploadGpu0();
-                                } else chunkStorage.uploadGpuLodFullMesh();
-                                if (chunkStorage.state == ChunkStorage.State.ONLY_ON_MEM) {
-                                    chunkStorage.state = ChunkStorage.State.ON_BOTH_SIDE;
-                                }
-                            });
-                        }
-                    } else {
-                        for (var chunkStorage : regionStorage.chunks()) {
+                    for (var chunkStorage : regionStorage.chunks()) {
+                        TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> {
+                            if (!compatibleMode) {
+                                chunkStorage.uploadGpu0();
+                            } else chunkStorage.uploadGpuLodFullMesh();
                             if (chunkStorage.state == ChunkStorage.State.ONLY_ON_MEM) {
-                                chunkStorage.releaseData();
-                                chunkStorage.state = ChunkStorage.State.NO_DATA;
+                                chunkStorage.state = ChunkStorage.State.ON_BOTH_SIDE;
                             }
-                        }
+                        });
                     }
                 });
             }, TerrainChunkManager.INSTANCE.taskQueue.workers));
