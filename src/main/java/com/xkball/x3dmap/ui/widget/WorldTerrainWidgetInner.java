@@ -1,6 +1,7 @@
 package com.xkball.x3dmap.ui.widget;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.api.client.gui.input.IMapInputContext;
 import com.xkball.x3dmap.api.client.gui.input.MapInputEvent;
 import com.xkball.x3dmap.api.client.gui.input.MapInputResult;
@@ -25,6 +26,7 @@ import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapInputContextImpl;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.utils.MonitoredExecutor;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.api.gui.input.IKeyEvent;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
@@ -53,6 +55,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -317,8 +320,25 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 y_ += 10;
                 graphics.drawString("focus: " + this.isPrimaryFocused(), x, y_, -1);
                 y_ += 10;
-                graphics.drawString("queue: " + TerrainChunkManager.INSTANCE.taskQueue.taskCount(), x, y_, -1);
-                y_ += 10;
+                if (X3dMapClient.mainThreadExecutor instanceof MonitoredExecutor executor) {
+                    graphics.drawString(String.format(Locale.ROOT, "main: q=%d, t=%.1f/s", executor.getWaitingTaskCount(), executor.getThroughputPerSecond()), x, y_, -1);
+                    y_ += 10;
+                }
+                if (X3dMapClient.taskExecutor instanceof MonitoredExecutor executor) {
+                    graphics.drawString(String.format(Locale.ROOT, "task: q=%d, t=%.1f/s", executor.getWaitingTaskCount(), executor.getThroughputPerSecond()), x, y_, -1);
+                    y_ += 10;
+                }
+                if (X3dMapClient.ioExecutor instanceof MonitoredExecutor executor) {
+                    graphics.drawString(String.format(Locale.ROOT, "io: q=%d, t=%.1f/s", executor.getWaitingTaskCount(), executor.getThroughputPerSecond()), x, y_, -1);
+                    y_ += 10;
+                }
+                var mapLevel = TerrainChunkManager.INSTANCE.currentChunkStorage;
+                if (mapLevel != null) {
+                    for (var lodLevel = 0; lodLevel < 5; lodLevel++) {
+                        graphics.drawString("gpu lod" + lodLevel + ": " + mapLevel.getGpuNodeCacheSize(lodLevel), x, y_, -1);
+                        y_ += 10;
+                    }
+                }
                 graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemAlloc()), x, y_, -1);
                 y_ += 10;
 //                graphics.drawString("memUsed: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemUsed()),x,y_,-1);

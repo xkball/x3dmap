@@ -95,7 +95,7 @@ public class LevelChunkStorage {
         for (var entry : this.regionMap.entrySet()) {
             if (entry.getValue().haveDirtyChunk()) {
                 if (async) {
-                    TerrainChunkManager.INSTANCE.taskQueue.submitAsyncIgnoreMain(() -> this.saveRegion(entry.getKey()));
+                    TerrainChunkManager.INSTANCE.submitTask(() -> this.saveRegion(entry.getKey()));
                 } else {
                     this.saveRegion(entry.getKey());
                 }
@@ -143,7 +143,7 @@ public class LevelChunkStorage {
                         });
                     }
                 });
-            }, TerrainChunkManager.INSTANCE.taskQueue.workers));
+            }, X3dMapClient.taskExecutor));
             
         }
         var task = CompletableFuture.allOf(taskList.toArray(CompletableFuture[]::new));
@@ -159,7 +159,7 @@ public class LevelChunkStorage {
                 }
                 TerrainChunkManager.INSTANCE.submitTaskOnMainThread(() -> X3dMapClient.loading = false);
             });
-        }, TerrainChunkManager.INSTANCE.taskQueue.workers);
+        }, X3dMapClient.taskExecutor);
     }
     
     public void saveRegion(RegionPos regionPos) {

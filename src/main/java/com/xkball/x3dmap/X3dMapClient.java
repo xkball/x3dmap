@@ -10,7 +10,10 @@ import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.ChunkComplier;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.ui.WorldTerrainScreen;
+import com.xkball.x3dmap.utils.MonitoredExecutor;
+import com.xkball.x3dmap.utils.TimeBudgetExecutor;
 import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklib.XKLib;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -38,6 +41,8 @@ import net.neoforged.neoforge.common.util.Lazy;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 @Mod(value = X3dMap.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = X3dMap.MODID, value = Dist.CLIENT)
@@ -50,9 +55,15 @@ public class X3dMapClient {
             GLFW.GLFW_KEY_M,
             KeyMapping.Category.MISC
     ));
-
+    
+    public static final Executor taskExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_task_",8)) : VanillaUtils.fixedSizeExecutor("x3dmap_task_",8);
+    public static final Executor ioExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_io_",8)) : VanillaUtils.fixedSizeExecutor("x3dmap_io_",8);
+    private static final TimeBudgetExecutor mainThreadTaskExecutor = new TimeBudgetExecutor();
+    public static final Executor mainThreadExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(mainThreadTaskExecutor) : mainThreadTaskExecutor;
+    
     //todo 很不优雅
     public static boolean loading = false;
+    
 
     public X3dMapClient(ModContainer container) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
@@ -78,6 +89,7 @@ public class X3dMapClient {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
+        X3dMapClient.mainThreadTaskExecutor.runFor(5, TimeUnit.MILLISECONDS);
         while (OPEN_MAP_KEY.get().consumeClick()) {
             var mc = Minecraft.getInstance();
             if (mc.screen == null && mc.level != null) {

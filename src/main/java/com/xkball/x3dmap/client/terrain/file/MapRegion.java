@@ -1,6 +1,7 @@
 package com.xkball.x3dmap.client.terrain.file;
 
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.client.terrain.RegionPos;
 import com.xkball.x3dmap.client.terrain.render.MapChunkView;
 import com.xkball.x3dmap.utils.ExpiringResourceCache;
@@ -38,10 +39,11 @@ public class MapRegion implements AutoCloseable{
     private final @Nullable MapChunk[] chunks = new MapChunk[32 * 32];
     private boolean dirty;
     
-    //todo: 区块在拿到一次后才会过期.
+    //todo: 区块在拿到一次后才会过期. -> 现在暂时不过期
     private final ExpiringResourceCache<ChunkPos, MapChunkView> chunkViewCache = ExpiringResourceCache.<ChunkPos, MapChunkView>builder()
             .loader(this::createChunkView)
-            .expireAfterRead(60)
+            .loadOn(X3dMapClient.taskExecutor)
+//            .expireAfterRead(60)
             .build();
     
     public MapRegion(Identifier level, RegionPos regionPos, Path dir) {
@@ -320,6 +322,6 @@ public class MapRegion implements AutoCloseable{
     @Override
     public void close() {
         this.chunkViewCache.close();
-        if (this.dirty) this.save();
+        if (this.dirty) CompletableFuture.runAsync(this::save, X3dMapClient.ioExecutor);
     }
 }

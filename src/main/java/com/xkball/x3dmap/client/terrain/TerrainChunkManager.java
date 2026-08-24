@@ -2,11 +2,11 @@ package com.xkball.x3dmap.client.terrain;
 
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.ClientConfig;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.x3dmap.client.map.compatibility.CompatibilityExtension;
 import com.xkball.x3dmap.client.map.plugin.X3dMapPluginRegistry;
 import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.x3dmap.client.terrain.file.MapLevel;
-import com.xkball.x3dmap.utils.DualQueueThreadPool;
 import com.xkball.x3dmap.utils.X3dClientUtils;
 import com.xkball.xklibmc.XKLibMCClient;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -35,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 @EventBusSubscriber(Dist.CLIENT)
 @NonNullByDefault
@@ -43,7 +45,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public static final TerrainChunkManager INSTANCE = new TerrainChunkManager();
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final ChunkComplier COMPLIER = new ChunkComplier();
-    public final DualQueueThreadPool taskQueue = new DualQueueThreadPool();
     public final X3dMapPluginRegistry mapPluginRegistry = new X3dMapPluginRegistry();
     private final ArrayDeque<ChunkPos> updateQueue = new ArrayDeque<>();
     private final Set<ChunkPos> updateChunkSet = new HashSet<>();
@@ -53,9 +54,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public @Nullable ResourceKey<Level> currentLevel;
     public @Nullable MapLevel currentChunkStorage;
     
-    public TerrainChunkManager() {
-    
-    }
     
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
@@ -103,7 +101,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public void tick() {
         if (!Minecraft.getInstance().isPaused() && Minecraft.getInstance().level != null) {
             this.tryLoadLevel(Minecraft.getInstance().level);
-            this.taskQueue.runFor10ms();
         }
         int drawInterval = ClientConfig.DRAW_NEW_CHUNK_INTERVAL.get();
         if (drawInterval > 0 && XKLibMCClient.tickCount % drawInterval == 0) {
@@ -149,7 +146,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 .resolve(dimension.getNamespace())
                 .resolve(dimension.getPath());
         this.mapPluginRegistry.openLevel(level.dimension(), dir);
-        this.currentChunkStorage = new MapLevel(level, dir);
+        this.currentChunkStorage = new MapLevel(level, dir, X3dMapClient.mainThreadExecutor, X3dMapClient.taskExecutor);
         
     }
     
@@ -167,11 +164,11 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     public void submitTask(Runnable runnable) {
-        this.taskQueue.submitWorker(runnable);
+        X3dMapClient.taskExecutor.execute(runnable);
     }
     
     public void submitTaskOnMainThread(Runnable runnable) {
-        this.taskQueue.submitMain(runnable);
+        X3dMapClient.mainThreadExecutor.execute(runnable);
     }
     
     public void submitUpdate(ChunkPos chunkPos, boolean force) {
@@ -204,7 +201,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 });
             }
         };
-        this.taskQueue.submitWorker(task);
+        X3dMapClient.taskExecutor.execute(task);
     }
     
     public void unloadCurrentLevel() {
@@ -214,7 +211,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             this.currentLevel = null;
             this.currentChunkStorage = null;
         }
-        this.taskQueue.clear();
     }
     
     
@@ -226,7 +222,9 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             this.currentLevel = null;
         }
         this.mapPluginRegistry.closeRuntime();
-        this.taskQueue.shutdown();
+        closeExecutor(X3dMapClient.taskExecutor);
+        closeExecutor(X3dMapClient.mainThreadExecutor);
+        closeExecutor(X3dMapClient.ioExecutor);
     }
     
     public long getMemAlloc() {
@@ -239,6 +237,15 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
             }
         }
         return result;
+    }
+
+    private static void closeExecutor(Executor executor) {
+        if (!(executor instanceof AutoCloseable closeable)) return;
+        try {
+            closeable.close();
+        } catch (Exception e) {
+            LOGGER.error("Failed to close terrain executor", e);
+        }
     }
 
 }

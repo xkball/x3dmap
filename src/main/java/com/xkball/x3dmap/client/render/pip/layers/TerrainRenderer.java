@@ -65,11 +65,8 @@ public class TerrainRenderer implements IMap3dLayer {
                 var future = mapLevel.getLod4NodeAsync(new BlockPos(region.getMinX(), y, region.getMinZ()));
                 if (!future.isDone() || future.isCompletedExceptionally()) continue;
                 var model = future.getNow(null);
-                if (model == null || model.len() == 0) continue;
-                if (model.allocation() == null || model.buffer().getAllocation(model.key()) != model.allocation()) continue;
-                nodes.add(new RenderNode(
-                        model.buffer().getGpuBuffer(model.allocation()).slice(model.allocation().getOffsetFromHeap(), (long) model.len() * NODE_ENTRY_SIZE),
-                        model.len()));
+                if (model == null || model.len() == 0 || model.allocation() == null) continue;
+                nodes.add(new RenderNode(model.buffer().getGpuBuffer(model.allocation()).slice(model.allocation().getOffsetFromHeap(), (long) model.len() * NODE_ENTRY_SIZE), model.len()));
             }
         }
         if (nodes.isEmpty()) return;

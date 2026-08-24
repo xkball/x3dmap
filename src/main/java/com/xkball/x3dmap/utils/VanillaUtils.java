@@ -9,6 +9,9 @@ import org.joml.Vector3f;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -91,5 +94,14 @@ public class VanillaUtils {
         var y = (float) (Math.sin(Math.toRadians(xRot)));
         var z = (float) (Math.cos(Math.toRadians(xRot)) * Math.cos(Math.toRadians(yRot)));
         return new Vector3f(x, y, z).normalize();
+    }
+    
+    public static Executor fixedSizeExecutor(String name, int size){
+        var id = new AtomicInteger();
+        return Executors.newFixedThreadPool(size, (r) -> {
+            var result = new Thread(r);
+            result.setName(name + id.getAndIncrement());
+            return result;
+        });
     }
 }

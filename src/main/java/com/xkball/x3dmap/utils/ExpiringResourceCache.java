@@ -1,14 +1,17 @@
 package com.xkball.x3dmap.utils;
 
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.X3dMapClient;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.RandomAccess;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Function;
 
@@ -33,7 +37,7 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     private static final Set<WeakReference<ExpiringResourceCache<?, ?>>> CACHES = ConcurrentHashMap.newKeySet();
     
     static {
-        SCHEDULER.scheduleAtFixedRate(ExpiringResourceCache::runCleanUp, 5, 5, TimeUnit.SECONDS);
+        SCHEDULER.scheduleAtFixedRate(ExpiringResourceCache::runCleanUp, 10, 10, TimeUnit.SECONDS);
     }
     
     private final @Nullable Executor loaderExecutor;
@@ -89,16 +93,34 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
         return null;
     }
     
+    public boolean loading(K key){
+        return loading.containsKey(key);
+    }
+    
     public @Nullable V getOrCreateAsync(K key) {
         return this.getAsync(key).getNow(null);
     }
 
     public void remove(K key) {
-        var pendingLoad = this.loading.remove(key);
-        if (pendingLoad != null) pendingLoad.cancel();
+        this.cancelLoad(key);
         var entry = this.cache.remove(key);
         if (entry == null) return;
         this.closeValue(entry.value);
+    }
+
+    public void cancelLoad(K key) {
+        var pendingLoad = this.loading.remove(key);
+        if (pendingLoad != null) pendingLoad.cancel();
+    }
+
+    public void replace(K key, V value) {
+        this.cancelLoad(key);
+        if (this.closed) {
+            this.closeValue(value);
+            return;
+        }
+        var oldEntry = this.cache.put(key, new Entry<>(value));
+        if (oldEntry != null) this.closeValue(oldEntry.value);
     }
 
     public List<V> values() {
@@ -107,6 +129,10 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
             result.add(entry.value);
         }
         return result;
+    }
+
+    public int size() {
+        return this.cache.size();
     }
 
     private void closeValue(Object value) {
@@ -144,40 +170,59 @@ public class ExpiringResourceCache<K, V> implements AutoCloseable {
     }
     
     public CompletableFuture<List<V>> getListAsync(List<K> list){
+        if (list.isEmpty()) return CompletableFuture.completedFuture(List.of());
+        var result = new CompletableFuture<List<V>>();
         var size = list.size();
-        var futures = new ArrayList<CompletableFuture<V>>(size);
-        for (var key : list) {
-            futures.add(this.getAsync(key));
+        var values = new Object[size];
+        var remaining = new AtomicInteger(size);
+        for (var i = 0; i < size; i++) {
+            var index = i;
+            this.getAsync(list.get(i)).whenComplete((value, error) -> {
+                if (error != null) {
+                    result.completeExceptionally(error);
+                    return;
+                }
+                values[index] = value;
+                if (remaining.decrementAndGet() == 0) {
+                    result.complete(new ArrayBackedList<>(values));
+                }
+            });
         }
-        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .thenApplyAsync((_) -> {
-                    var result = new ArrayList<V>(size);
-                    for(var future : futures){
-                        result.add(future.join());
-                    }
-                    return result;
-                });
+        return result;
+    }
+    
+    private static final class ArrayBackedList<V> extends AbstractList<V> implements RandomAccess {
+        
+        private final Object[] values;
+        
+        private ArrayBackedList(Object[] values) {
+            this.values = values;
+        }
+        
+        @Override
+        @SuppressWarnings("unchecked")
+        public V get(int index) {
+            return (V) this.values[index];
+        }
+        
+        @Override
+        public int size() {
+            return this.values.length;
+        }
     }
     
     private PendingLoad<V> load(K key) {
-        var value = this.get(key);
         var pendingLoad = new PendingLoad<V>();
-        var executor = this.loaderExecutor == null ? ForkJoinPool.commonPool() : this.loaderExecutor;
         CompletableFuture<? extends V> source;
-        if (value != null) {
-            source = CompletableFuture.completedFuture(value);
-        } else if (this.asyncLoader != null) {
-            try {
-                source = this.asyncLoader.apply(key);
-            } catch (RuntimeException e) {
-                source = CompletableFuture.failedFuture(e);
-            }
+        if (this.asyncLoader != null) {
+            source = this.asyncLoader.apply(key);
         } else {
             assert this.loader != null;
+            var executor = this.loaderExecutor == null ? ForkJoinPool.commonPool() : this.loaderExecutor;
             source = CompletableFuture.supplyAsync(() -> this.loader.apply(key), executor);
         }
+        source.whenCompleteAsync((loadedValue, error) -> this.finishLoad(key, pendingLoad, loadedValue, error), X3dMapClient.taskExecutor);
         pendingLoad.source = source;
-        source.whenCompleteAsync((loadedValue, error) -> this.finishLoad(key, pendingLoad, loadedValue, error), executor);
         return pendingLoad;
     }
 
