@@ -65,11 +65,11 @@ public class MapLevel implements AutoCloseable{
         this.lod3Buffer = new UberGpuBuffer<>("x3dmap_terrain_lod3", 64, 16 * 1024 * 1024, 16, gpuDevice, 4 * 1024 * 1024, gpuWorkaround);
         this.lod4Buffer = new UberGpuBuffer<>("x3dmap_terrain_lod4", 64, 16 * 1024 * 1024, 16, gpuDevice, 4 * 1024 * 1024, gpuWorkaround);
         this.lodBuffers = List.of(lod0Buffer, lod1Buffer, lod2Buffer, lod3Buffer, lod4Buffer);
-        var lod0GpuNode = this.createGpuNodeCache(0,10);
-        var lod1GpuNode = this.createGpuNodeCache(1,20);
-        var lod2GpuNode = this.createGpuNodeCache(2,20);
-        var lod3GpuNode = this.createGpuNodeCache(3,20);
-        var lod4GpuNode = this.createGpuNodeCache(4,1000);
+        var lod0GpuNode = this.createGpuNodeCache(0,5);
+        var lod1GpuNode = this.createGpuNodeCache(1,5);
+        var lod2GpuNode = this.createGpuNodeCache(2,5);
+        var lod3GpuNode = this.createGpuNodeCache(3,5);
+        var lod4GpuNode = this.createGpuNodeCache(4,100);
         this.lodGpuNodes = List.of(lod0GpuNode, lod1GpuNode, lod2GpuNode, lod3GpuNode, lod4GpuNode);
         this.loadRegions();
     }

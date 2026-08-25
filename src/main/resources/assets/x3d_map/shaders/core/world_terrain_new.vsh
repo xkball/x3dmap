@@ -22,6 +22,20 @@ layout(std430, binding = 0) buffer ABlock {
     PosColor posColor[];
 };
 
+struct cmddata{
+    int indexCount;
+    int instanceCount;
+    int firstIndex;
+    int baseVertex;
+    int baseInstance; // idx
+    int dir;
+    int offset;
+};
+
+layout(std430, binding = 1) buffer CMD {
+    cmddata cmd_data[];
+};
+
 in vec3 Position;
 in vec4 Color;
 in vec3 Normal;
@@ -36,13 +50,14 @@ out gl_PerVertex {
 };
 
 void main() {
-    PosColor pc = posColor[gl_BaseInstance + gl_InstanceID];
+    cmddata cmd = cmd_data[gl_BaseInstance];
+    PosColor pc = posColor[cmd.offset + gl_InstanceID];
     int x = int(int64_t(pc.packed_pos) >> 38);
     int y = int(int64_t(pc.packed_pos << 52) >> 52);
     int z = int(int64_t(pc.packed_pos << 26) >> 38);
     vec3 blockPosition = vec3(x, y, z);
     gl_Position = ProjMat * ModelViewMat * vec4(Position * float(BLOCK_SIZE) + blockPosition, 1.0);
-    gl_CullDistance[0] = (uint(pc.mask) & (1u << uint(FACE_DIRECTION))) != 0u ? 1.0 : -1.0;
+    gl_CullDistance[0] = (uint(pc.mask) & (1u << uint(cmd.dir))) != 0u ? 1.0 : -1.0;
     uint color = uint(pc.color_ssbo);
     float alpha = float(color >> 24u & 255u) / 255.0;
     float red = float(color >> 16u & 255u) / 255.0;

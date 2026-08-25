@@ -36,7 +36,7 @@ public class ClientConfig {
                 .define("recordAllAboveSeaLevel", true);
         WORLD_MAP_LOD_THRESHOLD = builder
                 .comment("World map LOD screen-space threshold in pixels.")
-                .defineInRange("worldMapLodThreshold", 256, 16, 114514);
+                .defineInRange("worldMapLodThreshold", 172, 16, 114514);
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);

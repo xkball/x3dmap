@@ -24,7 +24,7 @@ final class ExpiringResourceCacheScheduler {
     private static final Set<WeakReference<CleanupTarget>> CACHES = ConcurrentHashMap.newKeySet();
 
     static {
-        SCHEDULER.scheduleAtFixedRate(ExpiringResourceCacheScheduler::runCleanUp, 10, 10, TimeUnit.SECONDS);
+        SCHEDULER.scheduleAtFixedRate(ExpiringResourceCacheScheduler::runCleanUp, 5, 5, TimeUnit.SECONDS);
     }
 
     private ExpiringResourceCacheScheduler() {
