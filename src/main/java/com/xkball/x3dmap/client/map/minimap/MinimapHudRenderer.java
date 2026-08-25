@@ -13,7 +13,7 @@ import com.xkball.x3dmap.client.map.render.Map2dRenderContextImpl;
 import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapRenderViewport;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.widget.Widget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -56,7 +56,7 @@ public final class MinimapHudRenderer {
                 viewport.close();
             }
             viewport = new MapRenderViewport(
-                    TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime(),
+                    TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                     new Widget(),
                     mc.level.dimension(),
                     MapViewportPresets.MINIMAP,
@@ -173,7 +173,7 @@ public final class MinimapHudRenderer {
                     ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
                     ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get(),
                     mc.level.getMinY(),
-                    TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()
+                    TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
             );
             var displayLayers = viewport.prepare2d(displayFrame);
             var context = new Map2dRenderContextImpl(displayFrame, b3dGraphics);
@@ -232,7 +232,7 @@ public final class MinimapHudRenderer {
                 ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
                 ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get(),
                 level.getMinY(),
-                TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()
+                TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );
         var state = new WorldTerrainPipRenderer.WorldTerrainState(
                 frame,

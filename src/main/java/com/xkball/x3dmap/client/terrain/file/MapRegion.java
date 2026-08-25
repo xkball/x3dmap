@@ -164,6 +164,14 @@ public class MapRegion implements AutoCloseable{
     public int getColor(int x, int z) {
         return this.heightMap.getColor(x, z);
     }
+
+    public int getChunkColor(ChunkPos pos) {
+        return this.heightMap.getChunkColor(pos.getRegionLocalX(), pos.getRegionLocalZ());
+    }
+
+    public int[] getChunkColors() {
+        return this.heightMap.getChunkColors();
+    }
     
     public CompletableFuture<Void> saveAll(){
         return CompletableFuture.runAsync(() -> {

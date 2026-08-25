@@ -12,6 +12,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
@@ -58,6 +62,34 @@ public class MapRegionHeightMap implements IMapFile{
 
     public int getColor(int x, int z) {
         return this.color[mapIndex(x, z)];
+    }
+
+    public int[] getChunkColors() {
+        var result = new int[32 * 32];
+        for (var cx = 0; cx < 32; cx++) {
+            for (var cz = 0; cz < 32; cz++) {
+                result[chunkIndex(cx, cz)] = this.getChunkColor(cx, cz);
+            }
+        }
+        return result;
+    }
+    
+    public int getChunkColor(int cx, int cz) {
+        if (!this.chunkExists[chunkIndex(cx, cz)]) return 0;
+        var alpha = 0;
+        var red = 0;
+        var green = 0;
+        var blue = 0;
+        for (var x = cx << 4; x < (cx + 1) << 4; x++) {
+            for (var z = cz << 4; z < (cz + 1) << 4; z++) {
+                var value = this.color[mapIndex(x, z)];
+                alpha += value >>> 24;
+                red += value >> 16 & 0xFF;
+                green += value >> 8 & 0xFF;
+                blue += value & 0xFF;
+            }
+        }
+        return alpha / 256 << 24 | red / 256 << 16 | green / 256 << 8 | blue / 256;
     }
 
     @Override
@@ -107,15 +139,19 @@ public class MapRegionHeightMap implements IMapFile{
     }
 
     private void readData(DataInput input) throws IOException {
+        var data = new byte[32 * 32 + 512 * 512 * 4 * 2];
+        var be = new int[512 * 512];
+        input.readFully(data);
+        var intBE = ValueLayout.JAVA_INT.withOrder(ByteOrder.BIG_ENDIAN);
+        var intNative = ValueLayout.JAVA_INT;
+        MemorySegment.copy(MemorySegment.ofArray(data),32 * 32,MemorySegment.ofArray(be),0, 512 * 512 * 4);
+        MemorySegment.copy(MemorySegment.ofArray(be), intBE, 0, MemorySegment.ofArray(this.heightMap), intNative, 0, 512 * 512);
+        MemorySegment.copy(MemorySegment.ofArray(data),32 * 32 + 512 * 512 * 4,MemorySegment.ofArray(be),0, 512 * 512 * 4);
+        MemorySegment.copy(MemorySegment.ofArray(be), intBE, 0, MemorySegment.ofArray(this.color), intNative, 0, 512 * 512);
         for (int i = 0; i < 32 * 32; i++) {
-            this.chunkExists[i] = input.readBoolean();
+            this.chunkExists[i] = data[i] != 0;
         }
-        for (int i = 0; i < 512 * 512; i++) {
-            this.heightMap[i] = input.readInt();
-        }
-        for (int i = 0; i < 512 * 512; i++) {
-            this.color[i] = input.readInt();
-        }
+  
     }
 
     private void writeData(DataOutput output) throws IOException {

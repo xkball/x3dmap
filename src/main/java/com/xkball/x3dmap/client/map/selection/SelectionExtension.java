@@ -5,7 +5,7 @@ import com.xkball.x3dmap.api.client.gui.IMapScreenContext;
 import com.xkball.x3dmap.api.client.gui.IMapScreenExtension;
 import com.xkball.x3dmap.api.client.gui.MapToolbarSlot;
 import com.xkball.x3dmap.api.client.gui.input.MapInputEvent;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.network.c2s.RequestServerChunk;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.XKLib;
@@ -162,7 +162,7 @@ public class SelectionExtension implements IMapScreenExtension {
 
     private void clientRerender() {
         for (var chunkPos : this.storage.selectedChunks()) {
-            TerrainChunkManager.INSTANCE.submitUpdate(chunkPos, true);
+            TerrainMapManager.INSTANCE.submitUpdate(chunkPos, true);
         }
         this.clearSelection();
     }
@@ -179,7 +179,7 @@ public class SelectionExtension implements IMapScreenExtension {
     }
 
     private void deleteSelection() {
-        var levelStorage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
+        var levelStorage = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
         if (levelStorage != null) {
             for (var chunkPos : this.storage.selectedChunks()) {
                 levelStorage.deleteChunk(chunkPos);

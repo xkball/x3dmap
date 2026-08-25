@@ -8,7 +8,7 @@ import com.xkball.x3dmap.api.client.viewport.IMapViewportManager;
 import com.xkball.x3dmap.client.map.render.MapLayerRegistry;
 import com.xkball.x3dmap.client.map.storage.MapStorageManagerImpl;
 import com.xkball.x3dmap.client.map.viewport.MapViewportManagerImpl;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 
 @NonNullByDefault
@@ -19,10 +19,10 @@ public final class X3dMapRuntimeImpl implements IX3dMapRuntime {
     private final MapLayerRegistry layers;
     private final MapViewportManagerImpl viewports;
 
-    public X3dMapRuntimeImpl(MapStorageManagerImpl storage, MapLayerRegistry layers, TerrainChunkManager terrainChunkManager) {
+    public X3dMapRuntimeImpl(MapStorageManagerImpl storage, MapLayerRegistry layers, TerrainMapManager terrainMapManager) {
         this.storage = storage;
         this.layers = layers;
-        this.terrain = new TerrainViewImpl(terrainChunkManager);
+        this.terrain = new TerrainViewImpl(terrainMapManager);
         this.viewports = new MapViewportManagerImpl(this);
     }
 

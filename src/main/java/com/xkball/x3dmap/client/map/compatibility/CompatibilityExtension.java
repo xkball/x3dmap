@@ -4,7 +4,7 @@ import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.api.client.gui.IMapGui;
 import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
 import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
 import com.xkball.xklib.ui.render.IComponent;
@@ -33,16 +33,16 @@ public class CompatibilityExtension {
         }
         
         if (!reasons.isEmpty()) {
-            TerrainChunkManager.INSTANCE.compatibleMode = true;
-            TerrainChunkManager.INSTANCE.compatibilityReasons = reasons;
+            TerrainMapManager.INSTANCE.compatibleMode = true;
+            TerrainMapManager.INSTANCE.compatibilityReasons = reasons;
         }
     }
     
     public static void showWarningIfNeeded(IMapGui mapGui) {
-        if (!TerrainChunkManager.INSTANCE.compatibleMode) {
+        if (!TerrainMapManager.INSTANCE.compatibleMode) {
             return;
         }
-        if (TerrainChunkManager.INSTANCE.compatibilityWarningSuppressed) {
+        if (TerrainMapManager.INSTANCE.compatibilityWarningSuppressed) {
             return;
         }
         
@@ -62,7 +62,7 @@ public class CompatibilityExtension {
                 .addChild(new Label(IComponent.translatable("xklibmc.compatibility.warn")))
                 .addChild(new Label(IComponent.translatable("xklibmc.compatibility.reasons")));
         
-        for (var reason : TerrainChunkManager.INSTANCE.compatibilityReasons) {
+        for (var reason : TerrainMapManager.INSTANCE.compatibilityReasons) {
             content.addChild(new Label("  - " + reason));
         }
         
@@ -75,7 +75,7 @@ public class CompatibilityExtension {
                         .inlineStyle("margin-left: 4rpx; text-scale: expand-width;"))
                 .addChild(new Button(IComponent.translatable("xklibmc.compatibility.ok"), () -> {
                     if (dontShowAgain.get()) {
-                        TerrainChunkManager.INSTANCE.compatibilityWarningSuppressed = true;
+                        TerrainMapManager.INSTANCE.compatibilityWarningSuppressed = true;
                     }
                     content.closeWindow();
                 }).inlineStyle("size: 40rpx 16rpx; text-scale: expand-width; text-align: center; button-shape: rect;"));

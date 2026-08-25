@@ -4,6 +4,7 @@ import com.mojang.blaze3d.GraphicsWorkarounds;
 import com.mojang.blaze3d.vertex.UberGpuBuffer;
 import com.mojang.logging.LogUtils;
 import com.xkball.x3dmap.X3dMapClient;
+import com.xkball.x3dmap.client.terrain.CompatibilityTextureManager;
 import com.xkball.x3dmap.client.terrain.RegionPos;
 import com.xkball.x3dmap.client.terrain.render.GpuNodeModel;
 import com.xkball.x3dmap.client.terrain.render.MapNodeModel;
@@ -21,7 +22,9 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +41,7 @@ public class MapLevel implements AutoCloseable{
     private final int minY;
     private final Set<RegionPos> regions = ConcurrentHashMap.newKeySet();
     private final ExpiringResourceMapCache<RegionPos, MapRegion> regionCache;
+    private final @Nullable CompatibilityTextureManager compatibilityTextureManager;
     
     public final UberGpuBuffer<Long> lod0Buffer;
     public final UberGpuBuffer<Long> lod1Buffer;
@@ -47,7 +51,7 @@ public class MapLevel implements AutoCloseable{
     private final List<UberGpuBuffer<Long>> lodBuffers;
     private final List<ExpiringResourceMapCache<BlockPos, GpuNodeModel>> lodGpuNodes;
     
-    public MapLevel(Level level, Path dir) {
+    public MapLevel(Level level, Path dir, boolean compatibleMode) {
         this.level = level.dimension().identifier();
         this.dir = dir;
         this.maxY = level.getMaxY();
@@ -72,6 +76,7 @@ public class MapLevel implements AutoCloseable{
         var lod4GpuNode = this.createGpuNodeCache(4,100);
         this.lodGpuNodes = List.of(lod0GpuNode, lod1GpuNode, lod2GpuNode, lod3GpuNode, lod4GpuNode);
         this.loadRegions();
+        this.compatibilityTextureManager = compatibleMode ? new CompatibilityTextureManager(this) : null;
     }
     
     public Identifier getLevel() {
@@ -96,6 +101,41 @@ public class MapLevel implements AutoCloseable{
 
     public Set<RegionPos> getRegions() {
         return this.regions;
+    }
+
+    public @Nullable CompatibilityTextureManager getCompatibilityTextureManager() {
+        return this.compatibilityTextureManager;
+    }
+
+    public CompletableFuture<int[]> loadCompatibilityTextureColors(int textureX, int textureZ) {
+        var regionsPerTexture = CompatibilityTextureManager.TEXTURE_SIDE_LENGTH / RegionPos.REGION_SIZE;
+        var minRegionX = textureX * regionsPerTexture;
+        var minRegionZ = textureZ * regionsPerTexture;
+        Map<RegionPos, CompletableFuture<MapRegion>> regionFutures = new HashMap<>();
+        for (var dx = 0; dx < regionsPerTexture; dx++) {
+            for (var dz = 0; dz < regionsPerTexture; dz++) {
+                var pos = new RegionPos(minRegionX + dx, minRegionZ + dz);
+                if (this.regions.contains(pos)) {
+                    regionFutures.put(pos, this.regionCache.getAsync(pos));
+                }
+            }
+        }
+        return CompletableFuture.allOf(regionFutures.values().toArray(CompletableFuture<?>[]::new))
+                .thenApplyAsync(ignored -> {
+                    var result = new int[CompatibilityTextureManager.TEXTURE_SIDE_LENGTH * CompatibilityTextureManager.TEXTURE_SIDE_LENGTH];
+                    for (var entry : regionFutures.entrySet()) {
+                        var regionColors = entry.getValue().join().getChunkColors();
+                        var baseX = (entry.getKey().x() - minRegionX) * RegionPos.REGION_SIZE;
+                        var baseZ = (entry.getKey().z() - minRegionZ) * RegionPos.REGION_SIZE;
+                        for (var cx = 0; cx < RegionPos.REGION_SIZE; cx++) {
+                            for (var cz = 0; cz < RegionPos.REGION_SIZE; cz++) {
+                                result[(baseZ + cz) * CompatibilityTextureManager.TEXTURE_SIDE_LENGTH + baseX + cx]
+                                        = regionColors[(cx << RegionPos.REGION_SHIFT) | cz];
+                            }
+                        }
+                    }
+                    return result;
+                }, X3dMapClient.taskExecutor);
     }
 
     //不应该有人类需要用这个
@@ -130,7 +170,12 @@ public class MapLevel implements AutoCloseable{
     public void deleteChunk(ChunkPos pos) {
         this.regionCache.getAsync(RegionPos.ofChunk(pos))
                 .thenComposeAsync(region -> region.deleteChunk(pos), X3dMapClient.mainThreadExecutor)
-                .thenRun(() -> this.invalidateLODs(pos));
+                .thenRun(() -> {
+                    this.invalidateLODs(pos);
+                    if (this.compatibilityTextureManager != null) {
+                        this.compatibilityTextureManager.updateChunk(pos, 0);
+                    }
+                });
     }
 
     private @Nullable MapRegion getRegion(ChunkPos pos) {
@@ -141,8 +186,12 @@ public class MapLevel implements AutoCloseable{
         var pos = chunk.chunkPos;
         this.regions.add(RegionPos.ofChunk(pos));
         this.regionCache.getAsync(RegionPos.ofChunk(pos))
-                .thenCompose(region -> region.setChunk(chunk))
-                .thenRun(() -> this.invalidateLODs(pos));
+                .thenCompose(region -> region.setChunk(chunk).thenRun(() -> {
+                    this.invalidateLODs(pos);
+                    if (this.compatibilityTextureManager != null) {
+                        this.compatibilityTextureManager.updateChunk(pos, region.getChunkColor(pos));
+                    }
+                }));
     }
 
     private void loadRegions() {
@@ -285,6 +334,9 @@ public class MapLevel implements AutoCloseable{
     
     @Override
     public void close() {
+        if (this.compatibilityTextureManager != null) {
+            this.compatibilityTextureManager.close();
+        }
         for (var cache : this.lodGpuNodes) {
             cache.close();
         }

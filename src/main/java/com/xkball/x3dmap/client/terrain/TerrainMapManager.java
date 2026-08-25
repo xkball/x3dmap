@@ -15,6 +15,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -38,9 +39,9 @@ import java.util.Set;
 
 @EventBusSubscriber(Dist.CLIENT)
 @NonNullByDefault
-public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
+public class TerrainMapManager implements ICloseOnExit<TerrainMapManager> {
     
-    public static final TerrainChunkManager INSTANCE = new TerrainChunkManager();
+    public static final TerrainMapManager INSTANCE = new TerrainMapManager();
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final ChunkComplier COMPLIER = new ChunkComplier();
     public final X3dMapPluginRegistry mapPluginRegistry = new X3dMapPluginRegistry();
@@ -51,6 +52,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     public boolean compatibilityWarningSuppressed = false;
     public @Nullable ResourceKey<Level> currentLevel;
     public @Nullable MapLevel currentChunkStorage;
+    private RandomSource rand = RandomSource.create();
     
     
     @SubscribeEvent
@@ -114,7 +116,10 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
     }
     
     public void enqueueUpdate(ChunkPos chunkPos) {
-        if (!updateChunkSet.contains(chunkPos)) {
+        if(this.currentChunkStorage != null && !this.currentChunkStorage.containsChunk(chunkPos)) {
+            this.submitUpdate(chunkPos, true);
+        }
+        else if (!updateChunkSet.contains(chunkPos)) {
             updateQueue.add(chunkPos);
             updateChunkSet.add(chunkPos);
         }
@@ -147,7 +152,7 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 .resolve(dimension.getNamespace())
                 .resolve(dimension.getPath());
         this.mapPluginRegistry.openLevel(level.dimension(), dir);
-        this.currentChunkStorage = new MapLevel(level, dir);
+        this.currentChunkStorage = new MapLevel(level, dir, this.compatibleMode);
         
     }
     
@@ -162,14 +167,6 @@ public class TerrainChunkManager implements ICloseOnExit<TerrainChunkManager> {
                 this.submitUpdate(new ChunkPos(centerChunk.x() + dx, centerChunk.z() + dz), force);
             }
         }
-    }
-    
-    public void submitTask(Runnable runnable) {
-        X3dMapClient.taskExecutor.execute(runnable);
-    }
-    
-    public void submitTaskOnMainThread(Runnable runnable) {
-        X3dMapClient.mainThreadExecutor.execute(runnable);
     }
     
     public void submitUpdate(ChunkPos chunkPos, boolean force) {

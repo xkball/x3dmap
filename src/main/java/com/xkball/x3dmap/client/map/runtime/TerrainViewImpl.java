@@ -1,7 +1,7 @@
 package com.xkball.x3dmap.client.map.runtime;
 
 import com.xkball.x3dmap.api.client.runtime.ITerrainView;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.world.level.ChunkPos;
 
@@ -10,15 +10,15 @@ import java.util.OptionalInt;
 @NonNullByDefault
 final class TerrainViewImpl implements ITerrainView {
 
-    private final TerrainChunkManager terrainChunkManager;
+    private final TerrainMapManager terrainMapManager;
 
-    TerrainViewImpl(TerrainChunkManager terrainChunkManager) {
-        this.terrainChunkManager = terrainChunkManager;
+    TerrainViewImpl(TerrainMapManager terrainMapManager) {
+        this.terrainMapManager = terrainMapManager;
     }
 
     @Override
     public OptionalInt height(int x, int z) {
-        var storage = this.terrainChunkManager.currentChunkStorage;
+        var storage = this.terrainMapManager.currentChunkStorage;
         if (storage == null) {
             return OptionalInt.empty();
         }
@@ -27,13 +27,13 @@ final class TerrainViewImpl implements ITerrainView {
 
     @Override
     public int color(int x, int z) {
-        var storage = this.terrainChunkManager.currentChunkStorage;
+        var storage = this.terrainMapManager.currentChunkStorage;
         return storage == null ? 0 : storage.getColor(x, z);
     }
 
     @Override
     public boolean containsChunk(ChunkPos chunkPos) {
-        var storage = this.terrainChunkManager.currentChunkStorage;
+        var storage = this.terrainMapManager.currentChunkStorage;
         return storage != null && storage.containsChunk(chunkPos);
     }
 }

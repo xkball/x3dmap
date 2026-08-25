@@ -11,7 +11,7 @@ import com.xkball.x3dmap.client.map.render.Map2dRenderContextImpl;
 import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapRenderViewport;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
 import com.xkball.xklib.ui.layout.IntLayoutVariable;
@@ -40,7 +40,7 @@ public class MinimapPreviewWidget extends ContainerWidget {
         var level = Minecraft.getInstance().level;
         var dimension = level == null ? net.minecraft.world.level.Level.OVERWORLD : level.dimension();
         this.viewport = new MapRenderViewport(
-                TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime(),
+                TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                 this,
                 dimension,
                 MapViewportPresets.MINIMAP,
@@ -192,7 +192,7 @@ public class MinimapPreviewWidget extends ContainerWidget {
                 ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
                 this.highDetailRange.get(),
                 mc.level.getMinY(),
-                TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()
+                TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );
         lastState = new WorldTerrainPipRenderer.WorldTerrainState(
                 frame,

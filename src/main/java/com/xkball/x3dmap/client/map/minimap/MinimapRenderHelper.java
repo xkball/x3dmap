@@ -1,6 +1,6 @@
 package com.xkball.x3dmap.client.map.minimap;
 
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.XKLib;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dRenderContext;
@@ -20,7 +20,7 @@ public final class MinimapRenderHelper {
     }
 
     public static float getCameraTargetY(double playerY, int blockX, int blockZ, int minY) {
-        var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
+        var storage = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
         if (storage != null) {
             var h = storage.getHeight(blockX, blockZ);
             if (h != minY && playerY < h) {

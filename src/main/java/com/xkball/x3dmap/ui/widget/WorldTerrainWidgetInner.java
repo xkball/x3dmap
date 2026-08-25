@@ -26,7 +26,7 @@ import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapInputContextImpl;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.utils.MonitoredExecutor;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.api.gui.input.IKeyEvent;
@@ -120,7 +120,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 yMode,
                 fixY,
                 lodThreshold,
-                TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime(),
+                TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                 currentDimension(),
                 MapViewportPresets.WORLD_MAP,
                 0
@@ -281,7 +281,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 this.lodThreshold.get(),
                 this.minimapHighDetailRange,
                 this.centerPos.getY(),
-                TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()
+                TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );
         var layers = this.layerHost.prepare(frame);
         var scaleX = XKLibBaseScreen.tryGetScaleX();
@@ -334,14 +334,14 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                     graphics.drawString(String.format(Locale.ROOT, "io: q=%d, t=%.1f/s", executor.getWaitingTaskCount(), executor.getThroughputPerSecond()), x, y_, -1);
                     y_ += 10;
                 }
-                var mapLevel = TerrainChunkManager.INSTANCE.currentChunkStorage;
+                var mapLevel = TerrainMapManager.INSTANCE.currentChunkStorage;
                 if (mapLevel != null) {
                     for (var lodLevel = 0; lodLevel < 5; lodLevel++) {
                         graphics.drawString("gpu lod" + lodLevel + ": " + mapLevel.getGpuNodeCacheSize(lodLevel), x, y_, -1);
                         y_ += 10;
                     }
                 }
-                graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemAlloc()), x, y_, -1);
+                graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainMapManager.INSTANCE.getMemAlloc()), x, y_, -1);
                 y_ += 10;
 //                graphics.drawString("memUsed: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemUsed()),x,y_,-1);
                 graphics.drawString("length: " + cameraLength, x, y_, -1);
@@ -581,7 +581,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         if (level != null) {
             if (yMode.get() == 0) {
                 cameraTarget.y = level.getSeaLevel();
-                var storage = TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage();
+                var storage = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
                 if (storage != null) {
                     var h = storage.getHeight((int) cameraTarget.x, (int) cameraTarget.z);
                     if (h != level.getMinY()) {

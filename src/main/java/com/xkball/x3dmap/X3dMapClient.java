@@ -9,7 +9,7 @@ import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.ChunkComplier;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.ui.WorldTerrainScreen;
 import com.xkball.x3dmap.utils.BarrierExecutor;
 import com.xkball.x3dmap.utils.MonitoredExecutor;
@@ -79,7 +79,7 @@ public class X3dMapClient {
             if (!c.getLevel().isClientSide()) {
                 return;
             }
-            TerrainChunkManager.INSTANCE.enqueueUpdate(c.getPos());
+            TerrainMapManager.INSTANCE.enqueueUpdate(c.getPos());
         };
     }
     
@@ -106,7 +106,7 @@ public class X3dMapClient {
     
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        TerrainChunkManager.INSTANCE.initializeMapApi();
+        TerrainMapManager.INSTANCE.initializeMapApi();
         ChunkComplier.init();
     }
 
@@ -148,8 +148,8 @@ public class X3dMapClient {
 
     private static int addWaypoint(CommandSourceStack source, int x, int y, int z, String name) {
         try {
-            TerrainChunkManager.INSTANCE.initializeMapApi();
-            var access = TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime().storage().currentLevelData();
+            TerrainMapManager.INSTANCE.initializeMapApi();
+            var access = TerrainMapManager.INSTANCE.mapPluginRegistry.runtime().storage().currentLevelData();
             if (access.isEmpty()) {
                 source.sendFailure(Component.translatable("xklibmc.waypoint.add.failure"));
                 return 0;

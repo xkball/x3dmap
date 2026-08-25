@@ -68,10 +68,10 @@ public class ClientConfig {
                 .comment("Interval in ticks for auto-saving map data. Default: 1200 (60s).")
                 .defineInRange("autoSaveInterval", 1200, 20, 72000);
         DRAW_NEW_CHUNK_INTERVAL = builder
-                .comment("Interval in ticks for drawing new chunks from the update queue. Default: 20 (1s).")
-                .defineInRange("drawNewChunkInterval", 20, 1, 1200);
+                .comment("Interval in ticks for drawing new chunks from the update queue. Default: 100 (5s).")
+                .defineInRange("drawNewChunkInterval", 100, 1, 1200);
         DRAW_NEW_CHUNK_COUNT = builder
-                .comment("Number of chunks to draw per interval from the update queue. Default: 20.")
+                .comment("Number of chunks to draw per interval from the update queue. Default: 1000.")
                 .defineInRange("drawNewChunkCount", 1000, 1, 50000);
         SHOW_MAP_INFO = builder
                 .comment("Show map info window when first opening the map. Automatically set to false after shown once.")

@@ -2,15 +2,13 @@ package com.xkball.x3dmap.ui.widget;
 
 import com.xkball.x3dmap.ClientConfig;
 import com.xkball.x3dmap.ServerConfig;
-import com.xkball.x3dmap.api.client.gui.MapWindowRefContainer;
-import com.xkball.x3dmap.api.client.gui.MapWindowSpec;
 import com.xkball.x3dmap.api.client.storage.IMapDataHandle;
 import com.xkball.x3dmap.client.map.gui.MapGuiImpl;
 import com.xkball.x3dmap.client.map.gui.MapScreenSession;
 import com.xkball.x3dmap.client.map.mapinfo.MapInfoHelper;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.uistate.WorldMapUiStateStorage;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.network.c2s.RequestServerChunk;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.XKLib;
@@ -137,7 +135,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                         .addChild(this.createToolbarTop2())
                         .addChild(inner.inlineStyle("height: 100%-35rpx;"))
                 );
-        this.screenSession = TerrainChunkManager.INSTANCE.mapPluginRegistry.openScreen(this);
+        this.screenSession = TerrainMapManager.INSTANCE.mapPluginRegistry.openScreen(this);
         this.inner.setScreenSession(this.screenSession);
     }
 
@@ -209,7 +207,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                     var player = Minecraft.getInstance().player;
                     var renderDistance = Minecraft.getInstance().options.renderDistance().get();
                     if (player == null) return;
-                    TerrainChunkManager.INSTANCE.submitUpdate(player.blockPosition(), renderDistance - 1, true);
+                    TerrainMapManager.INSTANCE.submitUpdate(player.blockPosition(), renderDistance - 1, true);
                 })
                         .setCSSClassName("update_button")
                         .withTooltip(IComponent.translatable("xklibmc.world_terrain.update_chunks"))
@@ -224,7 +222,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                 for (var dx = -range; dx <= range; dx++) {
                     for (var dz = -range; dz <= range; dz++) {
                         var p = new ChunkPos(centerChunk.x() + dx, centerChunk.z() + dz);
-                        if (TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage().containsChunk(p)) continue;
+                        if (TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage().containsChunk(p)) continue;
                         list.add(p);
                     }
                 }
@@ -375,7 +373,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     public void closeMap() {
         this.inner.saveUiState();
         if (this.screenSession != null) {
-            TerrainChunkManager.INSTANCE.mapPluginRegistry.closeScreen(this.screenSession);
+            TerrainMapManager.INSTANCE.mapPluginRegistry.closeScreen(this.screenSession);
             this.screenSession = null;
         }
         this.inner.close();
@@ -383,7 +381,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     }
 
     private void initUiState() {
-        var access = TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime().storage().currentLevelData();
+        var access = TerrainMapManager.INSTANCE.mapPluginRegistry.runtime().storage().currentLevelData();
         if (access.isPresent()) {
             this.uiState = access.get().get(BuiltinMapDataTypes.UI_STATE);
         }

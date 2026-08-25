@@ -9,7 +9,7 @@ import com.xkball.x3dmap.client.map.render.MapLayerRegistry;
 import com.xkball.x3dmap.client.map.runtime.X3dMapRuntimeImpl;
 import com.xkball.x3dmap.client.map.storage.MapStorageRegistry;
 import com.xkball.x3dmap.client.map.storage.MapStorageManagerImpl;
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.ui.widget.WorldTerrainWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.neoforged.fml.ModList;
@@ -40,7 +40,7 @@ public final class X3dMapPluginRegistry {
     private boolean initialized;
     private boolean runtimeAvailable;
 
-    public void initialize(TerrainChunkManager terrainChunkManager) {
+    public void initialize(TerrainMapManager terrainMapManager) {
         if (this.initialized) {
             return;
         }
@@ -48,7 +48,7 @@ public final class X3dMapPluginRegistry {
         this.runtime = new X3dMapRuntimeImpl(
                 new MapStorageManagerImpl(this.storageRegistry),
                 this.layerRegistry,
-                terrainChunkManager
+                terrainMapManager
         );
         for (var plugin : this.discoverPlugins()) {
             this.registerPlugin(plugin);

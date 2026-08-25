@@ -1,6 +1,6 @@
 package com.xkball.x3dmap.network.s2c;
 
-import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
+import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -48,7 +48,7 @@ public record SentChunkToClient(ChunkPos chunkPos, ClientboundLevelChunkPacketDa
             chunk.replaceWithPacketData(this.data.getReadBuffer(), this.data.getHeightmaps(), this.data.getBlockEntitiesTagsConsumer(this.chunkPos.x(), this.chunkPos.z()));
             var data = biomeData.chunkBiomeData().getFirst();
             chunk.replaceBiomes(data.getReadBuffer());
-            TerrainChunkManager.INSTANCE.submitUpdate(chunk, this.chunkPos, true);
+            TerrainMapManager.INSTANCE.submitUpdate(chunk, this.chunkPos, true);
         });
     }
     
