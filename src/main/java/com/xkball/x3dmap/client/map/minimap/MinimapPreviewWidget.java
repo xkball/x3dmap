@@ -14,7 +14,6 @@ import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
 import com.xkball.xklib.ui.layout.BooleanLayoutVariable;
-import com.xkball.xklib.ui.layout.IntLayoutVariable;
 import com.xkball.xklib.ui.render.IGUIGraphics;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -22,6 +21,7 @@ import com.xkball.xklibmc.ui.XKLibBaseScreen;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
 @NonNullByDefault
@@ -31,14 +31,12 @@ public class MinimapPreviewWidget extends ContainerWidget {
     private WorldTerrainPipRenderer.@Nullable WorldTerrainState lastState;
     private final MapRenderViewport viewport;
 
-    private final IntLayoutVariable highDetailRange;
     private final BooleanLayoutVariable rotateWithPlayer;
 
-    public MinimapPreviewWidget(IntLayoutVariable highDetailRange, BooleanLayoutVariable rotateWithPlayer) {
-        this.highDetailRange = highDetailRange;
+    public MinimapPreviewWidget(BooleanLayoutVariable rotateWithPlayer) {
         this.rotateWithPlayer = rotateWithPlayer;
         var level = Minecraft.getInstance().level;
-        var dimension = level == null ? net.minecraft.world.level.Level.OVERWORLD : level.dimension();
+        var dimension = level == null ? Level.OVERWORLD : level.dimension();
         this.viewport = new MapRenderViewport(
                 TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                 this,
@@ -190,7 +188,6 @@ public class MinimapPreviewWidget extends ContainerWidget {
                 this.height,
                 false,
                 ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
-                this.highDetailRange.get(),
                 mc.level.getMinY(),
                 TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );

@@ -171,7 +171,6 @@ public final class MinimapHudRenderer {
                     mapSize,
                     false,
                     ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
-                    ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get(),
                     mc.level.getMinY(),
                     TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
             );
@@ -230,7 +229,6 @@ public final class MinimapHudRenderer {
                 texSize,
                 false,
                 ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
-                ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get(),
                 level.getMinY(),
                 TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );

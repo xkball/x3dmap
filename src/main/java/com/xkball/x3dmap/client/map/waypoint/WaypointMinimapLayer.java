@@ -5,6 +5,7 @@ import com.xkball.x3dmap.api.client.render.IMap2dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
 import com.xkball.x3dmap.api.client.render.IMapLayerContext;
+import com.xkball.x3dmap.client.map.plugin.X3dMapBuiltinPlugin;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.resource.ResourceLocation;
@@ -19,6 +20,7 @@ import java.util.List;
 public final class WaypointMinimapLayer implements IMap2dLayer {
 
     private static final ResourceLocation PINNED_ICON = VanillaUtils.modrl("icon/pinned");
+    private static final String VISIBILITY_STATE_KEY = VanillaUtils.modRL("waypoint") + ":visible";
     private final IMapLayerContext layerContext;
     private final Runnable invalidator;
     private @Nullable WaypointStorage observedStorage;
@@ -41,7 +43,11 @@ public final class WaypointMinimapLayer implements IMap2dLayer {
         if (waypoints.isEmpty()) {
             return null;
         }
-        return context -> render(context, waypoints);
+        return context -> {
+            if (this.visible(frame)) {
+                render(context, waypoints);
+            }
+        };
     }
 
     @Override
@@ -63,13 +69,19 @@ public final class WaypointMinimapLayer implements IMap2dLayer {
         storage.addDirtyListener(this.invalidator);
     }
 
+    private boolean visible(IMapFrame frame) {
+        return this.layerContext.runtime().storage().levelData(frame.dimension())
+                .map(access -> access.get(BuiltinMapDataTypes.UI_STATE).value().getBoolean(VISIBILITY_STATE_KEY, true))
+                .orElse(true);
+    }
+
     private static void render(IMap2dRenderContext context, List<Waypoint> waypoints) {
         if (!(context.graphics() instanceof B3dGuiGraphics graphics)) {
             return;
         }
         for (var waypoint : waypoints) {
             var pos = waypoint.pos();
-            var screen = context.frame().worldToScreen(new Vector3f(pos.getX() + 0.5f, pos.getY() + 1.0f, pos.getZ() + 0.5f));
+            var screen = context.frame().worldToScreen(new Vector3f(pos.getX(), pos.getY(), pos.getZ()));
             if (screen == null) {
                 continue;
             }
@@ -77,8 +89,8 @@ public final class WaypointMinimapLayer implements IMap2dLayer {
             var iconSize = 7.0f;
             var textWidth = graphics.defaultFont().width(waypoint.name(), textHeight);
             var width = iconSize + textWidth + 3;
-            var x = screen.x - width / 2;
-            var y = screen.y - 11;
+            var x = screen.x;
+            var y = screen.y - 9;
             graphics.fillRounded(x, y, x + width, y + 9, 0xA0000000, 2);
             graphics.blitSprite(PINNED_ICON, x + 1, y + 1, iconSize, iconSize, waypoint.color());
             graphics.drawString(waypoint.name(), x + iconSize + 2, y + 1, 0xFFFFFFFF, textHeight);

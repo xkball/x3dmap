@@ -41,8 +41,6 @@ public interface IMapFrame extends IMapProjection {
     
     int lodThreshold();
 
-    int minimapHighDetailRange();
-
     int baseY();
 
     boolean isVisible(AABB bounds);

@@ -24,7 +24,6 @@ import org.jspecify.annotations.Nullable;
 public final class MinimapExtension implements IMapScreenExtension {
 
     private final IMapScreenContext context;
-    private final IntLayoutVariable highDetailRange = new IntLayoutVariable(8);
     private final IntLayoutVariable renderInterval = new IntLayoutVariable(10);
     private final BooleanLayoutVariable rotateWithPlayer = new BooleanLayoutVariable(false);
     private final BooleanLayoutVariable minimapEnabled = new BooleanLayoutVariable(true);
@@ -36,11 +35,9 @@ public final class MinimapExtension implements IMapScreenExtension {
 
     @Override
     public void onOpen() {
-        this.highDetailRange.set(ClientConfig.MINIMAP_HIGH_DETAIL_RANGE.get());
         this.renderInterval.set(ClientConfig.MINIMAP_RENDER_INTERVAL.get());
         this.rotateWithPlayer.set(ClientConfig.MINIMAP_ROTATE_WITH_PLAYER.get());
         this.minimapEnabled.set(ClientConfig.MINIMAP_ENABLED.get());
-        this.highDetailRange.addCallback(ClientConfig.MINIMAP_HIGH_DETAIL_RANGE::set);
         this.renderInterval.addCallback(ClientConfig.MINIMAP_RENDER_INTERVAL::set);
         this.rotateWithPlayer.addCallback(ClientConfig.MINIMAP_ROTATE_WITH_PLAYER::set);
         this.minimapEnabled.addCallback(ClientConfig.MINIMAP_ENABLED::set);
@@ -53,7 +50,6 @@ public final class MinimapExtension implements IMapScreenExtension {
     @Override
     public void close() {
         this.configWindow = null;
-        this.highDetailRange.removeCallbacks();
         this.renderInterval.removeCallbacks();
         this.rotateWithPlayer.removeCallbacks();
         this.minimapEnabled.removeCallbacks();
@@ -76,7 +72,7 @@ public final class MinimapExtension implements IMapScreenExtension {
     }
 
     private Widget createConfigContent() {
-        var preview = new MinimapPreviewWidget(this.highDetailRange, this.rotateWithPlayer)
+        var preview = new MinimapPreviewWidget(this.rotateWithPlayer)
                 .inlineStyle("size: 116rpx 116rpx; flex-shrink: 0; margin: 5rpx;");
         return new ContainerWidget() {
             @Override
@@ -118,7 +114,6 @@ public final class MinimapExtension implements IMapScreenExtension {
                         .setCSSClassName("minimap_row")
                         .addChild(new Label(IComponent.translatable("xklibmc.minimap.config.enable")).setCSSClassName("minimap_label"))
                         .addChild(new CheckBox().bind(this.minimapEnabled)))
-                .addChild(this.sliderRow(IComponent.translatable("xklibmc.minimap.config.high_detail"), this.highDetailRange, 0, 64))
                 .addChild(new ContainerWidget()
                         .setCSSClassName("minimap_row")
                         .addChild(new Label(IComponent.translatable("xklibmc.minimap.config.rotate")).setCSSClassName("minimap_label"))

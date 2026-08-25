@@ -91,7 +91,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private final X3dMapRuntimeImpl runtime;
     private final ResourceKey<Level> dimension;
     private final Identifier preset;
-    private final int minimapHighDetailRange;
     private final MapCameraImpl mapCamera;
     private final MapLayerHostImpl layerHost;
     private boolean invalidated = true;
@@ -122,12 +121,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 lodThreshold,
                 TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                 currentDimension(),
-                MapViewportPresets.WORLD_MAP,
-                0
+                MapViewportPresets.WORLD_MAP
         );
     }
 
-    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset, int minimapHighDetailRange) {
+    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset) {
         this.terrain = terrain;
         this.grid = grid;
         this.player = player;
@@ -141,7 +139,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         this.runtime = runtime;
         this.dimension = dimension;
         this.preset = preset;
-        this.minimapHighDetailRange = minimapHighDetailRange;
         this.initCamera();
         this.mapCamera = new MapCameraImpl(this::cameraState, this::applyCameraState, this::invalidate);
         this.layerHost = new MapLayerHostImpl(runtime, this);
@@ -170,8 +167,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 new IntLayoutVariable(spec.lodThreshold()),
                 runtime,
                 spec.dimension(),
-                spec.preset(),
-                spec.minimapHighDetailRange()
+                spec.preset()
         );
         viewport.applyCameraState(spec.initialCamera());
         return viewport;
@@ -279,7 +275,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 this.height,
                 this.depress_sphere.get(),
                 this.lodThreshold.get(),
-                this.minimapHighDetailRange,
                 this.centerPos.getY(),
                 TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage()
         );

@@ -20,6 +20,7 @@ public final class SmuCompatPlugin implements IX3dMapPlugin {
 
     private static final String SMU_MOD_ID = "exhibition_portal";
     private static final Identifier PLUGIN_ID = id("plugin");
+    public static final Identifier SCREEN_EXTENSION_ID = id("screen");
     public static final Identifier LABEL_TOGGLE_SPRITE = VanillaUtils.modRL("icon/teacon");
 
     @Override
@@ -30,7 +31,7 @@ public final class SmuCompatPlugin implements IX3dMapPlugin {
     @Override
     public void registerGui(IMapGuiRegistration registration) {
         if (ModList.get().isLoaded(SMU_MOD_ID)) {
-            registration.addScreenExtension(id("screen"), 10, SmuScreenExtension::new);
+            registration.addScreenExtension(SCREEN_EXTENSION_ID, 10, SmuScreenExtension::new);
         }
     }
 
@@ -39,7 +40,7 @@ public final class SmuCompatPlugin implements IX3dMapPlugin {
         if (ModList.get().isLoaded(SMU_MOD_ID)) {
             registration.add2d(
                     new Map2dLayerSpec(id("minimap_exhibitions"), Set.of(MapViewportPresets.MINIMAP), Map2dLayerPhase.CONTENT, 20, 0, true),
-                    _ -> new SmuMinimapLayer()
+                    SmuMinimapLayer::new
             );
         }
     }

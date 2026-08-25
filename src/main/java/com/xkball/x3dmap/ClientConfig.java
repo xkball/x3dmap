@@ -13,7 +13,6 @@ public class ClientConfig {
     public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
     public static final ModConfigSpec.IntValue WORLD_MAP_LOD_THRESHOLD;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
-    public static final ModConfigSpec.IntValue MINIMAP_HIGH_DETAIL_RANGE;
     public static final ModConfigSpec.BooleanValue MINIMAP_ROTATE_WITH_PLAYER;
     public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_X_ROT;
     public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_FOV;
@@ -40,9 +39,6 @@ public class ClientConfig {
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);
-        MINIMAP_HIGH_DETAIL_RANGE = builder
-                .comment("Minimap high detail range in chunks.")
-                .defineInRange("minimapHighDetailRange", 8, 0, 64);
         MINIMAP_ROTATE_WITH_PLAYER = builder
                 .comment("Rotate the minimap with the player.")
                 .define("minimapRotateWithPlayer", false);

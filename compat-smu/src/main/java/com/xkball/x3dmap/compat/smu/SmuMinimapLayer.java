@@ -4,6 +4,8 @@ import com.xkball.x3dmap.api.client.render.IMap2dLayer;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.x3dmap.api.client.render.IMapLayerContext;
+import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.utils.VanillaUtils;
 import com.xkball.xklib.resource.ResourceLocation;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -18,6 +20,12 @@ import java.util.List;
 public final class SmuMinimapLayer implements IMap2dLayer {
 
     private static final ResourceLocation ICON = VanillaUtils.modrl("icon/museum");
+    private static final String VISIBILITY_STATE_KEY = SmuCompatPlugin.SCREEN_EXTENSION_ID + ":visible";
+    private final IMapLayerContext layerContext;
+
+    public SmuMinimapLayer(IMapLayerContext layerContext) {
+        this.layerContext = layerContext;
+    }
 
     @Override
     public @Nullable IMap2dRenderCommand extract(IMapFrame frame) {
@@ -25,7 +33,17 @@ public final class SmuMinimapLayer implements IMap2dLayer {
         if (labels.isEmpty()) {
             return null;
         }
-        return context -> render(context, labels);
+        return context -> {
+            if (this.visible(frame)) {
+                render(context, labels);
+            }
+        };
+    }
+
+    private boolean visible(IMapFrame frame) {
+        return this.layerContext.runtime().storage().levelData(frame.dimension())
+                .map(access -> access.get(BuiltinMapDataTypes.UI_STATE).value().getBoolean(VISIBILITY_STATE_KEY, true))
+                .orElse(true);
     }
 
     private static void render(IMap2dRenderContext context, List<ExhibitionMetadata> labels) {
@@ -34,7 +52,7 @@ public final class SmuMinimapLayer implements IMap2dLayer {
         }
         for (var metadata : labels) {
             var waypoint = metadata.waypoint();
-            var screen = context.frame().worldToScreen(new Vector3f(waypoint.x() + 0.5f, waypoint.y() + 1.0f, waypoint.z() + 0.5f));
+            var screen = context.frame().worldToScreen(new Vector3f(waypoint.x() + 0.5f, waypoint.y(), waypoint.z() + 0.5f));
             if (screen == null) {
                 continue;
             }
@@ -42,8 +60,8 @@ public final class SmuMinimapLayer implements IMap2dLayer {
             var iconSize = 7.0f;
             var textWidth = graphics.defaultFont().width(metadata.name(), textHeight);
             var width = iconSize + textWidth + 3;
-            var x = screen.x - width / 2;
-            var y = screen.y - 11;
+            var x = screen.x;
+            var y = screen.y - 9;
             graphics.fillRounded(x, y, x + width, y + 9, 0xA0000000, 2);
             graphics.blitSprite(ICON, x + 1, y + 1, iconSize, iconSize, 0xFFFFFFFF);
             graphics.drawString(metadata.name(), x + iconSize + 2, y + 1, 0xFFFFFFFF, textHeight);
