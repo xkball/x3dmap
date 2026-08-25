@@ -14,6 +14,8 @@ import java.util.List;
 @NonNullByDefault
 public class MapNodeModel {
     
+    public static final MapNodeModel EMPTY = new MapNodeModel(0, 0, 0, 0, new Int2ObjectOpenHashMap<>());
+    
 //    public static final StreamCodec<ByteBuf, MapNodeModel> STREAM_CODEC = new StreamCodec<>() {
 //        @Override
 //        public MapNodeModel decode(ByteBuf input) {

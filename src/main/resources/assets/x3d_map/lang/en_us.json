@@ -11,7 +11,6 @@
   "xklibmc.world_terrain.camera_fixed_y": "Camera target Y is fixed",
   "xklibmc.world_terrain.in_blocks": "In blocks.",
   "xklibmc.world_terrain.update_chunks": "Update chunks in view distance.",
-  "xklibmc.world_terrain.lod_distance": "LOD Distance:",
   "xklibmc.world_terrain.force_update": "Force Update",
   "xklibmc.world_terrain.request_geomatics_btn": "Request Geomatics",
   "xklibmc.world_terrain.request_geomatics": "Request Geomatics from Server (Requires permission from the server).",

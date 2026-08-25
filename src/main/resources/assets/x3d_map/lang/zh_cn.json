@@ -11,7 +11,6 @@
   "xklibmc.world_terrain.camera_fixed_y": "相机目标Y轴固定",
   "xklibmc.world_terrain.in_blocks": "以方块为单位",
   "xklibmc.world_terrain.update_chunks": "更新视野范围内的区块",
-  "xklibmc.world_terrain.lod_distance": "LOD距离：",
   "xklibmc.world_terrain.force_update": "强制更新地图",
   "xklibmc.world_terrain.request_geomatics_btn": "请求地理数据",
   "xklibmc.world_terrain.request_geomatics": "向服务器请求地理数据（需要服务器权限）",

@@ -44,7 +44,7 @@ public class X3dMapRenderPipelines {
             .withCull(true)
             .buildExtended();
 
-    public static final ExtendedRenderPipeline[] WORLD_TERRAIN_NEW = createWorldTerrainNewPipelines();
+    public static final ExtendedRenderPipeline[][] WORLD_TERRAIN_NEW = createWorldTerrainNewPipelines();
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP_FULL_MESH = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("world_terrain_pip_full_mesh"))
@@ -106,24 +106,26 @@ public class X3dMapRenderPipelines {
             .withCull(false)
             .buildExtended();
 
-    private static ExtendedRenderPipeline[] createWorldTerrainNewPipelines() {
-        var result = new ExtendedRenderPipeline[Direction.values().length];
-        for (var direction : VanillaUtils.DIRECTIONS) {
-            result[direction.get3DDataValue()] = ExtendedRenderPipeline.builder()
-                    .withLocation(VanillaUtils.modRL("world_terrain_new_" + direction.get3DDataValue()))
-                    .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.TRIANGLES)
-                    .withVertexShader(VanillaUtils.modRL("core/world_terrain_new"))
-                    .withFragmentShader(VanillaUtils.modRL("core/world_terrain_pip"))
-                    .withShaderDefine("FACE_DIRECTION", direction.get3DDataValue())
-                    .withShaderDefine("BLOCK_SIZE", 16)
-                    .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-                    .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-                    .withUniform("PhongLight", UniformType.UNIFORM_BUFFER)
-                    .bindUniform("PhongLight", PHONE_LIGHT)
-                    .withSSBO("ABlock")
-                    .withDepthStencilState(DepthStencilState.DEFAULT)
-                    .withCull(true)
-                    .buildExtended();
+    private static ExtendedRenderPipeline[][] createWorldTerrainNewPipelines() {
+        var result = new ExtendedRenderPipeline[5][Direction.values().length];
+        for (var lodLevel = 0; lodLevel < result.length; lodLevel++) {
+            for (var direction : VanillaUtils.DIRECTIONS) {
+                result[lodLevel][direction.get3DDataValue()] = ExtendedRenderPipeline.builder()
+                        .withLocation(VanillaUtils.modRL("world_terrain_new_lod" + lodLevel + "_" + direction.get3DDataValue()))
+                        .withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.TRIANGLES)
+                        .withVertexShader(VanillaUtils.modRL("core/world_terrain_new"))
+                        .withFragmentShader(VanillaUtils.modRL("core/world_terrain_pip"))
+                        .withShaderDefine("FACE_DIRECTION", direction.get3DDataValue())
+                        .withShaderDefine("BLOCK_SIZE", 1 << lodLevel)
+                        .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                        .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                        .withUniform("PhongLight", UniformType.UNIFORM_BUFFER)
+                        .bindUniform("PhongLight", PHONE_LIGHT)
+                        .withSSBO("ABlock")
+                        .withDepthStencilState(DepthStencilState.DEFAULT)
+                        .withCull(true)
+                        .buildExtended();
+            }
         }
         return result;
     }

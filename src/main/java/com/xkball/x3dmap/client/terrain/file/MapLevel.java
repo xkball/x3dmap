@@ -163,6 +163,12 @@ public class MapLevel implements AutoCloseable{
         }
     }
     
+    public @Nullable MapNodeModel getNodeModelOrLoad(BlockPos pos, int lodLevel) {
+        var region = this.regionCache.getOrCreateAsync(RegionPos.ofBlock(pos));
+        if(region == null) return null;
+        return region.getNodeModelOrLoad(pos, lodLevel);
+    }
+    
     public CompletableFuture<@Nullable MapNodeModel> getNodeModelAsync(BlockPos pos, int lodLevel) {
         return this.regionCache.getAsync(RegionPos.ofBlock(pos))
                 .thenComposeAsync(region -> region.getNodeModel(pos, lodLevel), X3dMapClient.taskExecutor);

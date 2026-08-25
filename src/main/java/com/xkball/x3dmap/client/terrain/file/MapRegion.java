@@ -140,6 +140,13 @@ public class MapRegion implements AutoCloseable{
             return result;
         });
     }
+    
+    public @Nullable MapNodeModel getNodeModelOrLoad(BlockPos pos, int lodLevel) {
+        var cache = this.getLodCache(lodLevel).getOrCreateAsync();
+        if (cache == null) return null;
+        var result = cache.getNodeModel(pos);
+        return result == null ? MapNodeModel.EMPTY : result;
+    }
 
     public CompletableFuture<@Nullable MapNodeModel> getNodeModel(BlockPos pos, int lodLevel) {
         return this.getLodCache(lodLevel).getAsync().thenApply(l -> l.getNodeModel(pos));
