@@ -1,13 +1,16 @@
 package com.xkball.x3dmap.client.render.pip.layers;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.xkball.x3dmap.api.client.render.IMap3dLayer;
 import com.xkball.x3dmap.api.client.render.IMap3dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap3dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.x3dmap.client.b3d.pipeline.X3dMapRenderPipelines;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.api.client.mixin.IExtendedBufferBuilder;
+import com.xkball.xklibmc.client.b3d.mesh.CachedMesh;
 import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
 import com.xkball.xklibmc.x3d.backend.b3d.pipeline.B3dRenderPipelines;
 import com.xkball.xklibmc.x3d.backend.b3d.vertex.B3dVertexFormats;
@@ -16,6 +19,23 @@ import org.lwjgl.system.MemoryUtil;
 
 @NonNullByDefault
 public class GridRenderer implements IMap3dLayer {
+    
+    private static final CachedMesh GRID_MESH = new CachedMesh("grid", X3dMapRenderPipelines.LINE_IN_RANGE, bufferBuilder -> {
+        var step = 512;
+        var matrix = new PoseStack.Pose();
+        var y = (float) 0;
+        var max = 8192 * 8;
+        var min = -max;
+        var xColor = 0xFF173A8F;
+        var zColor = 0xFF12337F;
+        for (int x = min; x <= max; x += step) {
+            tryDrawLine3D(bufferBuilder, matrix, x, y, min, x, y, max, xColor, xColor);
+        }
+        
+        for (int z = min; z <= max; z += step) {
+            tryDrawLine3D(bufferBuilder, matrix, min, y, z, max, y, z, zColor, zColor);
+        }
+    }, true).setCloseOnExit();
 
     @Override
     public IMap3dRenderCommand prepareRender(IMapFrame frame) {
@@ -27,32 +47,19 @@ public class GridRenderer implements IMap3dLayer {
         var poseStack = context.poseStack();
         var texture = context.colorTarget();
         poseStack.pushPose();
-        XKLibUniforms.SCREEN_SIZE.startOverride(
-                b -> b.putVec2(texture.getWidth(0), texture.getHeight(0)));
+        var l = frame.camera().distance();
+        updateFaceStartEnd(Math.max(1024 * 1024, l * l * 4), Math.max(2048 * 2048, l * l * 16));
+        XKLibUniforms.SCREEN_SIZE.startOverride(b -> b.putVec2(texture.getWidth(0), texture.getHeight(0)));
         var step = 512;
         var camera = frame.camera();
         poseStack.translate(camera.targetX() - (camera.targetX() % step), 0, camera.targetZ() - (camera.targetZ() % step));
-
-        var matrix = poseStack.last();
-        var y = (float) frame.baseY();
-        var max = 8192 * 8;
-        var min = -max;
-        var xColor = 0xFF173A8F;
-        var zColor = 0xFF12337F;
-
-        var renderType = B3dRenderPipelines.LINE.asRenderType();
-        var bufferConsumer = context.bufferSource().getBuffer(renderType);
-        for (int x = min; x <= max; x += step) {
-            tryDrawLine3D(bufferConsumer, matrix, x, y, min, x, y, max, xColor, xColor);
-        }
-
-        for (int z = min; z <= max; z += step) {
-            tryDrawLine3D(bufferConsumer, matrix, min, y, z, max, y, z, zColor, zColor);
-        }
-        
-        context.bufferSource().endLastBatch();
+        GRID_MESH.render(X3dMapRenderPipelines.LINE_IN_RANGE, poseStack);
         poseStack.popPose();
         XKLibUniforms.SCREEN_SIZE.endOverride();
+    }
+    
+    public static void updateFaceStartEnd(float start, float end) {
+        X3dMapRenderPipelines.FADE.updateUnsafe(builder -> builder.putFloat(start).putFloat(end));
     }
     
     public static void tryDrawLine3D(VertexConsumer vertexConsumer, PoseStack.Pose matrix, float x0, float y0, float z0, float x1, float y1, float z1, int color1, int color2) {

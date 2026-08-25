@@ -271,7 +271,7 @@ public class TerrainRenderer implements IMap3dLayer {
         for (var x = 0; x < 2; x++) {
             for (var y = 0; y < 2; y++) {
                 for (var z = 0; z < 2; z++) {
-                    var projected = frame.projectionMatrix().transform(new Vector4f(
+                    var projected = frame.viewProjectionMatrix().transform(new Vector4f(
                             (float) (x == 0 ? bounds.minX : bounds.maxX),
                             (float) (y == 0 ? bounds.minY : bounds.maxY),
                             (float) (z == 0 ? bounds.minZ : bounds.maxZ),

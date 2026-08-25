@@ -23,7 +23,11 @@ public interface IMapFrame extends IMapProjection {
 
     Vector3fc cameraDirection();
 
+    Matrix4fc viewMatrix();
+
     Matrix4fc projectionMatrix();
+
+    Matrix4fc viewProjectionMatrix();
 
     float viewportX();
 

@@ -50,6 +50,7 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
     protected void renderToTexture(WorldTerrainState renderState, PoseStack ignoredPoseStack) {
         var frame = renderState.frame();
         var projectionMatrix = new Matrix4f(frame.projectionMatrix());
+        var viewProjectionMatrix = new Matrix4f(frame.viewProjectionMatrix());
         projBuffer = this.projection.getBuffer(projectionMatrix);
         RenderSystem.backupProjectionMatrix();
         try {
@@ -74,8 +75,8 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
             if (hasTerrain) {
                 var cameraDirection = new Vector3f(frame.cameraDirection());
                 XKLibUniforms.INVERSE_PROJ_MAT.updateUnsafe(buffer -> {
-                    buffer.putMat4f(projectionMatrix.invert(new Matrix4f()));
-                    buffer.putMat4f(projectionMatrix);
+                    buffer.putMat4f(viewProjectionMatrix.invert(new Matrix4f()));
+                    buffer.putMat4f(viewProjectionMatrix);
                     buffer.putVec4(new Vector4f(cameraDirection, 1));
                     buffer.putVec4(new Vector4f(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z, 1));
                 });
@@ -96,6 +97,7 @@ public class WorldTerrainPipRenderer extends OffScreenPIPRenderer<WorldTerrainPi
 
     private void renderLayer(PreparedMap3dLayer layer, MapFrameSnapshot frame) {
         var poseStack = new PoseStack();
+        poseStack.mulPose(frame.viewMatrix());
 //        poseStack.translate(-renderState.centerPos().getX(), 0, -renderState.centerPos().getZ());
         var context = new Map3dRenderContextImpl(
                 frame,

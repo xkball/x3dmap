@@ -6,6 +6,7 @@
     "MixinLevelChunk"
   ],
   "client": [
+    "GameRendererMixin",
     "MixinTlsfAllocation",
     "MixinTlsfAllocator"
   ],

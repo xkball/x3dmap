@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.client.event.CancelWorldRenderingEvent;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
@@ -32,6 +33,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -114,16 +116,20 @@ public class X3dMapClient {
     public static void registerBindings(RegisterKeyMappingsEvent event) {
         event.register(OPEN_MAP_KEY.get());
     }
+    
+    @SubscribeEvent
+    public static void onGameKeyInput(InputEvent.Key event) {
+        if (Minecraft.getInstance().screen == null && event.getAction() == InputConstants.PRESS && OPEN_MAP_KEY.get().isActiveAndMatches(InputConstants.getKey(event.getKeyEvent()))) {
+            var mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                mc.setScreen(new WorldTerrainScreen());
+            }
+        }
+    }
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
         X3dMapClient.mainThreadExecutorInner.runFor(5, TimeUnit.MILLISECONDS);
-        while (OPEN_MAP_KEY.get().consumeClick()) {
-            var mc = Minecraft.getInstance();
-            if (mc.screen == null && mc.level != null) {
-                mc.setScreen(new WorldTerrainScreen());
-            }
-        }
     }
 
     @SubscribeEvent
@@ -174,5 +180,11 @@ public class X3dMapClient {
     public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAbove(VanillaGuiLayers.CROSSHAIR, VanillaUtils.modRL("minimap"), MinimapHudRenderer::render);
     }
-
+    
+    @SubscribeEvent
+    public static void onCancelWorldRendering(CancelWorldRenderingEvent event) {
+        if (Minecraft.getInstance().screen instanceof WorldTerrainScreen) {
+            event.setCanceled(true);
+        }
+    }
 }

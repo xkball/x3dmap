@@ -14,7 +14,9 @@ import com.xkball.xklibmc.client.b3d.pipeline.ExtendedRenderPipeline;
 import com.xkball.xklibmc.client.b3d.uniform.UpdatableUBO;
 import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
 import com.xkball.xklibmc.x3d.backend.b3d.pipeline.B3dRenderPipelines;
+import com.xkball.xklibmc.x3d.backend.b3d.vertex.B3dVertexFormats;
 import net.minecraft.core.Direction;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 @NonNullByDefault
@@ -26,6 +28,10 @@ public class X3dMapRenderPipelines {
             .putVec3("viewPos", Vector3f::new)
             .build();
     
+    public static final UpdatableUBO FADE = new UpdatableUBO.UBOBuilder("fade")
+            .closeOnExit()
+            .putVec2("Fade", Vector2f::new)
+            .build();
     
     public static final RenderPipeline LINE = B3dRenderPipelines.LINE;
     
@@ -128,4 +134,20 @@ public class X3dMapRenderPipelines {
         return result;
     }
     
+    public static final ExtendedRenderPipeline LINE_IN_RANGE = ExtendedRenderPipeline.builder()
+            .withLocation(VanillaUtils.modRL("line"))
+            .withVertexShader(VanillaUtils.modRL("core/line_in_range"))
+            .withFragmentShader(VanillaUtils.modRL("core/line_in_range"))
+            .withVertexFormat(B3dVertexFormats.LINE,VertexFormat.Mode.TRIANGLES)
+            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+            .withUniform("ScreenSize", UniformType.UNIFORM_BUFFER)
+            .bindUniform("ScreenSize", XKLibUniforms.SCREEN_SIZE)
+            .withUniform("Fade", UniformType.UNIFORM_BUFFER)
+            .bindUniform("Fade", FADE)
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withCull(false)
+            .buildExtended();
+
 }

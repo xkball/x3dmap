@@ -37,7 +37,9 @@ public final class MapFrameSnapshot implements IMapFrame {
     private final @Nullable MapLevel terrainStorage;
     private final Vector3f cameraDirection;
     private final Vector3f cameraPosition;
+    private final Matrix4f viewMatrix;
     private final Matrix4f projectionMatrix;
+    private final Matrix4f viewProjectionMatrix;
     private final Frustum frustum;
 
     public MapFrameSnapshot(
@@ -77,7 +79,8 @@ public final class MapFrameSnapshot implements IMapFrame {
                         aspect,
                         Math.max(1, this.cameraPosition.y / 10),
                         Math.max(camera.distance() * 3, 16000)
-                )
+                );
+        this.viewMatrix = new Matrix4f()
                 .lookAt(
                         this.cameraPosition.x,
                         this.cameraPosition.y,
@@ -89,7 +92,8 @@ public final class MapFrameSnapshot implements IMapFrame {
                         1,
                         0
                 );
-        this.frustum = new Frustum(new Matrix4f(), this.projectionMatrix);
+        this.viewProjectionMatrix = new Matrix4f(this.projectionMatrix).mul(this.viewMatrix);
+        this.frustum = new Frustum(new Matrix4f(), this.viewProjectionMatrix);
     }
 
     @Override
@@ -118,8 +122,18 @@ public final class MapFrameSnapshot implements IMapFrame {
     }
 
     @Override
+    public Matrix4fc viewMatrix() {
+        return this.viewMatrix;
+    }
+
+    @Override
     public Matrix4fc projectionMatrix() {
         return this.projectionMatrix;
+    }
+
+    @Override
+    public Matrix4fc viewProjectionMatrix() {
+        return this.viewProjectionMatrix;
     }
 
     @Override
@@ -172,7 +186,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         if (!this.isVisible(new AABB(worldPosition.x(), worldPosition.y(), worldPosition.z(), worldPosition.x() + 1, worldPosition.y() + 1, worldPosition.z() + 1))) {
             return null;
         }
-        var projected = this.projectionMatrix.transform(new Vector4f(worldPosition.x(), worldPosition.y(), worldPosition.z(), 1));
+        var projected = this.viewProjectionMatrix.transform(new Vector4f(worldPosition.x(), worldPosition.y(), worldPosition.z(), 1));
         if (projected.w == 0) {
             return null;
         }
@@ -191,7 +205,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         }
         var normalizedX = (float) ((screenX - this.viewportX) / this.viewportWidth * 2 - 1);
         var normalizedY = (float) (1 - (screenY - this.viewportY) / this.viewportHeight * 2);
-        var inverse = this.projectionMatrix.invert(new Matrix4f());
+        var inverse = this.viewProjectionMatrix.invert(new Matrix4f());
         var near = inverse.transform(new Vector4f(normalizedX, normalizedY, -1, 1));
         var far = inverse.transform(new Vector4f(normalizedX, normalizedY, 1, 1));
         near.div(near.w);
