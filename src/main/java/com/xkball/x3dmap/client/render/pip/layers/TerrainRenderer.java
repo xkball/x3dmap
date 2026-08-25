@@ -48,6 +48,8 @@ public class TerrainRenderer implements IMap3dLayer {
 //    public static final CachedMesh REGION4 = new CachedMesh("region1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 512, 8), true).setCloseOnExit();
 //    public static final CachedMesh[] LODS = new CachedMesh[]{CHUNK1, REGION1, REGION2, REGION3, REGION4};
 
+    public static long computeTime = 0;
+    
     @Override
     public IMap3dRenderCommand prepareRender(IMapFrame frame) {
         return this::render;
@@ -64,16 +66,29 @@ public class TerrainRenderer implements IMap3dLayer {
         var cameraPosition = new Vector3f(frame.cameraPosition());
         var minNodeY = Math.floorDiv(mapLevel.getMinY(), 512);
         var maxNodeY = Math.floorDiv(mapLevel.getMaxY() - 1, 512);
-        var renderNodes = new ArrayList<RenderCandidate>();
-        for (var region : mapLevel.getRegions()) {
+//        var renderNodes = new ArrayList<RenderCandidate>();
+        var time = System.nanoTime();
+        var renderNodes = mapLevel.getRegions().stream().parallel().flatMap(r -> {
+            var result = new ArrayList<RenderCandidate>();
             for (var nodeY = minNodeY; nodeY <= maxNodeY; nodeY++) {
                 var y = nodeY * 512;
-                var rootPos = new BlockPos(region.getMinX(), y, region.getMinZ());
+                var rootPos = new BlockPos(r.getMinX(), y, r.getMinZ());
                 var model = mapLevel.getNodeModelOrLoad(rootPos, MAX_LOD_LEVEL);
                 if (model == null || model.isEmpty()) continue;
-                this.collectNode(mapLevel, frame, rootPos, model, MAX_LOD_LEVEL, renderNodes);
+                this.collectNode(mapLevel, frame, rootPos, model, MAX_LOD_LEVEL, result);
             }
-        }
+            return result.stream();
+        }).toList();
+//        for (var region : mapLevel.getRegions()) {
+//            for (var nodeY = minNodeY; nodeY <= maxNodeY; nodeY++) {
+//                var y = nodeY * 512;
+//                var rootPos = new BlockPos(region.getMinX(), y, region.getMinZ());
+//                var model = mapLevel.getNodeModelOrLoad(rootPos, MAX_LOD_LEVEL);
+//                if (model == null || model.isEmpty()) continue;
+//                this.collectNode(mapLevel, frame, rootPos, model, MAX_LOD_LEVEL, renderNodes);
+//            }
+//        }
+        computeTime = System.nanoTime() - time;
         if (renderNodes.isEmpty()) return;
         var batchesByBuffer = new IdentityHashMap<GpuBuffer, RenderBatchBuilder>();
         for (var renderNode : renderNodes) {

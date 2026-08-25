@@ -25,6 +25,7 @@ import com.xkball.x3dmap.client.map.viewport.MapCameraImpl;
 import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapInputContextImpl;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
+import com.xkball.x3dmap.client.render.pip.layers.TerrainRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainChunkManager;
 import com.xkball.x3dmap.utils.MonitoredExecutor;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -310,6 +311,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         if (this.lastState != null) {
             var context = new Map2dRenderContextImpl(this.lastState.frame(), graphics);
             Map2dLayerRenderer.render(this.lastState.layers(), Map2dLayerPhase.CONTENT, context);
+            var x = this.x + 4;
             if (debug.get()) {
                 var y_ = y;
                 graphics.drawString("fov: " + fov, x, y_, -1);
@@ -348,6 +350,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 y_ += 10;
                 graphics.drawString("camPos: " + vec3fToString(dirVec().normalize(cameraLength + 100).add(cameraTarget)), x, y_, -1);
                 y_ += 10;
+                graphics.drawString("compute: " + TerrainRenderer.computeTime / 1000, x, y_, -1);
             }
         }
         super.doRender(graphics, mouseX, mouseY, a);

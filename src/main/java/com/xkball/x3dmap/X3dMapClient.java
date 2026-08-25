@@ -62,9 +62,9 @@ public class X3dMapClient {
             KeyMapping.Category.MISC
     ));
     
-    private static final BarrierExecutor taskExecutorInner = VanillaUtils.fixedSizeExecutor("x3dmap_task_",8);
+    private static final BarrierExecutor taskExecutorInner = VanillaUtils.fixedSizeExecutor("x3dmap_task_",6);
     public static final Executor taskExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(taskExecutorInner) : taskExecutorInner;
-    public static final Executor ioExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_io_",8)) : VanillaUtils.fixedSizeExecutor("x3dmap_io_",8);
+    public static final Executor ioExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(VanillaUtils.fixedSizeExecutor("x3dmap_io_",4)) : VanillaUtils.fixedSizeExecutor("x3dmap_io_",4);
     private static final TimeBudgetExecutor mainThreadExecutorInner = new TimeBudgetExecutor();
     public static final Executor mainThreadExecutor = XKLib.IS_DEBUG ? new MonitoredExecutor(mainThreadExecutorInner) : mainThreadExecutorInner;
     

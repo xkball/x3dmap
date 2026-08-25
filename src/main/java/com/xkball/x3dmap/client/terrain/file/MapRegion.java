@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @NonNullByDefault
@@ -398,7 +399,7 @@ public class MapRegion implements AutoCloseable{
         
         private static final int NODE_HEADER_SIZE = 8;
         private final int depth;
-        private final Map<BlockPos, MapNodeModel> nodes = new HashMap<>();
+        private final Map<BlockPos, MapNodeModel> nodes = new ConcurrentHashMap<>();
         private volatile boolean dirty;
         
         public RegionLOD(int depth) {
