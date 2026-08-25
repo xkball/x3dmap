@@ -301,19 +301,24 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     }
 
     @Override
-    public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
+    public void renderBelow(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
         this.tick();
         this.calculateNewPipState();
         if (graphics instanceof B3dGuiGraphics b3dGuiGraphics && lastState != null) {
             var inner = b3dGuiGraphics.getInner();
             inner.submitPictureInPictureRenderState(lastState);
         }
+        super.renderBelow(graphics, mouseX, mouseY, a);
+    }
+
+    @Override
+    public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
         if (this.lastState != null) {
             var context = new Map2dRenderContextImpl(this.lastState.frame(), graphics);
             Map2dLayerRenderer.render(this.lastState.layers(), Map2dLayerPhase.CONTENT, context);
             var x = this.x + 4;
             if (debug.get()) {
-                var y_ = y;
+                var y_ = y + 120;
                 graphics.drawString("fov: " + fov, x, y_, -1);
                 y_ += 10;
                 graphics.drawString("xRot: " + xRot, x, y_, -1);

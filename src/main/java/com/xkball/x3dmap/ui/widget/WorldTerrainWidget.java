@@ -56,7 +56,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     private @Nullable MapScreenSession screenSession;
     private @Nullable IMapDataHandle<WorldMapUiStateStorage> uiState;
 
-    public WorldTerrainWidget(WindowedContainer windowLayer) {
+    public WorldTerrainWidget(WindowedContainer windowLayer, IComponent title) {
         this.windowLayer = windowLayer;
         var level = Minecraft.getInstance().level;
         var minY = level == null ? -64 : level.getMinY();
@@ -68,12 +68,13 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.initExtensions();
         this.leftExtensionWidgets.inlineStyle("""
                 flex-direction: column;
+                width: 100%;
+                align-items: center;
                 flex-shrink: 0;
                 """);
         this.top1ExtensionWidgets.inlineStyle("flex-direction: row; flex-shrink: 0;");
         this.top2ExtensionWidgets.inlineStyle("flex-direction: row; flex-shrink: 0;");
         this.inlineStyle("""
-                        flex-direction: row;
                         size: 100% 100%;
                         """)
                 .asRootStyle("""
@@ -112,7 +113,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                         }
                         .splitter {
                             size: 2px 100%;
-                            background-color: 0xEEAAAAAA;
+                            background-color: 0xFFAAAAAA;
                             margin-left: 2rpx;
                             margin-right: 2rpx;
                             flex-shrink: 0;
@@ -125,16 +126,43 @@ public class WorldTerrainWidget extends ContainerWidget {
                             flex-shrink: 0;
                         }
                         """)
-                .addChild(this.createToolbarLeft())
-                .addChild(new ContainerWidget()
+                .addChild(new SurfaceLayer()
                         .inlineStyle("""
-                                flex-direction: column;
-                                size: 100%-18rpx 100%;
+                                position: absolute;
+                                size: 100% 100%;
                                 """)
-                        .addChild(this.createToolbarTop1(minY, maxY))
-                        .addChild(this.createToolbarTop2())
-                        .addChild(inner.inlineStyle("height: 100%-35rpx;"))
-                );
+                        .addChild(new PassthroughContainer()
+                                .inlineStyle("""
+                                        position: absolute;
+                                        top: 0;
+                                        left: 0;
+                                        size: 100% 18rpx;
+                                        flex-direction: row;
+                                        justify-content: center;
+                                        """)
+                                .addChild(new Label(title)
+                                        .inlineStyle("""
+                                        size: 64rpx 18rpx;
+                                        background-color: 0xaa111111;
+                                        text-color: -2039584;
+                                        text-scale: fit-to-max;
+                                        text-align: center;
+                                        """)))
+                        .addChild(new PassthroughContainer()
+                                .inlineStyle("""
+                                        position: absolute;
+                                        top: 0;
+                                        left: 0;
+                                        size: 18rpx 100%;
+                                        flex-direction: column;
+                                        justify-content: center;
+                                        """)
+                        .addChild(this.createToolbarLeft()))
+                        .addChild(this.createToolbarTop1(minY, maxY)
+                                .inlineStyle("position: absolute; top: 0; left: 0; width: 100%;"))
+                        .addChild(this.createToolbarTop2()
+                                .inlineStyle("position: absolute; top: 18rpx; left: 0; width: 100%;")))
+                .addChild(inner.inlineStyle("position: absolute; size: 100% 100%;"));
         this.screenSession = TerrainMapManager.INSTANCE.mapPluginRegistry.openScreen(this);
         this.inner.setScreenSession(this.screenSession);
     }
@@ -154,20 +182,19 @@ public class WorldTerrainWidget extends ContainerWidget {
         return new ContainerWidget()
                 .inlineStyle("""
                         flex-direction: column;
-                        size: 18rpx 100%;
+                        width: 18rpx;
+                        height: content;
+                        max-height: 100%;
+                        align-items: center;
+                        background-color: 0xCC111111;
                         border-left: 1rpx;
                         border-right: 1rpx;
-                        border-color: 0xEEAAAAAA;
+                        border-top: 1rpx;
+                        border-bottom: 1rpx;
+                        border-color: 0xFFAAAAAA;
                         scrollbar-width: 0;
                         overflow-y: scroll;
                         """)
-                .asRootStyle("""
-                        .splitter_y{
-                                size: 100% 1rpx;
-                                background-color: 0xEEAAAAAA;
-                        }
-                        """)
-                .addChild(new Widget().setCSSClassName("splitter_y"))
                 .addChild(new IconButton(VanillaUtils.modrl("icon/locate"), inner::reLocateCamera)
                         .inlineStyle("""
                                 size: 14rpx 14rpx;
@@ -175,7 +202,7 @@ public class WorldTerrainWidget extends ContainerWidget {
                                 flex-shrink: 0;
                                 """)
                         .withTooltip(IComponent.translatable("xklibmc.world_terrain.focus_camera")))
-                .addChild(new Widget().setCSSClassName("splitter_y"))
+                .addChild(new Widget().inlineStyle("size: 100% 1rpx;background-color: 0xFFAAAAAA;"))
                 .addChild(new IconCheckBox(VanillaUtils.modrl("icon/map")).bind(terrain).withTooltip(IComponent.translatable("xklibmc.world_terrain.show_terrain")))
                 .addChild(new IconCheckBox(VanillaUtils.modrl("icon/compass")).bind(compass).withTooltip(IComponent.translatable("xklibmc.world_terrain.show_compass")))
                 .addChild(new IconCheckBox(VanillaUtils.modrl("icon/grid")).bind(grid).withTooltip(IComponent.translatable("xklibmc.world_terrain.show_grid")))
@@ -190,9 +217,10 @@ public class WorldTerrainWidget extends ContainerWidget {
         var toolbar = new ContainerWidget()
                 .inlineStyle("""
                         height: 18rpx;
+                        background-color: 0xCC111111;
                         border-top: 1rpx;
                         border-bottom: 1rpx;
-                        border-color: 0xEEAAAAAA;
+                        border-color: 0xFFAAAAAA;
                         scrollbar-width: 0;
                         overflow-x: scroll;
                         """)
@@ -274,8 +302,9 @@ public class WorldTerrainWidget extends ContainerWidget {
         return new ContainerWidget()
                 .inlineStyle("""
                         height: 17rpx;
+                        background-color: 0xCC111111;
                         border-bottom: 1rpx;
-                        border-color: 0xEEAAAAAA;
+                        border-color: 0xFFAAAAAA;
                         scrollbar-width: 0;
                         overflow-x: scroll;
                         """)
@@ -405,6 +434,35 @@ public class WorldTerrainWidget extends ContainerWidget {
         if (this.uiState != null) {
             this.uiState.value().setInt(key, value);
         }
+    }
+
+    private static class PassthroughContainer extends ContainerWidget {
+
+        @Override
+        public boolean mouseMoved(double mouseX, double mouseY) {
+            if (!this.enabled() || !this.visible()) {
+                this.clearHoveredRecursive();
+                return false;
+            }
+            boolean isMouseOver = this.isMouseOver(mouseX, mouseY);
+            boolean handled = false;
+            for (var child : this.children) {
+                if (!handled && child.visible() && child.enabled() && isMouseOver && child.mouseMoved(mouseX, mouseY)) {
+                    handled = true;
+                    continue;
+                }
+                if (child instanceof ContainerWidget containerWidget) {
+                    containerWidget.clearHoveredRecursive();
+                } else {
+                    child.setHovered(false);
+                }
+            }
+            this.setHovered(false);
+            return handled;
+        }
+    }
+
+    private static final class SurfaceLayer extends PassthroughContainer {
     }
 
 }
