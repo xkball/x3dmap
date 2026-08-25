@@ -105,9 +105,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private final BooleanLayoutVariable debug;
     private final IntLayoutVariable yMode;
     private final IntLayoutVariable fixY;
-    private final IntLayoutVariable lodDistance;
+    private final IntLayoutVariable lodThreshold;
 
-    public WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodDistance) {
+    public WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold) {
         this(
                 terrain,
                 grid,
@@ -118,7 +118,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 debug,
                 yMode,
                 fixY,
-                lodDistance,
+                lodThreshold,
                 TerrainChunkManager.INSTANCE.mapPluginRegistry.runtime(),
                 currentDimension(),
                 MapViewportPresets.WORLD_MAP,
@@ -126,7 +126,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         );
     }
 
-    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodDistance, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset, int minimapHighDetailRange) {
+    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset, int minimapHighDetailRange) {
         this.terrain = terrain;
         this.grid = grid;
         this.player = player;
@@ -136,7 +136,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         this.debug = debug;
         this.yMode = yMode;
         this.fixY = fixY;
-        this.lodDistance = lodDistance;
+        this.lodThreshold = lodThreshold;
         this.runtime = runtime;
         this.dimension = dimension;
         this.preset = preset;
@@ -166,7 +166,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 new BooleanLayoutVariable(false),
                 new IntLayoutVariable(1),
                 fixY,
-                new IntLayoutVariable(spec.lodDistance()),
+                new IntLayoutVariable(spec.lodThreshold()),
                 runtime,
                 spec.dimension(),
                 spec.preset(),
@@ -277,7 +277,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 this.width,
                 this.height,
                 this.depress_sphere.get(),
-                this.lodDistance.get(),
+                this.lodThreshold.get(),
                 this.minimapHighDetailRange,
                 this.centerPos.getY(),
                 TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()

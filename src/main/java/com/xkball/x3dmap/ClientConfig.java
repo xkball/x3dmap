@@ -11,6 +11,7 @@ public class ClientConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
     public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
+    public static final ModConfigSpec.IntValue WORLD_MAP_LOD_THRESHOLD;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
     public static final ModConfigSpec.IntValue MINIMAP_HIGH_DETAIL_RANGE;
     public static final ModConfigSpec.BooleanValue MINIMAP_ROTATE_WITH_PLAYER;
@@ -33,6 +34,9 @@ public class ClientConfig {
         RECORD_ALL_ABOVE_SEA_LEVEL = builder
                 .comment("Record all blocks above sea level. This uses more VRAM when enabled.")
                 .define("recordAllAboveSeaLevel", true);
+        WORLD_MAP_LOD_THRESHOLD = builder
+                .comment("World map LOD screen-space threshold in pixels.")
+                .defineInRange("worldMapLodThreshold", 256, 16, 114514);
         MINIMAP_ENABLED = builder
                 .comment("Enable the minimap HUD overlay.")
                 .define("minimapEnabled", true);

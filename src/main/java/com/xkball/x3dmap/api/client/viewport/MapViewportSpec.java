@@ -13,7 +13,7 @@ public record MapViewportSpec(
         Identifier preset,
         MapCameraState initialCamera,
         boolean cullNear,
-        int lodDistance,
+        int lodThreshold,
         int minimapHighDetailRange
 ) {
 

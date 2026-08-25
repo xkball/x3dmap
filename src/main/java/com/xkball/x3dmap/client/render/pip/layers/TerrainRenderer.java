@@ -35,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 public class TerrainRenderer implements IMap3dLayer {
     
     private static final int MAX_LOD_LEVEL = 4;
-    private static final float MIN_SCREEN_SIZE = 256.0f;
 
     public static final CachedMesh CUBE = new CachedMesh("cube", X3dMapRenderPipelines.WORLD_TERRAIN_PIP, TerrainRenderer::createCubeMesh, true).setCloseOnExit();
 //    public static final CachedMesh CHUNK1 = new CachedMesh("lod1", X3dMapRenderPipelines.WORLD_TERRAIN_PIP_LOD, (b) -> TerrainRenderer.createLodMesh(b, 16, 1), true).setCloseOnExit();
@@ -138,7 +137,7 @@ public class TerrainRenderer implements IMap3dLayer {
                              MapNodeModel model, int lodLevel, ArrayList<RenderCandidate> renderNodes) {
         var bounds = nodeBounds(model);
         if (!frame.isVisible(bounds)) return;
-        if (lodLevel == 0 || screenSize(frame, bounds) <= MIN_SCREEN_SIZE) {
+        if (lodLevel == 0 || screenSize(frame, bounds) <= frame.lodThreshold()) {
             renderNodes.add(new RenderCandidate(pos, lodLevel));
             return;
         }

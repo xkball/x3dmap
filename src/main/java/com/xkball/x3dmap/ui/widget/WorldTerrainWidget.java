@@ -48,6 +48,7 @@ public class WorldTerrainWidget extends ContainerWidget {
     public final BooleanLayoutVariable depress_sphere = new BooleanLayoutVariable(false);
     public final IntLayoutVariable yMode = new IntLayoutVariable(1);
     public final IntLayoutVariable fixY = new IntLayoutVariable();
+    public final IntLayoutVariable lodThreshold = new IntLayoutVariable();
     public final WorldTerrainWidgetInner inner;
     private final ContainerWidget leftExtensionWidgets = new ContainerWidget();
     private final ContainerWidget top1ExtensionWidgets = new ContainerWidget();
@@ -63,7 +64,8 @@ public class WorldTerrainWidget extends ContainerWidget {
         var minY = level == null ? -64 : level.getMinY();
         var maxY = level == null ? 384 : level.getMaxY();
         fixY.set(level == null ? 64 : level.getSeaLevel());
-        this.inner = new WorldTerrainWidgetInner(terrain, grid, player, cameraTarget, compass, depress_sphere, debug, yMode, fixY, new IntLayoutVariable(512));
+        this.lodThreshold.set(ClientConfig.WORLD_MAP_LOD_THRESHOLD.get());
+        this.inner = new WorldTerrainWidgetInner(terrain, grid, player, cameraTarget, compass, depress_sphere, debug, yMode, fixY, lodThreshold);
         this.mapGui = new MapGuiImpl(this);
         this.initExtensions();
         this.leftExtensionWidgets.inlineStyle("""
@@ -200,6 +202,8 @@ public class WorldTerrainWidget extends ContainerWidget {
                 .addChild(new IconCheckBox(VanillaUtils.modrl("icon/fixed_y")).bindInGroup(1, yMode).withTooltip(IComponent.translatable("xklibmc.world_terrain.camera_fixed_y")))
                 .addChild(NumberInputWidget.ofInt(minY, maxY, 1).bind(fixY))
                 .addChild(new Widget().setCSSClassName("splitter"))
+                .addChild(new Label(IComponent.translatable("xklibmc.world_terrain.lod_threshold")).setCSSClassName("property_label").withTooltip(IComponent.translatable("xklibmc.world_terrain.in_pixels")))
+                .addChild(NumberInputWidget.ofInt(1, 114514, 1).bind(lodThreshold))
                 .addChild(this.top1ExtensionWidgets)
                 .addChild(new Button(IComponent.translatable("xklibmc.world_terrain.force_update"), () -> {
                     var player = Minecraft.getInstance().player;
@@ -365,6 +369,7 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.depress_sphere.addCallback(value -> this.setBooleanState("depress_sphere", value));
         this.yMode.addCallback(value -> this.setIntState("y_mode", value));
         this.fixY.addCallback(value -> this.setIntState("fix_y", value));
+        this.lodThreshold.addCallback(ClientConfig.WORLD_MAP_LOD_THRESHOLD::set);
     }
 
     public void closeMap() {

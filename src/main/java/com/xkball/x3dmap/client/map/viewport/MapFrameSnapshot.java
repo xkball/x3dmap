@@ -31,7 +31,7 @@ public final class MapFrameSnapshot implements IMapFrame {
     private final float viewportWidth;
     private final float viewportHeight;
     private final boolean cullNear;
-    private final int lodDistance;
+    private final int lodThreshold;
     private final int minimapHighDetailRange;
     private final int baseY;
     private final @Nullable MapLevel terrainStorage;
@@ -49,7 +49,7 @@ public final class MapFrameSnapshot implements IMapFrame {
             float viewportWidth,
             float viewportHeight,
             boolean cullNear,
-            int lodDistance,
+            int lodThreshold,
             int minimapHighDetailRange,
             int baseY,
             @Nullable MapLevel terrainStorage
@@ -62,7 +62,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         this.viewportWidth = viewportWidth;
         this.viewportHeight = viewportHeight;
         this.cullNear = cullNear;
-        this.lodDistance = lodDistance;
+        this.lodThreshold = lodThreshold;
         this.minimapHighDetailRange = minimapHighDetailRange;
         this.baseY = baseY;
         this.terrainStorage = terrainStorage;
@@ -146,10 +146,10 @@ public final class MapFrameSnapshot implements IMapFrame {
     public boolean cullNear() {
         return this.cullNear;
     }
-
+    
     @Override
-    public int lodDistance() {
-        return this.lodDistance;
+    public int lodThreshold() {
+        return this.lodThreshold;
     }
 
     @Override

@@ -189,7 +189,7 @@ public class MinimapPreviewWidget extends ContainerWidget {
                 this.width,
                 this.height,
                 false,
-                512,
+                ClientConfig.WORLD_MAP_LOD_THRESHOLD.get(),
                 this.highDetailRange.get(),
                 mc.level.getMinY(),
                 TerrainChunkManager.INSTANCE.getCurrentLevelChunkStorage()

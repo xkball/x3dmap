@@ -34,8 +34,8 @@ public interface IMapFrame extends IMapProjection {
     float viewportHeight();
 
     boolean cullNear();
-
-    int lodDistance();
+    
+    int lodThreshold();
 
     int minimapHighDetailRange();
 
