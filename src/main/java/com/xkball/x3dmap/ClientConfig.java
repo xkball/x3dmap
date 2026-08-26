@@ -1,16 +1,28 @@
 package com.xkball.x3dmap;
 
+import com.xkball.x3dmap.config.DimensionMapConfig;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@EventBusSubscriber(modid = X3dMap.MODID, value = Dist.CLIENT)
 @NonNullByDefault
 public class ClientConfig {
     
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue FORCE_COMPATIBILITY_MODE;
     public static final ModConfigSpec.BooleanValue RECORD_ALL_ABOVE_SEA_LEVEL;
+    public static final ModConfigSpec.ConfigValue<List<? extends List<?>>> DIMENSIONS;
     public static final ModConfigSpec.IntValue WORLD_MAP_LOD_THRESHOLD;
     public static final ModConfigSpec.BooleanValue MINIMAP_ENABLED;
     public static final ModConfigSpec.BooleanValue MINIMAP_ROTATE_WITH_PLAYER;
@@ -24,7 +36,8 @@ public class ClientConfig {
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_INTERVAL;
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_COUNT;
     public static final ModConfigSpec.BooleanValue SHOW_MAP_INFO;
-    
+    private static volatile Map<Identifier, DimensionMapConfig> dimensions = Map.of();
+
     static {
         var builder = new ModConfigSpec.Builder();
         FORCE_COMPATIBILITY_MODE = builder
@@ -33,6 +46,9 @@ public class ClientConfig {
         RECORD_ALL_ABOVE_SEA_LEVEL = builder
                 .comment("Record all blocks above sea level. This uses more VRAM when enabled.")
                 .define("recordAllAboveSeaLevel", true);
+        DIMENSIONS = builder
+                .comment("Optional per-dimension overrides: [dimension id, map enabled, override sea level, sea level]. Server-disabled maps cannot be enabled here.")
+                .defineListAllowEmpty("dimensions", List.of(), DimensionMapConfig::isValidEntry);
         WORLD_MAP_LOD_THRESHOLD = builder
                 .comment("World map LOD screen-space threshold in pixels.")
                 .defineInRange("worldMapLodThreshold", 172, 16, 114514);
@@ -74,17 +90,34 @@ public class ClientConfig {
                 .define("showMapInfo", true);
         SPEC = builder.build();
     }
-    
-    public static void update() {
+
+    public static Optional<DimensionMapConfig> getDimensionConfig(ResourceKey<Level> dimension) {
+        return Optional.ofNullable(dimensions.get(dimension.identifier()));
     }
-    
+
+    public static DimensionMapConfig getEffectiveDimensionConfig(ResourceKey<Level> dimension, int defaultSeaLevel) {
+        var serverConfig = ServerConfig.getDimensionConfig(dimension, defaultSeaLevel);
+        if (!serverConfig.enabled()) {
+            return serverConfig;
+        }
+        return getDimensionConfig(dimension).orElse(serverConfig);
+    }
+
+    public static void update() {
+        dimensions = DimensionMapConfig.parse(DIMENSIONS.get(), "client config");
+    }
+
     @SubscribeEvent
     public static void onConfigLoad(ModConfigEvent.Loading event) {
-        update();
+        if (event.getConfig().getSpec() == SPEC) {
+            update();
+        }
     }
-    
+
     @SubscribeEvent
     public static void onConfigReload(ModConfigEvent.Reloading event) {
-        update();
+        if (event.getConfig().getSpec() == SPEC) {
+            update();
+        }
     }
 }

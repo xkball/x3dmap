@@ -36,7 +36,7 @@ public class X3dMap {
     
     public X3dMap(IEventBus modEventBus, ModContainer modContainer) {
         TICKET_TYPE.register(modEventBus);
-        modContainer.registerConfig(ModConfig.Type.COMMON, ServerConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
     }
     
     @SubscribeEvent

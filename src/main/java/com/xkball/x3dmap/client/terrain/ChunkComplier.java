@@ -1,7 +1,6 @@
 package com.xkball.x3dmap.client.terrain;
 
 import com.xkball.x3dmap.ClientConfig;
-import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.x3dmap.client.terrain.render.TerrainBlockData;
 import com.xkball.x3dmap.utils.VanillaUtils;
@@ -82,7 +81,7 @@ public class ChunkComplier {
         var pos = new BlockPos(0, 0, 0).mutable();
         var chunkMinY = level.getMaxY();
         var chunkMaxY = level.getMinY();
-        var seaLevel = ServerConfig.getSeaLevel(level.getSeaLevel());
+        var seaLevel = ClientConfig.getEffectiveDimensionConfig(level.dimension(), level.getSeaLevel()).resolveSeaLevel(level.getSeaLevel());
         var context = new ComplierContext(level, chunk, chunkPos, calcuColor);
         for (int px = chunkPos.getMinBlockX(); px <= chunkPos.getMaxBlockX(); px++) {
             for (int pz = chunkPos.getMinBlockZ(); pz <= chunkPos.getMaxBlockZ(); pz++) {

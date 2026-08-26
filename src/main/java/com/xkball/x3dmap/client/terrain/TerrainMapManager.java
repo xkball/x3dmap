@@ -52,8 +52,6 @@ public class TerrainMapManager implements ICloseOnExit<TerrainMapManager> {
     public boolean compatibilityWarningSuppressed = false;
     public @Nullable ResourceKey<Level> currentLevel;
     public @Nullable MapLevel currentChunkStorage;
-    private RandomSource rand = RandomSource.create();
-    
     
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
@@ -175,7 +173,7 @@ public class TerrainMapManager implements ICloseOnExit<TerrainMapManager> {
     
     public void submitUpdate(@Nullable LevelChunk chunk, ChunkPos chunkPos, boolean force) {
         var level = Minecraft.getInstance().level;
-        if (level == null) {
+        if (level == null || !isMapEnabled(level)) {
             return;
         }
         var dim = level.dimension();
@@ -197,6 +195,10 @@ public class TerrainMapManager implements ICloseOnExit<TerrainMapManager> {
             }
         };
         X3dMapClient.taskExecutor.execute(task);
+    }
+
+    private static boolean isMapEnabled(Level level) {
+        return ClientConfig.getEffectiveDimensionConfig(level.dimension(), level.getSeaLevel()).enabled();
     }
     
     public void unloadCurrentLevel() {
