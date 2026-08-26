@@ -65,6 +65,7 @@
   "xklibmc.terrain_projector.center_x": "Center X",
   "xklibmc.terrain_projector.center_y": "Center Y",
   "xklibmc.terrain_projector.center_z": "Center Z",
+  "xklibmc.terrain_projector.y_offset": "Y Offset",
   "xklibmc.terrain_projector.radius": "Radius",
   "xklibmc.terrain_projector.radius_unit": "Unit: 16 * 2 ^ (LOD level + 1) blocks",
   "xklibmc.terrain_projector.lod": "LOD Level",

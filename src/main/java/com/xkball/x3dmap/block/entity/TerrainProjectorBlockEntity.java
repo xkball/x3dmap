@@ -14,23 +14,43 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @NonNullByDefault
 public final class TerrainProjectorBlockEntity extends BlockEntity implements IClientUpdateBlockEntity {
 
     public BlockPos centerPos;
     public int projectionRadius = 1;
     public int lodLevel;
+    public int yOffset;
+    private BlockPos normalizedCenterPos = BlockPos.ZERO;
+    private List<BlockPos> modelPositions = List.of();
 
     public TerrainProjectorBlockEntity(BlockPos pos, BlockState blockState) {
         super(X3dMapBlocks.TERRAIN_PROJECTOR_BLOCK_ENTITY.get(), pos, blockState);
-        this.centerPos = pos;
+        this.centerPos = pos.atY(0);
     }
 
-    public void setParameters(BlockPos centerPos, int projectionRadius, int lodLevel) {
-        this.centerPos = centerPos;
-        this.projectionRadius = Math.clamp(projectionRadius, 1, 30000000);
+    public void setParameters(BlockPos centerPos, int projectionRadius, int lodLevel, int yOffset) {
+        this.centerPos = centerPos.atY(0);
+        this.projectionRadius = Math.clamp(projectionRadius, 0, 32);
         this.lodLevel = Math.clamp(lodLevel, 0, 4);
+        this.yOffset = Math.clamp(yOffset, -2048, 2048);
+        this.rebuildClientData();
         this.setChanged();
+    }
+
+    public BlockPos getNormalizedCenterPos() {
+        return this.normalizedCenterPos;
+    }
+
+    public List<BlockPos> getModelPositions() {
+        return this.modelPositions;
+    }
+
+    public int getModelSideLength() {
+        return 1 << (this.lodLevel + 5);
     }
 
     @Override
@@ -56,15 +76,41 @@ public final class TerrainProjectorBlockEntity extends BlockEntity implements IC
     }
 
     public void read(ValueInput input) {
-        this.centerPos = input.read("center", BlockPos.CODEC).orElse(this.worldPosition);
-        this.projectionRadius = Math.clamp(input.getIntOr("radius", 1), 1, 30000000);
+        this.centerPos = input.read("center", BlockPos.CODEC).orElse(this.worldPosition).atY(0);
+        this.projectionRadius = Math.clamp(input.getIntOr("radius", 1), 0, 32);
         this.lodLevel = Math.clamp(input.getIntOr("lod", 0), 0, 4);
+        this.yOffset = Math.clamp(input.getIntOr("y_offset", 0), -2048, 2048);
+        this.rebuildClientData();
     }
 
     public void write(ValueOutput output) {
         output.store("center", BlockPos.CODEC, this.centerPos);
         output.putInt("radius", this.projectionRadius);
         output.putInt("lod", this.lodLevel);
+        output.putInt("y_offset", this.yOffset);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        this.rebuildClientData();
+    }
+
+    private void rebuildClientData() {
+        if (this.level == null || !this.level.isClientSide()) {
+            return;
+        }
+        var sideLength = this.getModelSideLength();
+        var normalizedX = Math.floorDiv(this.centerPos.getX(), sideLength) * sideLength;
+        var normalizedZ = Math.floorDiv(this.centerPos.getZ(), sideLength) * sideLength;
+        this.normalizedCenterPos = new BlockPos(normalizedX, 0, normalizedZ);
+        var positions = new ArrayList<BlockPos>();
+        for (var dx = -this.projectionRadius; dx <= this.projectionRadius; dx++) {
+            for (var dz = -this.projectionRadius; dz <= this.projectionRadius; dz++) {
+                positions.add(this.normalizedCenterPos.offset(dx * sideLength, 0, dz * sideLength));
+            }
+        }
+        this.modelPositions = List.copyOf(positions);
     }
 
     @Override

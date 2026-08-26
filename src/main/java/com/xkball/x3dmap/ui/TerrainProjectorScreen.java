@@ -24,24 +24,38 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
 
     private final TerrainProjectorBlockEntity blockEntity;
     private final NumberInputWidget<Integer> centerX;
-    private final NumberInputWidget<Integer> centerY;
     private final NumberInputWidget<Integer> centerZ;
     private final NumberInputWidget<Integer> radius;
+    private final NumberInputWidget<Integer> yOffset;
     private final IntLayoutVariable lodLevel = new IntLayoutVariable();
 
     public TerrainProjectorScreen(TerrainProjectorBlockEntity blockEntity) {
         super(Component.translatable("xklibmc.terrain_projector.title"));
         this.blockEntity = blockEntity;
         this.centerX = NumberInputWidget.ofInt(-30000000, 30000000, 1);
-        this.centerY = NumberInputWidget.ofInt(-2048, 2048, 1);
         this.centerZ = NumberInputWidget.ofInt(-30000000, 30000000, 1);
-        this.radius = NumberInputWidget.ofInt(1, 30000000, 1);
+        this.radius = NumberInputWidget.ofInt(0, 32, 1);
+        this.yOffset = NumberInputWidget.ofInt(-2048, 2048, 1);
         this.centerX.setValue(blockEntity.centerPos.getX());
-        this.centerY.setValue(blockEntity.centerPos.getY());
         this.centerZ.setValue(blockEntity.centerPos.getZ());
         this.radius.setValue(blockEntity.projectionRadius);
+        this.yOffset.setValue(blockEntity.yOffset);
         this.lodLevel.set(Math.clamp(blockEntity.lodLevel, 0, 4));
+        this.centerX.setCallback(_ -> this.updatePreview());
+        this.centerZ.setCallback(_ -> this.updatePreview());
+        this.radius.setCallback(_ -> this.updatePreview());
+        this.yOffset.setCallback(_ -> this.updatePreview());
+        this.lodLevel.addCallback(_ -> this.updatePreview());
         this.addScreenLayer(this.createLayout());
+    }
+
+    private void updatePreview() {
+        this.blockEntity.setParameters(
+                new BlockPos(this.centerX.getValue(), 0, this.centerZ.getValue()),
+                this.radius.getValue(),
+                this.lodLevel.get(),
+                this.yOffset.getValue()
+        );
     }
 
     private Widget createLayout() {
@@ -102,15 +116,15 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
                         }
                         """)
                 .addChild(this.inputLine(new Label(IComponent.translatable("xklibmc.terrain_projector.center_x")), this.centerX))
-                .addChild(this.inputLine(new Label(IComponent.translatable("xklibmc.terrain_projector.center_y")), this.centerY))
                 .addChild(this.inputLine(new Label(IComponent.translatable("xklibmc.terrain_projector.center_z")), this.centerZ))
                 .addChild(this.inputLine(new Label(IComponent.translatable("xklibmc.terrain_projector.radius")
                         //label的tooltip创建暂时有bug
                         .withTooltip(() -> Widget.createTooltipFactory(IComponent.translatable("xklibmc.terrain_projector.radius_unit")).get())), this.radius))
+                .addChild(this.inputLine(new Label(IComponent.translatable("xklibmc.terrain_projector.y_offset")), this.yOffset))
                 .addChild(this.createLodLine())
                 .addChild(WidgetWrapper.button(Component.translatable("xklibmc.common.done"), _ -> this.closeScreen())
                         .inlineStyle("size: 70% 20rpx; align-self: center; margin-top: 8rpx;"));
-        var right = new TerrainProjectorPipWidget().inlineStyle("size: 100% 100%;");
+        var right = new TerrainProjectorPipWidget(this.blockEntity).inlineStyle("size: 100% 100%;");
         return XKLibBaseScreen.biPanelFrame(IComponent.translatable("xklibmc.terrain_projector.title"), left, right);
     }
 
@@ -172,11 +186,7 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
 
     @Override
     public void removed() {
-        this.blockEntity.setParameters(
-                new BlockPos(this.centerX.getValue(), this.centerY.getValue(), this.centerZ.getValue()),
-                this.radius.getValue(),
-                this.lodLevel.get()
-        );
+        this.updatePreview();
         ClientPacketDistributor.sendToServer(UpdateBlockEntityData.create(this.blockEntity));
         super.removed();
     }

@@ -22,6 +22,7 @@ import com.xkball.x3dmap.client.map.render.MapLayerHostImpl;
 import com.xkball.x3dmap.client.map.runtime.X3dMapRuntimeImpl;
 import com.xkball.x3dmap.client.map.uistate.WorldMapUiStateStorage;
 import com.xkball.x3dmap.client.map.viewport.MapCameraImpl;
+import com.xkball.x3dmap.client.map.viewport.MapCameraController;
 import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.map.viewport.MapInputContextImpl;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
@@ -48,7 +49,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import org.joml.Matrix2f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -74,13 +74,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private static final Identifier CAMERA_TARGET_LAYER = VanillaUtils.modRL("camera_target");
     private static final Identifier COMPASS_LAYER = VanillaUtils.modRL("compass");
 
-    private final Vector3f cameraTarget = new Vector3f();
+    private final MapCameraController cameraController = new MapCameraController(new MapCameraState(0, 0, 0, 89, 0, 0.1F, 89.9F));
     private BlockPos centerPos = BlockPos.ZERO;
-    private float xRot = 89.0f;
-    private float cameraLength = 0;
-    private float yRot = 0.0f;
     private boolean rotating;
-    private float fov = 89.9f;
     private WorldTerrainPipRenderer.@Nullable WorldTerrainState lastState;
     private @Nullable MapScreenSession screenSession;
     private @Nullable IMapDataHandle<WorldMapUiStateStorage> uiState;
@@ -178,10 +174,12 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             return;
         }
         var state = uiState.value();
-        this.xRot = state.getFloat(KEY_CAM_XROT, this.xRot);
-        this.yRot = state.getFloat(KEY_CAM_YROT, this.yRot);
-        this.fov = state.getFloat(KEY_CAM_FOV, this.fov);
-        this.cameraLength = state.getFloat(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
+        this.cameraController.setRotation(
+                state.getFloat(KEY_CAM_XROT, this.cameraController.xRotation()),
+                state.getFloat(KEY_CAM_YROT, this.cameraController.yRotation())
+        );
+        this.cameraController.setFieldOfView(state.getFloat(KEY_CAM_FOV, this.cameraController.fieldOfView()));
+        this.cameraController.setDistance(state.getFloat(KEY_CAM_CAMERA_LENGTH, this.cameraController.distance()));
     }
 
     public void saveUiState() {
@@ -189,10 +187,10 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             return;
         }
         var state = this.uiState.value();
-        state.setFloat(KEY_CAM_XROT, this.xRot);
-        state.setFloat(KEY_CAM_YROT, this.yRot);
-        state.setFloat(KEY_CAM_FOV, this.fov);
-        state.setFloat(KEY_CAM_CAMERA_LENGTH, this.cameraLength);
+        state.setFloat(KEY_CAM_XROT, this.cameraController.xRotation());
+        state.setFloat(KEY_CAM_YROT, this.cameraController.yRotation());
+        state.setFloat(KEY_CAM_FOV, this.cameraController.fieldOfView());
+        state.setFloat(KEY_CAM_CAMERA_LENGTH, this.cameraController.distance());
     }
 
     public void setExtensionOverlayProvider(String extensionId, Supplier<Widget> provider) {
@@ -214,10 +212,10 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         var player = mc.player;
         if (player == null) return;
         var cam = mc.gameRenderer.getMainCamera();
-        yRot = cam.yRot();
+        this.cameraController.setRotation(this.cameraController.xRotation(), cam.yRot());
         centerPos = player.blockPosition();
         centerPos = centerPos.atY(level.getMinY());
-        cameraTarget.set(centerPos.getX(), 0, centerPos.getZ());
+        this.cameraController.target().set(centerPos.getX(), 0, centerPos.getZ());
         this.setCameraY();
     }
 
@@ -227,8 +225,8 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         }
         var player = Minecraft.getInstance().player;
         if (player == null) return;
-        this.cameraTarget.x = player.blockPosition().getX();
-        this.cameraTarget.z = player.blockPosition().getZ();
+        this.cameraController.target().x = player.blockPosition().getX();
+        this.cameraController.target().z = player.blockPosition().getZ();
         this.invalidate();
     }
 
@@ -309,11 +307,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             var x = this.x + 4;
             if (debug.get()) {
                 var y_ = y + 120;
-                graphics.drawString("fov: " + fov, x, y_, -1);
+                graphics.drawString("fov: " + this.cameraController.fieldOfView(), x, y_, -1);
                 y_ += 10;
-                graphics.drawString("xRot: " + xRot, x, y_, -1);
+                graphics.drawString("xRot: " + this.cameraController.xRotation(), x, y_, -1);
                 y_ += 10;
-                graphics.drawString("yRot: " + yRot, x, y_, -1);
+                graphics.drawString("yRot: " + this.cameraController.yRotation(), x, y_, -1);
                 y_ += 10;
                 graphics.drawString("focus: " + this.isPrimaryFocused(), x, y_, -1);
                 y_ += 10;
@@ -339,11 +337,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 graphics.drawString("memAlloc: " + VanillaUtils.memSize(TerrainMapManager.INSTANCE.getMemAlloc()), x, y_, -1);
                 y_ += 10;
 //                graphics.drawString("memUsed: " + VanillaUtils.memSize(TerrainChunkManager.INSTANCE.getMemUsed()),x,y_,-1);
-                graphics.drawString("length: " + cameraLength, x, y_, -1);
+                graphics.drawString("length: " + this.cameraController.distance(), x, y_, -1);
                 y_ += 10;
-                graphics.drawString("camTar: " + vec3fToString(cameraTarget), x, y_, -1);
+                graphics.drawString("camTar: " + vec3fToString(this.cameraController.target()), x, y_, -1);
                 y_ += 10;
-                graphics.drawString("camPos: " + vec3fToString(dirVec().normalize(cameraLength + 100).add(cameraTarget)), x, y_, -1);
+                graphics.drawString("camPos: " + vec3fToString(this.dirVec().normalize(this.cameraController.distance() + 100).add(this.cameraController.target())), x, y_, -1);
                 y_ += 10;
                 graphics.drawString("compute: " + TerrainRenderer.computeTime / 1000, x, y_, -1);
             }
@@ -380,7 +378,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     }
 
     private Vector3f dirVec() {
-        return VanillaUtils.dirVec(xRot, yRot);
+        return this.cameraController.direction();
     }
 
     @Override
@@ -434,16 +432,12 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             if (!rotating) {
                 return false;
             }
-            float sens = 0.25f * Math.max(0.4f, fov / 100);
-            xRot = xRot + (float) dy * sens;
-            xRot = Math.clamp(xRot, -89.9f, 89.9f);
-            yRot = yRot - (float) dx * sens;
-            yRot = (yRot + 360) % 360;
+            this.cameraController.rotate(dx, dy);
             return true;
         }
         if (event.button() == 1) {
             if (this.dragGrabbedWorldPos != null) {
-                var cameraPos = this.dirVec().normalize(this.cameraLength).add(this.cameraTarget);
+                var cameraPos = this.cameraController.position();
                 var toW = this.dragGrabbedWorldPos.sub(cameraPos, new Vector3f());
                 float dist = Math.abs(toW.dot(this.dirVec()));
                 if (dist < 1f) {
@@ -452,17 +446,17 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 if (this.height <= 0) {
                     return true;
                 }
-                float worldPerPixel = (float) (2 * dist * Math.tan(Math.toRadians(this.fov / 2)) / this.height);
-                float yawRad = (float) Math.toRadians(this.yRot);
+                float worldPerPixel = (float) (2 * dist * Math.tan(Math.toRadians(this.cameraController.fieldOfView() / 2)) / this.height);
+                float yawRad = (float) Math.toRadians(this.cameraController.yRotation());
                 float rightX = (float) Math.cos(yawRad);
                 float rightZ = (float) -Math.sin(yawRad);
                 float screenDownX = (float) Math.sin(yawRad);
                 float screenDownZ = (float) Math.cos(yawRad);
                 float camDX = (float) (-(dx * rightX + dy * screenDownX) * worldPerPixel);
                 float camDZ = (float) (-(dx * rightZ + dy * screenDownZ) * worldPerPixel);
-                this.cameraTarget.add(camDX, 0, camDZ);
+                this.cameraController.target().add(camDX, 0, camDZ);
             } else {
-                var speed = 1 + (cameraLength / 100);
+                var speed = 1 + (this.cameraController.distance() / 100);
                 this.moveCamera((float) (-dx / 100) * speed, 0, (float) (-dy / 100) * speed);
             }
             return true;
@@ -478,8 +472,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         if (this.mapCamera.externallyControlled()) {
             return false;
         }
-        cameraLength -= (float) (scrollY * Math.log10(cameraLength + 10f));
-        cameraLength = Math.max(cameraLength, 0.1f);
+        this.cameraController.zoom(scrollY);
         return true;
     }
 
@@ -558,32 +551,27 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             this.moveCamera(dx, dy, dz);
         }
         if (this.pressedMovementKeys.contains(InputConstants.KEY_Q)) {
-            this.yRot += 0.5f;
-            this.yRot = (this.yRot + 360) % 360;
+            this.cameraController.rotateYawBy(0.5F);
         }
         if (this.pressedMovementKeys.contains(InputConstants.KEY_E)) {
-            this.yRot -= 0.5f;
-            this.yRot = (this.yRot + 360) % 360;
+            this.cameraController.rotateYawBy(-0.5F);
         }
     }
 
     private void moveCamera(float dx, float dy, float dz) {
-        float speed = 0.75f * (1 + cameraLength / 100);
-        var dir = new Vector2f(dx, dz).mul(speed);
-        dir.mul(new Matrix2f().rotate((float) Math.toRadians(-yRot)));
-        cameraTarget.add(dir.x, ((this.yMode.get() == 1) ? dy * speed : 0), dir.y);
+        this.cameraController.move(dx, dy, dz, this.yMode.get() == 1);
     }
 
     private void setCameraY() {
         var level = Minecraft.getInstance().level;
         if (level != null) {
             if (yMode.get() == 0) {
-                cameraTarget.y = level.getSeaLevel();
+                this.cameraController.target().y = level.getSeaLevel();
                 var storage = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
                 if (storage != null) {
-                    var h = storage.getHeight((int) cameraTarget.x, (int) cameraTarget.z);
+                    var h = storage.getHeight((int) this.cameraController.target().x, (int) this.cameraController.target().z);
                     if (h != level.getMinY()) {
-                        cameraTarget.y = h;
+                        this.cameraController.target().y = h;
                     }
                 }
             }
@@ -675,23 +663,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     }
 
     private MapCameraState cameraState() {
-        return new MapCameraState(
-                this.cameraTarget.x,
-                this.cameraTarget.y,
-                this.cameraTarget.z,
-                this.xRot,
-                this.yRot,
-                this.cameraLength,
-                this.fov
-        );
+        return this.cameraController.state();
     }
 
     private void applyCameraState(MapCameraState state) {
-        this.cameraTarget.set(state.targetX(), state.targetY(), state.targetZ());
-        this.xRot = Math.clamp(state.xRotation(), -89.9f, 89.9f);
-        this.yRot = (state.yRotation() % 360 + 360) % 360;
-        this.cameraLength = Math.max(0, state.distance());
-        this.fov = Math.clamp(state.fieldOfView(), 1, 179);
+        this.cameraController.apply(state);
     }
 
     private static ResourceKey<Level> currentDimension() {
