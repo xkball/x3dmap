@@ -80,7 +80,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private float cameraLength = 0;
     private float yRot = 0.0f;
     private boolean rotating;
-    private float fov = 60;
+    private float fov = 89.9f;
     private WorldTerrainPipRenderer.@Nullable WorldTerrainState lastState;
     private @Nullable MapScreenSession screenSession;
     private @Nullable IMapDataHandle<WorldMapUiStateStorage> uiState;
@@ -104,10 +104,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private final BooleanLayoutVariable depress_sphere;
     private final BooleanLayoutVariable debug;
     private final IntLayoutVariable yMode;
-    private final IntLayoutVariable fixY;
     private final IntLayoutVariable lodThreshold;
 
-    public WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold) {
+    public WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable lodThreshold) {
         this(
                 terrain,
                 grid,
@@ -117,7 +116,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 depress_sphere,
                 debug,
                 yMode,
-                fixY,
                 lodThreshold,
                 TerrainMapManager.INSTANCE.mapPluginRegistry.runtime(),
                 currentDimension(),
@@ -125,7 +123,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         );
     }
 
-    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable fixY, IntLayoutVariable lodThreshold, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset) {
+    private WorldTerrainWidgetInner(BooleanLayoutVariable terrain, BooleanLayoutVariable grid, BooleanLayoutVariable player, BooleanLayoutVariable cameraTarget, BooleanLayoutVariable compass, BooleanLayoutVariable depress_sphere, BooleanLayoutVariable debug, IntLayoutVariable yMode, IntLayoutVariable lodThreshold, X3dMapRuntimeImpl runtime, ResourceKey<Level> dimension, Identifier preset) {
         this.terrain = terrain;
         this.grid = grid;
         this.player = player;
@@ -134,7 +132,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         this.depress_sphere = depress_sphere;
         this.debug = debug;
         this.yMode = yMode;
-        this.fixY = fixY;
         this.lodThreshold = lodThreshold;
         this.runtime = runtime;
         this.dimension = dimension;
@@ -146,7 +143,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         this.setOverflow(false);
         this.extensionOverlay.inlineStyle("size: 100% 100%;");
         this.addChild(this.extensionOverlay);
-        this.fixY.addCallback(_ -> this.setCameraY());
         this.yMode.addCallback(_ -> this.setCameraY());
         this.runtime.viewportManagerImpl().track(this);
     }
@@ -163,7 +159,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 new BooleanLayoutVariable(spec.cullNear()),
                 new BooleanLayoutVariable(false),
                 new IntLayoutVariable(1),
-                fixY,
                 new IntLayoutVariable(spec.lodThreshold()),
                 runtime,
                 spec.dimension(),
@@ -444,12 +439,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             xRot = Math.clamp(xRot, -89.9f, 89.9f);
             yRot = yRot - (float) dx * sens;
             yRot = (yRot + 360) % 360;
-            this.setCameraY();
             return true;
         }
         if (event.button() == 1) {
             if (this.dragGrabbedWorldPos != null) {
-                var cameraPos = this.dirVec().normalize(this.cameraLength + 100).add(this.cameraTarget);
+                var cameraPos = this.dirVec().normalize(this.cameraLength).add(this.cameraTarget);
                 var toW = this.dragGrabbedWorldPos.sub(cameraPos, new Vector3f());
                 float dist = Math.abs(toW.dot(this.dirVec()));
                 if (dist < 1f) {
@@ -467,10 +461,9 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                 float camDX = (float) (-(dx * rightX + dy * screenDownX) * worldPerPixel);
                 float camDZ = (float) (-(dx * rightZ + dy * screenDownZ) * worldPerPixel);
                 this.cameraTarget.add(camDX, 0, camDZ);
-                this.setCameraY();
             } else {
                 var speed = 1 + (cameraLength / 100);
-                this.moveCamera((float) (-dx / 100) * speed, (float) (-dy / 100) * speed);
+                this.moveCamera((float) (-dx / 100) * speed, 0, (float) (-dy / 100) * speed);
             }
             return true;
         }
@@ -485,14 +478,8 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         if (this.mapCamera.externallyControlled()) {
             return false;
         }
-        if (fov > 90 - 1e-6) {
-            cameraLength -= (float) (scrollY * Math.log10(cameraLength + 10f));
-            cameraLength = Math.max(cameraLength, 0);
-        }
-        if (cameraLength < 1e-6) {
-            fov = (float) Math.clamp(fov - scrollY, 5, 90);
-        }
-
+        cameraLength -= (float) (scrollY * Math.log10(cameraLength + 10f));
+        cameraLength = Math.max(cameraLength, 0.1f);
         return true;
     }
 
@@ -507,7 +494,8 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         int key = event.key();
         if (key == InputConstants.KEY_W || key == InputConstants.KEY_A
                 || key == InputConstants.KEY_S || key == InputConstants.KEY_D
-                || key == InputConstants.KEY_Q || key == InputConstants.KEY_E) {
+                || key == InputConstants.KEY_Q || key == InputConstants.KEY_E
+                || key == InputConstants.KEY_SPACE || key ==InputConstants.KEY_LSHIFT) {
             this.pressedMovementKeys.add(key);
             return true;
         }
@@ -522,7 +510,8 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         int key = event.key();
         if (key == InputConstants.KEY_W || key == InputConstants.KEY_A
                 || key == InputConstants.KEY_S || key == InputConstants.KEY_D
-                || key == InputConstants.KEY_Q || key == InputConstants.KEY_E) {
+                || key == InputConstants.KEY_Q || key == InputConstants.KEY_E
+                || key == InputConstants.KEY_SPACE || key ==InputConstants.KEY_LSHIFT) {
             this.pressedMovementKeys.remove(key);
             return true;
         }
@@ -542,6 +531,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             return;
         }
         float dx = 0;
+        float dy = 0;
         float dz = 0;
         if (this.pressedMovementKeys.contains(InputConstants.KEY_W)) {
             dz -= 1;
@@ -555,8 +545,17 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         if (this.pressedMovementKeys.contains(InputConstants.KEY_D)) {
             dx += 1;
         }
-        if (dx != 0 || dz != 0) {
-            this.moveCamera(dx, dz);
+        if (this.yMode.get() == 1) {
+            if (this.pressedMovementKeys.contains(InputConstants.KEY_SPACE)) {
+                dy += 1;
+            }
+            if (this.pressedMovementKeys.contains(InputConstants.KEY_LSHIFT)
+                    || this.pressedMovementKeys.contains(InputConstants.KEY_RSHIFT)) {
+                dy -= 1;
+            }
+        }
+        if (dx != 0 || dy != 0 || dz != 0) {
+            this.moveCamera(dx, dy, dz);
         }
         if (this.pressedMovementKeys.contains(InputConstants.KEY_Q)) {
             this.yRot += 0.5f;
@@ -568,12 +567,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         }
     }
 
-    private void moveCamera(float dx, float dz) {
-        float speed = fov / 120 * (1 + cameraLength / 100);
+    private void moveCamera(float dx, float dy, float dz) {
+        float speed = 0.75f * (1 + cameraLength / 100);
         var dir = new Vector2f(dx, dz).mul(speed);
         dir.mul(new Matrix2f().rotate((float) Math.toRadians(-yRot)));
-        cameraTarget.add(dir.x, 0, dir.y);
-        this.setCameraY();
+        cameraTarget.add(dir.x, ((this.yMode.get() == 1) ? dy * speed : 0), dir.y);
     }
 
     private void setCameraY() {
@@ -588,8 +586,6 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
                         cameraTarget.y = h;
                     }
                 }
-            } else {
-                cameraTarget.y = fixY.get();
             }
         }
     }

@@ -67,7 +67,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         this.terrainStorage = terrainStorage;
         this.cameraDirection = VanillaUtils.dirVec(camera.xRotation(), camera.yRotation());
         this.cameraPosition = new Vector3f(this.cameraDirection)
-                .normalize(camera.distance() + 100)
+                .normalize(camera.distance())
                 .add(camera.targetX(), camera.targetY(), camera.targetZ());
         var aspect = viewportWidth / Math.max(1, viewportHeight);
         this.projectionMatrix = new Matrix4f()
@@ -221,7 +221,7 @@ public final class MapFrameSnapshot implements IMapFrame {
         }
         var origin = ray.origin();
         var direction = ray.direction();
-        var baseDistance = Math.max(this.camera.distance() + 100, 256);
+        var baseDistance = Math.max(this.camera.distance(), 256);
         var maxDistance = Math.max(Math.max(this.camera.distance() * 2, 8000), baseDistance * 4);
         var step = Math.max(baseDistance / 8, 16);
         var previousDistance = 0.0f;

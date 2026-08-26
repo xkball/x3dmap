@@ -58,7 +58,7 @@ public class MapLevel implements AutoCloseable{
         this.minY = level.getMinY();
         this.regionCache = ExpiringResourceMapCache.<RegionPos, MapRegion>builder()
                 .loader((pos) -> new MapRegion(this.getLevel(), pos, this.getDir()))
-                .expireAfterRead(300)
+                .expireAfterRead(60)
                 .loadOn(X3dMapClient.ioExecutor)
                 .build();
         var gpuDevice = ClientUtils.getGpuDevice();

@@ -63,11 +63,11 @@ public class MapRegion implements AutoCloseable{
                 .loadOn(X3dMapClient.ioExecutor)
                 .unloader((r) -> r.save(this.dir))
                 .unloadOn(X3dMapClient.ioExecutor)
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
         this.lod0 = ExpiringResourceCache.<RegionLOD>builder()
                 .asyncLoader(() -> this.chunks.getAsync().thenApply(RegionLOD::fromChunks))
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
         Function<Integer, RegionLOD> loader = (i) -> {
             var result = new RegionLOD(i);
@@ -79,28 +79,28 @@ public class MapRegion implements AutoCloseable{
                 .loadOn(X3dMapClient.ioExecutor)
                 .unloader((r) -> r.save(this.dir))
                 .unloadOn(X3dMapClient.ioExecutor)
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
         this.lod2 = ExpiringResourceCache.<RegionLOD>builder()
                 .loader(() -> loader.apply(7))
                 .loadOn(X3dMapClient.ioExecutor)
                 .unloader((r) -> r.save(this.dir))
                 .unloadOn(X3dMapClient.ioExecutor)
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
         this.lod3 = ExpiringResourceCache.<RegionLOD>builder()
                 .loader(() -> loader.apply(8))
                 .loadOn(X3dMapClient.ioExecutor)
                 .unloader((r) -> r.save(this.dir))
                 .unloadOn(X3dMapClient.ioExecutor)
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
         this.lod4 = ExpiringResourceCache.<RegionLOD>builder()
                 .loader(() -> loader.apply(9))
                 .loadOn(X3dMapClient.ioExecutor)
                 .unloader((r) -> r.save(this.dir))
                 .unloadOn(X3dMapClient.ioExecutor)
-                .expireAfterRead(300)
+                .expireAfterRead(100)
                 .build();
     }
     
