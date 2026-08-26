@@ -4,10 +4,13 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.block.X3dMapBlocks;
 import com.xkball.x3dmap.client.event.CancelWorldRenderingEvent;
 import com.xkball.x3dmap.client.map.storage.BuiltinMapDataTypes;
 import com.xkball.x3dmap.client.map.minimap.MinimapHudRenderer;
 import com.xkball.x3dmap.client.map.waypoint.Waypoint;
+import com.xkball.x3dmap.client.render.ber.TerrainProjectorBlockEntityRenderer;
+import com.xkball.x3dmap.client.render.pip.TerrainProjectorPipRenderer;
 import com.xkball.x3dmap.client.render.pip.WorldTerrainPipRenderer;
 import com.xkball.x3dmap.client.terrain.ChunkComplier;
 import com.xkball.x3dmap.client.terrain.TerrainMapManager;
@@ -33,6 +36,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
@@ -174,6 +178,12 @@ public class X3dMapClient {
     @SubscribeEvent
     public static void onRegPIP(RegisterPictureInPictureRenderersEvent event) {
         event.register(WorldTerrainPipRenderer.WorldTerrainState.class, WorldTerrainPipRenderer::new);
+        event.register(TerrainProjectorPipRenderer.TerrainProjectorState.class, TerrainProjectorPipRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(X3dMapBlocks.TERRAIN_PROJECTOR_BLOCK_ENTITY.get(), TerrainProjectorBlockEntityRenderer::new);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

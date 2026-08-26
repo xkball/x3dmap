@@ -1,9 +1,11 @@
 package com.xkball.x3dmap;
 
 import com.mojang.logging.LogUtils;
+import com.xkball.x3dmap.block.X3dMapBlocks;
 import com.xkball.x3dmap.server.ChunkBatcher;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.TicketType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -11,7 +13,6 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -36,6 +37,7 @@ public class X3dMap {
     
     public X3dMap(IEventBus modEventBus, ModContainer modContainer) {
         TICKET_TYPE.register(modEventBus);
+        X3dMapBlocks.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
     }
     
