@@ -4,46 +4,21 @@ import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.core.Direction;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 @NonNullByDefault
 public class MapNodeModel {
     
     public static final MapNodeModel EMPTY = new MapNodeModel(0, 0, 0, 0, new Int2ObjectOpenHashMap<>());
-    
-//    public static final StreamCodec<ByteBuf, MapNodeModel> STREAM_CODEC = new StreamCodec<>() {
-//        @Override
-//        public MapNodeModel decode(ByteBuf input) {
-//            var depth = input.readInt();
-//            var x = input.readInt();
-//            var y = input.readInt();
-//            var z = input.readInt();
-//            var size = input.readInt();
-//            var map = new Int2ObjectOpenHashMap<TerrainBlockData>();
-//            for (int i = 0; i < size; i++) {
-//                map.put(input.readInt(), TerrainBlockData.STREAM_CODEC.decode(input));
-//            }
-//            return new MapNodeModel(depth, x, y, z, map);
-//        }
-//
-//        @Override
-//        public void encode(ByteBuf output, MapNodeModel value) {
-//            output.writeInt(value.depth);
-//            output.writeInt(value.x);
-//            output.writeInt(value.y);
-//            output.writeInt(value.z);
-//            output.writeInt(value.data.size());
-//            for (var entry : value.data.int2ObjectEntrySet()) {
-//                output.writeInt(entry.getIntKey());
-//                TerrainBlockData.STREAM_CODEC.encode(output, entry.getValue());
-//            }
-//        }
-//    };
     
     private static final int SIDE_LENGTH = 32;
     private static final int COORDINATE_MASK = SIDE_LENGTH - 1;
@@ -58,9 +33,12 @@ public class MapNodeModel {
     public final int x;
     public final int y;
     public final int z;
-    public final Int2ObjectMap<TerrainBlockData> data;
+    public final Int2ObjectOpenHashMap<TerrainBlockData> data;
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock readLock = rwLock.readLock();
+    private final Lock writeLock = rwLock.writeLock();
     
-    public MapNodeModel(int depth, int x, int y, int z, Int2ObjectMap<TerrainBlockData> data) {
+    public MapNodeModel(int depth, int x, int y, int z, Int2ObjectOpenHashMap<TerrainBlockData> data) {
         this.depth = depth;
         this.x = x;
         this.y = y;
@@ -113,6 +91,91 @@ public class MapNodeModel {
         }
     }
 
+    public void updateChunk(MapChunk view) {
+        this.writeLock.lock();
+        try {
+            if (this.depth != 5) return;
+            var minX = (this.x << 5);
+            var minZ = (this.z << 5);
+            var localMinX = view.chunkPos.getMinBlockX() - minX;
+            var localMinZ = view.chunkPos.getMinBlockZ() - minZ;
+            if (localMinX < 0 || localMinZ < 0 || localMinX >= SIDE_LENGTH || localMinZ >= SIDE_LENGTH) return;
+            var localMaxX = Math.min(localMinX + 16, SIDE_LENGTH);
+            var localMaxZ = Math.min(localMinZ + 16, SIDE_LENGTH);
+            var iterator = this.data.int2ObjectEntrySet().iterator();
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                var index = entry.getIntKey();
+                var x = getX(index);
+                var z = getZ(index);
+                if (x >= localMinX && x < localMaxX && z >= localMinZ && z < localMaxZ) {
+                    iterator.remove();
+                }
+            }
+            view.data.forEach((entry, blockData) -> {
+                var x = entry.x() - minX;
+                var y = entry.y() - (this.y << 5);
+                var z = entry.z() - minZ;
+                if (x >= localMinX && x < localMaxX && y >= 0 && y < SIDE_LENGTH && z >= localMinZ && z < localMaxZ) {
+                    this.data.put(index(x, y, z), blockData);
+                }
+            });
+            this.updateMasks(localMinX - 1, localMaxX + 1, localMinZ - 1, localMaxZ + 1);
+        } finally {
+            this.writeLock.unlock();
+        }
+    }
+
+    public synchronized void updateSubNode(List<MapNodeModel> subNodes, int childIndex) {
+        this.writeLock.lock();
+        try {
+            if (subNodes.size() != 8 || childIndex < 0 || childIndex >= 8) return;
+            var localMinX = (childIndex & 1) << 4;
+            var localMinZ = (childIndex >> 1 & 1) << 4;
+            var localMinY = (childIndex >> 2 & 1) << 4;
+            var localMaxX = localMinX + 16;
+            var localMaxY = localMinY + 16;
+            var localMaxZ = localMinZ + 16;
+            var iterator = this.data.int2ObjectEntrySet().iterator();
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                var index = entry.getIntKey();
+                var x = getX(index);
+                var y = getY(index);
+                var z = getZ(index);
+                if (x >= localMinX && x < localMaxX && y >= localMinY && y < localMaxY && z >= localMinZ && z < localMaxZ) {
+                    iterator.remove();
+                }
+            }
+            var mergedData = new Int2ObjectOpenHashMap<ColorAccumulator>();
+            for (var subNode : subNodes) {
+                for (var entry : subNode.data.int2ObjectEntrySet()) {
+                    var fineX = (subNode.x & 1) << 5 | getX(entry.getIntKey());
+                    var fineY = (subNode.y & 1) << 5 | getY(entry.getIntKey());
+                    var fineZ = (subNode.z & 1) << 5 | getZ(entry.getIntKey());
+                    var x = fineX >> 1;
+                    var y = fineY >> 1;
+                    var z = fineZ >> 1;
+                    if (x < localMinX || x >= localMaxX || y < localMinY || y >= localMaxY || z < localMinZ || z >= localMaxZ) continue;
+                    var index = index(x, y, z);
+                    var accumulator = mergedData.get(index);
+                    if (accumulator == null) {
+                        accumulator = new ColorAccumulator();
+                        mergedData.put(index, accumulator);
+                    }
+                    accumulator.add(entry.getValue());
+                }
+            }
+            for (var entry : mergedData.int2ObjectEntrySet()) {
+                this.data.put(entry.getIntKey(), new TerrainBlockData(entry.getValue().averageColor(), 0));
+            }
+            this.updateMasks(localMinX - 1, localMaxX + 1, localMinZ - 1, localMaxZ + 1, localMinY - 1, localMaxY + 1);
+            
+        } finally {
+            this.writeLock.unlock();
+        }
+}
+
     private void addChunk(MapChunk view) {
         view.data.forEach((entry, blockData) -> {
             var px = entry.x() - (this.x << 5);
@@ -137,6 +200,21 @@ public class MapNodeModel {
             if (pz > 0 && this.data.containsKey(index(px, py, pz - 1))) mask &= ~NORTH_MASK;
             if (pz < COORDINATE_MASK && this.data.containsKey(index(px, py, pz + 1))) mask &= ~SOUTH_MASK;
             entry.setValue(new TerrainBlockData(entry.getValue().color(), mask));
+        }
+    }
+
+    private void updateMasks(int minX, int maxX, int minZ, int maxZ) {
+        this.updateMasks(minX, maxX, minZ, maxZ, 0, SIDE_LENGTH);
+    }
+
+    private void updateMasks(int minX, int maxX, int minZ, int maxZ, int minY, int maxY) {
+        for (var entry : this.data.int2ObjectEntrySet()) {
+            var index = entry.getIntKey();
+            var x = getX(index);
+            var y = getY(index);
+            var z = getZ(index);
+            if (x < minX || x >= maxX || y < minY || y >= maxY || z < minZ || z >= maxZ) continue;
+            entry.setValue(new TerrainBlockData(entry.getValue().color(), calculateMask(this.data, index)));
         }
     }
 
@@ -171,7 +249,21 @@ public class MapNodeModel {
     }
 
     public boolean isEmpty(){
-        return this.data.isEmpty();
+        this.readLock.lock();
+        try {
+            return this.data.isEmpty();
+        } finally {
+            this.readLock.unlock();
+        }
+    }
+    
+    public void forEach(Consumer<Int2ObjectMap.Entry<TerrainBlockData>> consumer) {
+        this.readLock.lock();
+        try {
+            this.data.int2ObjectEntrySet().fastForEach(consumer);
+        } finally {
+            this.readLock.unlock();
+        }
     }
     
     private static class ColorAccumulator {

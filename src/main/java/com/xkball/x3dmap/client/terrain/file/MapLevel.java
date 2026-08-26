@@ -230,11 +230,11 @@ public class MapLevel implements AutoCloseable{
 
     private GpuNodeModel uploadNodeModel(BlockPos pos, int lodLevel,@Nullable MapNodeModel model) {
         var buffer = this.lodBuffers.get(lodLevel);
-        if (model == null || model.data.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
+        if (model == null || model.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
         var key = pos.asLong();
         var uploadBuffer = MemoryUtil.memAlloc(model.data.size() * NODE_ENTRY_SIZE);
         try {
-            for (var entry : model.data.int2ObjectEntrySet()) {
+            model.forEach(entry -> {
                 var index = entry.getIntKey();
                 var x = ((model.x << NODE_SIDE_LENGTH_BITS) + (index >> 10 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
                 var y = ((model.y << NODE_SIDE_LENGTH_BITS) + (index >> 5 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
@@ -245,7 +245,7 @@ public class MapLevel implements AutoCloseable{
                 uploadBuffer.put((byte) 0);
                 uploadBuffer.put((byte) 0);
                 uploadBuffer.put((byte) 0);
-            }
+            });
             uploadBuffer.flip();
             if (!buffer.addAllocation(key, null, uploadBuffer)) {
                 buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());

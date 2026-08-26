@@ -422,7 +422,7 @@ public class MapRegion implements AutoCloseable{
                 chunk.data.forEach((entry, _) -> positions.add(result.normalize(entry.x(), entry.y(), entry.z())));
             }
             for (var pos : positions) {
-                result.updateNode(chunks, pos);
+                result.updateNode(chunks, pos, null);
             }
             return result;
         }
@@ -447,12 +447,22 @@ public class MapRegion implements AutoCloseable{
                 chunk.data.forEach((entry, _) -> positions.add(this.normalize(entry.x(), entry.y(), entry.z())));
             }
             for (var pos : positions) {
-                this.updateNode(chunks, pos);
+                this.updateNode(chunks, pos, chunkPos);
             }
             return positions;
         }
 
-        private void updateNode(RegionChunks chunks, BlockPos pos) {
+        private void updateNode(RegionChunks chunks, BlockPos pos, @Nullable ChunkPos changedChunkPos) {
+            var existing = this.nodes.get(pos);
+            if (existing != null) {
+                var chunkPos = changedChunkPos == null ? new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4) : changedChunkPos;
+                existing.updateChunk(chunks.getChunkOrEmpty(chunkPos));
+                if (existing.isEmpty()) {
+                    this.nodes.remove(pos);
+                }
+                this.dirty = true;
+                return;
+            }
             var model = this.createNode(chunks, pos);
             if (model == null || model.isEmpty()) {
                 if (this.nodes.remove(pos) != null) this.dirty = true;
@@ -496,11 +506,22 @@ public class MapRegion implements AutoCloseable{
                         }
                     }
                 }
-                if (!hasData) {
-                    if (this.nodes.remove(parentPos) != null) this.dirty = true;
-                } else {
+                var parent = this.nodes.get(parentPos);
+                var childX = Math.floorDiv(childPos.getX() - parentPos.getX(), subSideLength);
+                var childY = Math.floorDiv(childPos.getY() - parentPos.getY(), subSideLength);
+                var childZ = Math.floorDiv(childPos.getZ() - parentPos.getZ(), subSideLength);
+                var childIndex = childY << 2 | childZ << 1 | childX;
+                if (parent != null) {
+                    parent.updateSubNode(subNodes, childIndex);
+                    if (parent.isEmpty()) {
+                        this.nodes.remove(parentPos);
+                    }
+                    this.dirty = true;
+                } else if (hasData) {
                     this.nodes.put(parentPos, new MapNodeModel(subNodes));
                     this.dirty = true;
+                } else {
+                    if (this.nodes.remove(parentPos) != null) this.dirty = true;
                 }
                 changedParents.add(parentPos);
             }
@@ -614,10 +635,10 @@ public class MapRegion implements AutoCloseable{
             output.writeInt(model.y);
             output.writeInt(model.z);
             output.writeInt(model.data.size());
-            for (var entry : model.data.int2ObjectEntrySet()) {
+            model.forEach(entry -> {
                 output.writeInt(entry.getIntKey());
                 TerrainBlockData.STREAM_CODEC.encode(output, entry.getValue());
-            }
+            });
         }
 
         private static MapNodeModel readNode(ByteBuf input) throws IOException {
