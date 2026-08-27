@@ -17,7 +17,7 @@ public final class MtrScreenExtension implements IMapScreenExtension {
     @Override
     public void onOpen() {
         this.context.addLayerToggle(
-                X3dMapMtrCompat.id("transit"),
+                MtrCompatPlugin.TRANSIT_LAYER_STATE,
                 VanillaUtils.modRL("icon/route"),
                 "x3d_map_compat_mtr.layer.transit",
                 MtrCompatPlugin.ROUTE_LAYER,

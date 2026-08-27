@@ -4,6 +4,7 @@ import com.xkball.x3dmap.api.client.render.IMap2dLayer;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.x3dmap.api.client.render.IMapLayerContext;
 import com.xkball.x3dmap.api.client.render.MapViewportPresets;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
@@ -17,6 +18,12 @@ import java.util.List;
 
 @NonNullByDefault
 public final class MtrStationLayer implements IMap2dLayer {
+
+    private final IMapLayerContext layerContext;
+
+    public MtrStationLayer(IMapLayerContext layerContext) {
+        this.layerContext = layerContext;
+    }
     
     @Override
     public @Nullable IMap2dRenderCommand extract(IMapFrame frame) {
@@ -31,7 +38,11 @@ public final class MtrStationLayer implements IMap2dLayer {
         if (labels.isEmpty()) {
             return null;
         }
-        return context -> render(context, List.copyOf(labels));
+        return context -> {
+            if (MtrCompatPlugin.transitVisible(this.layerContext, frame)) {
+                render(context, List.copyOf(labels));
+            }
+        };
     }
     
     private static void render(IMap2dRenderContext context, List<StationLabel> labels) {

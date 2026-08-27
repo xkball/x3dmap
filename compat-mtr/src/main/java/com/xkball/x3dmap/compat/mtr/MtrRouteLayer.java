@@ -54,7 +54,11 @@ public final class MtrRouteLayer implements IMap3dLayer {
         if (segments.isEmpty()) {
             return null;
         }
-        return context -> render(context, segments);
+        return context -> {
+            if (MtrCompatPlugin.transitVisible(this.layerContext, frame)) {
+                render(context, segments);
+            }
+        };
     }
 
     private void finishPathGeneration(long dataHash, @Nullable List<RouteSegment> segments, @Nullable Throwable throwable) {
