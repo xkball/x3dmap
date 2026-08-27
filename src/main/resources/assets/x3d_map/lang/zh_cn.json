@@ -69,6 +69,7 @@
   "xklibmc.terrain_projector.radius": "半径",
   "xklibmc.terrain_projector.radius_unit": "单位：16 * 2 ^ (LOD 等级 + 1) 方块",
   "xklibmc.terrain_projector.lod": "LOD 等级",
+  "xklibmc.terrain_projector.compatibility_unavailable": "无法在兼容模式下使用",
   "xklibmc.compatibility.mode_active": "兼容模式已启用。",
   "xklibmc.compatibility.reasons": "原因：",
   "xklibmc.compatibility.dont_show_again": "不再显示",

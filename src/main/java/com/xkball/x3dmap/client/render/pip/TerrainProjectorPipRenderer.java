@@ -53,6 +53,11 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
 
     @Override
     protected void renderToTexture(TerrainProjectorState renderState, PoseStack ignoredPoseStack) {
+        if (TerrainMapManager.INSTANCE.compatibleMode) {
+            ClientUtils.getCommandEncoder().clearColorTexture(Objects.requireNonNull(RenderSystem.outputColorTextureOverride).texture(), 0xFF101010);
+            ClientUtils.getCommandEncoder().clearDepthTexture(Objects.requireNonNull(RenderSystem.outputDepthTextureOverride).texture(), 1.0);
+            return;
+        }
         RenderSystem.backupProjectionMatrix();
         try {
             RenderSystem.setProjectionMatrix(this.projection.getBuffer(new Matrix4f(renderState.frame().projectionMatrix())), ProjectionType.PERSPECTIVE);
@@ -79,7 +84,7 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
         renderTerrain(mapLevel, renderState.modelPositions(), renderState.lodLevel(), poseStack,
                 new Vector3f(renderState.frame().cameraPosition()).add(originX, 0, originZ),
                 VanillaUtils.dirVec(Mth.clamp(renderState.frame().camera().xRotation(), 75, 90), -renderState.frame().camera().yRotation() + 2),
-                RenderSystem.outputColorTextureOverride, RenderSystem.outputDepthTextureOverride
+                Objects.requireNonNull(RenderSystem.outputColorTextureOverride), Objects.requireNonNull(RenderSystem.outputDepthTextureOverride)
         );
     }
 
@@ -93,6 +98,9 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
             GpuTextureView colorTarget,
             GpuTextureView depthTarget
     ) {
+        if (TerrainMapManager.INSTANCE.compatibleMode) {
+            return;
+        }
         var renderNodes = collectNodes(mapLevel, modelPositions, lodLevel);
         if (renderNodes.isEmpty()) {
             return;

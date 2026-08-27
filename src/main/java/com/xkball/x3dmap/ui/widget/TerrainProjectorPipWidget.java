@@ -8,6 +8,7 @@ import com.xkball.x3dmap.client.map.viewport.MapFrameSnapshot;
 import com.xkball.x3dmap.client.render.pip.TerrainProjectorPipRenderer;
 import com.xkball.x3dmap.client.terrain.TerrainMapManager;
 import com.xkball.xklib.api.gui.input.IMouseButtonEvent;
+import com.xkball.xklib.ui.render.IComponent;
 import com.xkball.xklib.ui.render.IGUIGraphics;
 import com.xkball.xklib.ui.widget.Widget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -40,6 +41,12 @@ public final class TerrainProjectorPipWidget extends Widget {
 
     @Override
     public void doRender(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
+        if (TerrainMapManager.INSTANCE.compatibleMode) {
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, 0xFF101010);
+            graphics.drawCenteredString(IComponent.translatable("xklibmc.terrain_projector.compatibility_unavailable"), this.x + this.width * 0.5F, this.y + (this.height - 12.0F) * 0.5F, 0xFFFFFFFF, true, 12.0F);
+            super.doRender(graphics, mouseX, mouseY, a);
+            return;
+        }
         var level = Minecraft.getInstance().level;
         var mapLevel = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
         if (graphics instanceof B3dGuiGraphics b3dGraphics && level != null && mapLevel != null

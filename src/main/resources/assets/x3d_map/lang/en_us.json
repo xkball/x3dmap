@@ -69,6 +69,7 @@
   "xklibmc.terrain_projector.radius": "Radius",
   "xklibmc.terrain_projector.radius_unit": "Unit: 16 * 2 ^ (LOD level + 1) blocks",
   "xklibmc.terrain_projector.lod": "LOD Level",
+  "xklibmc.terrain_projector.compatibility_unavailable": "Unavailable in compatibility mode",
   "xklibmc.compatibility.mode_active": "Compatibility mode is active.",
   "xklibmc.compatibility.reasons": "Reasons:",
   "xklibmc.compatibility.dont_show_again": "Don't show again",

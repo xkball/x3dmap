@@ -15,6 +15,7 @@ import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -60,6 +61,13 @@ public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRen
 
     @Override
     public void submit(RenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+        if (TerrainMapManager.INSTANCE.compatibleMode) {
+            submitNodeCollector.submitNameTag(poseStack, new Vec3(0.5, 1.0, 0.5), 0,
+                    Component.translatable("xklibmc.terrain_projector.compatibility_unavailable"),
+                    false, state.lightCoords, Vec3.atCenterOf(state.blockPos).distanceToSqr(camera.pos), camera
+            );
+            return;
+        }
         if (state.modelPositions.isEmpty()) {
             return;
         }
@@ -109,6 +117,10 @@ public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRen
     }
 
     public static void renderPending() {
+        if (TerrainMapManager.INSTANCE.compatibleMode) {
+            PENDING_RENDERERS.clear();
+            return;
+        }
         for (var renderer : PENDING_RENDERERS) {
             renderer.run();
         }
