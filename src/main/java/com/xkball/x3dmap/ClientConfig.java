@@ -66,7 +66,7 @@ public class ClientConfig {
                 .defineInRange("minimapCameraFov", 60.0, 5.0, 90.0);
         MINIMAP_CAMERA_LENGTH = builder
                 .comment("Minimap camera length.")
-                .defineInRange("minimapCameraLength", 0.0, 0.0, 100000.0);
+                .defineInRange("minimapCameraLength", 100, 0.1, 100000.0);
         MINIMAP_SIZE = builder
                 .comment("Minimap size as percentage of screen height. Default: 15.")
                 .defineInRange("minimapSize", 25, 1, 50);

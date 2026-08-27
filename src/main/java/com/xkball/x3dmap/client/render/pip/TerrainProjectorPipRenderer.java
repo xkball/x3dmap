@@ -56,8 +56,8 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
         RenderSystem.backupProjectionMatrix();
         try {
             RenderSystem.setProjectionMatrix(this.projection.getBuffer(new Matrix4f(renderState.frame().projectionMatrix())), ProjectionType.PERSPECTIVE);
-            ClientUtils.getCommandEncoder().clearColorTexture(RenderSystem.outputColorTextureOverride.texture(), 0xFF000000);
-            ClientUtils.getCommandEncoder().clearDepthTexture(RenderSystem.outputDepthTextureOverride.texture(), 1.0);
+            ClientUtils.getCommandEncoder().clearColorTexture(Objects.requireNonNull(RenderSystem.outputColorTextureOverride).texture(), 0xFF000000);
+            ClientUtils.getCommandEncoder().clearDepthTexture(Objects.requireNonNull(RenderSystem.outputDepthTextureOverride).texture(), 1.0);
             this.renderPreview(renderState);
         } finally {
             RenderSystem.restoreProjectionMatrix();
@@ -76,18 +76,10 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
         var poseStack = new PoseStack();
         poseStack.mulPose(renderState.frame().viewMatrix());
         poseStack.translate(-originX, 0, -originZ);
-        renderTerrain(
-                mapLevel,
-                renderState.modelPositions(),
-                renderState.lodLevel(),
-                poseStack,
+        renderTerrain(mapLevel, renderState.modelPositions(), renderState.lodLevel(), poseStack,
                 new Vector3f(renderState.frame().cameraPosition()).add(originX, 0, originZ),
-                VanillaUtils.dirVec(
-                        Mth.clamp(renderState.frame().camera().xRotation(), 75, 90),
-                        -renderState.frame().camera().yRotation() + 2
-                ),
-                RenderSystem.outputColorTextureOverride,
-                RenderSystem.outputDepthTextureOverride
+                VanillaUtils.dirVec(Mth.clamp(renderState.frame().camera().xRotation(), 75, 90), -renderState.frame().camera().yRotation() + 2),
+                RenderSystem.outputColorTextureOverride, RenderSystem.outputDepthTextureOverride
         );
     }
 

@@ -2,12 +2,9 @@ package com.xkball.x3dmap.client.terrain.render;
 
 import com.xkball.x3dmap.client.terrain.file.MapChunk;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
-import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.core.Direction;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.ChunkPos;
 
 import java.util.List;
@@ -88,6 +85,15 @@ public class MapNodeModel {
         for (var entry : mergedData.int2ObjectEntrySet()) {
             var index = entry.getIntKey();
             this.data.put(index, new TerrainBlockData(entry.getValue().averageColor(), calculateMask(mergedData, index)));
+        }
+    }
+    
+    public void readWithLock(Consumer<MapNodeModel> consumer) {
+        readLock.lock();
+        try {
+            consumer.accept(this);
+        } finally {
+            readLock.unlock();
         }
     }
 

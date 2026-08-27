@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 @NonNullByDefault
 public class MapLevel implements AutoCloseable{
@@ -228,43 +229,47 @@ public class MapLevel implements AutoCloseable{
                 .thenApplyAsync(model -> this.uploadNodeModel(pos, lodLevel, model), X3dMapClient.mainThreadExecutor);
     }
 
-    private GpuNodeModel uploadNodeModel(BlockPos pos, int lodLevel,@Nullable MapNodeModel model) {
+    private GpuNodeModel uploadNodeModel(BlockPos pos, int lodLevel,@Nullable MapNodeModel model_) {
         var buffer = this.lodBuffers.get(lodLevel);
-        if (model == null || model.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
+        if (model_ == null || model_.isEmpty()) return new GpuNodeModel(buffer, pos.asLong(), null, 0, 0);
         var key = pos.asLong();
-        var uploadBuffer = MemoryUtil.memAlloc(model.data.size() * NODE_ENTRY_SIZE);
-        try {
-            model.forEach(entry -> {
-                var index = entry.getIntKey();
-                var x = ((model.x << NODE_SIDE_LENGTH_BITS) + (index >> 10 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
-                var y = ((model.y << NODE_SIDE_LENGTH_BITS) + (index >> 5 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
-                var z = ((model.z << NODE_SIDE_LENGTH_BITS) + (index & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
-                uploadBuffer.putLong(BlockPos.asLong(x, y, z));
-                uploadBuffer.putInt(entry.getValue().color());
-                uploadBuffer.put((byte) entry.getValue().mask());
-                uploadBuffer.put((byte) 0);
-                uploadBuffer.put((byte) 0);
-                uploadBuffer.put((byte) 0);
-            });
-            uploadBuffer.flip();
-            if (!buffer.addAllocation(key, null, uploadBuffer)) {
-                buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
-                if (!buffer.addAllocation(key, null, uploadBuffer)) {
-                    throw new IllegalStateException("Failed to stage map node model upload");
+        AtomicReference<GpuNodeModel> result = new AtomicReference<>();
+        model_.readWithLock((model) -> {
+            var uploadBuffer = MemoryUtil.memAlloc(model.data.size() * NODE_ENTRY_SIZE);
+            try {
+                for(var entry : model.data.int2ObjectEntrySet()) {
+                    var index = entry.getIntKey();
+                    var x = ((model.x << NODE_SIDE_LENGTH_BITS) + (index >> 10 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
+                    var y = ((model.y << NODE_SIDE_LENGTH_BITS) + (index >> 5 & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
+                    var z = ((model.z << NODE_SIDE_LENGTH_BITS) + (index & 31)) << (model.depth - NODE_SIDE_LENGTH_BITS);
+                    uploadBuffer.putLong(BlockPos.asLong(x, y, z));
+                    uploadBuffer.putInt(entry.getValue().color());
+                    uploadBuffer.put((byte) entry.getValue().mask());
+                    uploadBuffer.put((byte) 0);
+                    uploadBuffer.put((byte) 0);
+                    uploadBuffer.put((byte) 0);
                 }
+                uploadBuffer.flip();
+                if (!buffer.addAllocation(key, null, uploadBuffer)) {
+                    buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
+                    if (!buffer.addAllocation(key, null, uploadBuffer)) {
+                        throw new IllegalStateException("Failed to stage map node model upload");
+                    }
+                }
+                buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
+                var allocation = buffer.getAllocation(key);
+                if (allocation == null) {
+                    throw new IllegalStateException("Map node model allocation is missing after upload");
+                }
+                result.set(new GpuNodeModel(buffer, key, allocation, (int) (allocation.getOffsetFromHeap() / NODE_ENTRY_SIZE), model.data.size()));
+            } catch (RuntimeException e) {
+                LOGGER.error("Failed to upload map node model at LOD {} for {}", lodLevel, pos, e);
+                throw e;
+            } finally {
+                MemoryUtil.memFree(uploadBuffer);
             }
-            buffer.uploadStagedAllocations(ClientUtils.getGpuDevice(), ClientUtils.getCommandEncoder());
-            var allocation = buffer.getAllocation(key);
-            if (allocation == null) {
-                throw new IllegalStateException("Map node model allocation is missing after upload");
-            }
-            return new GpuNodeModel(buffer, key, allocation, (int) (allocation.getOffsetFromHeap() / NODE_ENTRY_SIZE), model.data.size());
-        } catch (RuntimeException e) {
-            LOGGER.error("Failed to upload map node model at LOD {} for {}", lodLevel, pos, e);
-            throw e;
-        } finally {
-            MemoryUtil.memFree(uploadBuffer);
-        }
+        });
+        return result.get();
     }
 
     private ExpiringResourceMapCache<BlockPos, GpuNodeModel> createGpuNodeCache(int lodLevel, int expireTime) {

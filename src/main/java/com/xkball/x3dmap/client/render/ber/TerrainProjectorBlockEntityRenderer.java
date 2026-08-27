@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
@@ -22,10 +21,14 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @NonNullByDefault
 public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRenderer<TerrainProjectorBlockEntity, TerrainProjectorBlockEntityRenderer.RenderState> {
+
+    private static final List<Runnable> PENDING_RENDERERS = new ArrayList<>();
 
     public TerrainProjectorBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -69,7 +72,7 @@ public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRen
                 (float) (originZ + (camera.pos.z() - state.blockPos.getZ() - 0.5) * sideLength)
         );
 //        var lightDirection = new Vector3f(0, 0, 1).rotate(camera.orientation);
-        var lightDirection = new Vector3f(0, 1 ,0.5f).rotateY((float) Math.toRadians(-camera.yRot)).normalize();
+        var lightDirection = new Vector3f(0, 1 ,1f).rotateY((float) Math.toRadians(-camera.yRot)).normalize();
         var projection = RenderSystem.getProjectionMatrixBuffer();
         if (projection == null) {
             return;
@@ -80,7 +83,8 @@ public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRen
         poseStack.translate(0.5, 1.0 + state.yOffset, 0.5);
         poseStack.scale(1.0F / sideLength, 1.0F / sideLength, 1.0F / sideLength);
         poseStack.translate(-originX, -state.normalizedSeaLevel, -originZ);
-        submitNodeCollector.submitCustomGeometry(poseStack, RenderTypes.solidMovingBlock(), (pose, _) -> {
+        var pose = poseStack.last().copy();
+        PENDING_RENDERERS.add(() -> {
             var level = Minecraft.getInstance().level;
             var mapLevel = TerrainMapManager.INSTANCE.getCurrentLevelChunkStorage();
             if (level == null || mapLevel == null || !mapLevel.getLevel().equals(level.dimension().identifier())) {
@@ -93,20 +97,22 @@ public final class TerrainProjectorBlockEntityRenderer implements BlockEntityRen
                 renderPoseStack.mulPose(modelView);
                 renderPoseStack.mulPose(pose.pose());
                 TerrainProjectorPipRenderer.renderTerrain(
-                        mapLevel,
-                        state.modelPositions,
-                        state.lodLevel,
-                        renderPoseStack,
-                        cameraPosition,
-                        lightDirection,
-                        Minecraft.getInstance().getMainRenderTarget().getColorTextureView(),
-                        Minecraft.getInstance().getMainRenderTarget().getDepthTextureView()
+                        mapLevel, state.modelPositions, state.lodLevel, renderPoseStack, cameraPosition, lightDirection,
+                        Objects.requireNonNull(Minecraft.getInstance().getMainRenderTarget().getColorTextureView()),
+                        Objects.requireNonNull(Minecraft.getInstance().getMainRenderTarget().getDepthTextureView())
                 );
             } finally {
                 RenderSystem.restoreProjectionMatrix();
             }
         });
         poseStack.popPose();
+    }
+
+    public static void renderPending() {
+        for (var renderer : PENDING_RENDERERS) {
+            renderer.run();
+        }
+        PENDING_RENDERERS.clear();
     }
 
     @Override

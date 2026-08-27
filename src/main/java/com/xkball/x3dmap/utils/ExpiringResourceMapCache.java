@@ -208,6 +208,7 @@ public class ExpiringResourceMapCache<K, V> implements AutoCloseable, ExpiringRe
         if (error != null) {
             this.loading.remove(key, pendingLoad);
             pendingLoad.future.completeExceptionally(error);
+            LOGGER.error("Failed to load {}", key, error);
             return;
         }
         this.loading.compute(key, (_, current) -> {
