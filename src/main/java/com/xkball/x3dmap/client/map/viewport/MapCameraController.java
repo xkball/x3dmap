@@ -96,12 +96,16 @@ public final class MapCameraController {
     }
 
     public void zoom(double scrollY) {
-        this.distance -= (float) (scrollY * Math.log10(this.distance + 10F));
+        this.distance -= (float) (scrollY * Math.log10(this.distance + 10F)) * 2;
         this.distance = Math.max(this.distance, 0.1F);
     }
 
     public void move(float dx, float dy, float dz, boolean allowVertical) {
-        var speed = 0.75F * (1 + this.distance / 100);
+        this.move(dx, dy, dz, allowVertical, 1);
+    }
+
+    public void move(float dx, float dy, float dz, boolean allowVertical, float timeScale) {
+        var speed = 3F * (1 + this.distance / 100) * timeScale;
         var direction = new Vector2f(dx, dz).mul(speed);
         direction.mul(new Matrix2f().rotate((float) Math.toRadians(-this.yRotation)));
         this.target.add(direction.x, allowVertical ? dy * speed : 0, direction.y);

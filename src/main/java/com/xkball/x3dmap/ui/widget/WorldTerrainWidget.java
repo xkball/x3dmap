@@ -164,6 +164,10 @@ public class WorldTerrainWidget extends ContainerWidget {
         this.screenSession = TerrainMapManager.INSTANCE.mapPluginRegistry.openScreen(this);
         this.inner.setScreenSession(this.screenSession);
     }
+    
+    public void tick(){
+        this.inner.tick();
+    }
 
     public void initExtensions() {
         this.initUiState();

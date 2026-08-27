@@ -82,8 +82,10 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
                 renderState.lodLevel(),
                 poseStack,
                 new Vector3f(renderState.frame().cameraPosition()).add(originX, 0, originZ),
-                renderState.frame().camera().xRotation(),
-                renderState.frame().camera().yRotation(),
+                VanillaUtils.dirVec(
+                        Mth.clamp(renderState.frame().camera().xRotation(), 75, 90),
+                        -renderState.frame().camera().yRotation() + 2
+                ),
                 RenderSystem.outputColorTextureOverride,
                 RenderSystem.outputDepthTextureOverride
         );
@@ -95,8 +97,7 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
             int lodLevel,
             PoseStack poseStack,
             Vector3fc cameraPosition,
-            float cameraXRotation,
-            float cameraYRotation,
+            Vector3fc lightDirection,
             GpuTextureView colorTarget,
             GpuTextureView depthTarget
     ) {
@@ -117,12 +118,10 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
             return;
         }
         batchesByBuffer.forEach((_, builder) -> builder.build());
-        RenderSystem.getModelViewStack().pushMatrix();
         try {
-            var modelView = RenderSystem.getModelViewStack().mul(poseStack.last().pose(), new Matrix4f());
-            var transform = RenderSystem.getDynamicUniforms().writeTransform(modelView, new Vector4f(1, 1, 1, 1), new Vector3f(), new Matrix4f());
+            var transform = RenderSystem.getDynamicUniforms().writeTransform(poseStack.last().pose(), new Vector4f(1, 1, 1, 1), new Vector3f(), new Matrix4f());
             X3dMapRenderPipelines.PHONE_LIGHT.updateUnsafe(buffer -> buffer
-                    .putVec3(VanillaUtils.dirVec(Mth.clamp(cameraXRotation, 45, 90), cameraYRotation + 2))
+                    .putVec3(lightDirection)
                     .putVec3(cameraPosition));
             try (var renderPass = ClientUtils.getCommandEncoder().createRenderPass(
                     () -> "terrain projector rendering",
@@ -142,7 +141,6 @@ public final class TerrainProjectorPipRenderer extends OffScreenPIPRenderer<Terr
                 }
             }
         } finally {
-            RenderSystem.getModelViewStack().popMatrix();
             batchesByBuffer.forEach((_, builder) -> builder.close());
         }
     }

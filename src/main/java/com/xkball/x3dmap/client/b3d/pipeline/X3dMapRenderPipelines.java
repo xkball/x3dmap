@@ -24,7 +24,7 @@ public class X3dMapRenderPipelines {
     
     public static final UpdatableUBO PHONE_LIGHT = new UpdatableUBO.UBOBuilder("PhongLight")
             .closeOnExit()
-            .putVec3("lightPos", Vector3f::new)
+            .putVec3("lightDir", Vector3f::new)
             .putVec3("viewPos", Vector3f::new)
             .build();
     

@@ -12,7 +12,7 @@ in vec3 worldPos;
 in vec3 pNormal;
 out vec4 fragColor;
 
-const float ambient = 0.3;
+const float ambient = 0.5;
 const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 const float specularStrength = 0.2;
 

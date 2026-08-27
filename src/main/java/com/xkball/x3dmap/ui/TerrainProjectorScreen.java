@@ -26,7 +26,7 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
     private final NumberInputWidget<Integer> centerX;
     private final NumberInputWidget<Integer> centerZ;
     private final NumberInputWidget<Integer> radius;
-    private final NumberInputWidget<Integer> yOffset;
+    private final NumberInputWidget<Float> yOffset;
     private final IntLayoutVariable lodLevel = new IntLayoutVariable();
 
     public TerrainProjectorScreen(TerrainProjectorBlockEntity blockEntity) {
@@ -35,7 +35,7 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
         this.centerX = NumberInputWidget.ofInt(-30000000, 30000000, 1);
         this.centerZ = NumberInputWidget.ofInt(-30000000, 30000000, 1);
         this.radius = NumberInputWidget.ofInt(0, 32, 1);
-        this.yOffset = NumberInputWidget.ofInt(-2048, 2048, 1);
+        this.yOffset = NumberInputWidget.ofFloat(-2048.0F, 2048.0F, 0.1F);
         this.centerX.setValue(blockEntity.centerPos.getX());
         this.centerZ.setValue(blockEntity.centerPos.getZ());
         this.radius.setValue(blockEntity.projectionRadius);
@@ -128,7 +128,7 @@ public final class TerrainProjectorScreen extends XKLibBaseScreen {
         return XKLibBaseScreen.biPanelFrame(IComponent.translatable("xklibmc.terrain_projector.title"), left, right);
     }
 
-    private ContainerWidget inputLine(Widget label, NumberInputWidget<Integer> input) {
+    private ContainerWidget inputLine(Widget label, NumberInputWidget<?> input) {
         return new ContainerWidget()
                 .setCSSClassName("input_line")
                 .addChild(label.setCSSClassName("input_label"))

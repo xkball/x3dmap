@@ -30,7 +30,13 @@ public class WorldTerrainScreen extends XKLibBaseScreen {
         CompatibilityExtension.showWarningIfNeeded(this.worldTerrainWidget.mapGui());
         MapInfoHelper.showInfoIfNeeded(this.worldTerrainWidget.mapGui());
     }
-
+    
+    @Override
+    public void tick() {
+        super.tick();
+        worldTerrainWidget.tick();
+    }
+    
     @Override
     public void removed() {
         this.worldTerrainWidget.closeMap();

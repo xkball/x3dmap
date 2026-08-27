@@ -40,6 +40,7 @@ import com.xkball.xklib.ui.widget.container.AbsoluteContainer;
 import com.xkball.xklib.ui.widget.container.ContainerWidget;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.ui.XKLibBaseScreen;
+import com.xkball.xklibmc.utils.ClientUtils;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.TaffyDimension;
@@ -91,6 +92,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
     private final MapLayerHostImpl layerHost;
     private boolean invalidated = true;
     private boolean closed;
+    private float lastTime;
 
     private final BooleanLayoutVariable terrain;
     private final BooleanLayoutVariable grid;
@@ -290,7 +292,7 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
 
     @Override
     public void renderBelow(IGUIGraphics graphics, int mouseX, int mouseY, float a) {
-        this.tick();
+        this.updateKeyBoardControl();
         this.calculateNewPipState();
         if (graphics instanceof B3dGuiGraphics b3dGuiGraphics && lastState != null) {
             var inner = b3dGuiGraphics.getInner();
@@ -510,12 +512,11 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
         }
         return false;
     }
-
-    public void tick() {
-        this.layerHost.tick();
-        if (this.screenSession != null) {
-            this.screenSession.tick();
-        }
+    
+    private void updateKeyBoardControl(){
+        var now = ClientUtils.clientTickWithPartialTick();
+        var delta = now - this.lastTime;
+        this.lastTime = now;
         if (this.mapCamera.externallyControlled()) {
             this.pressedMovementKeys.clear();
             return;
@@ -548,14 +549,22 @@ public class WorldTerrainWidgetInner extends ContainerWidget implements IMapView
             }
         }
         if (dx != 0 || dy != 0 || dz != 0) {
-            this.moveCamera(dx, dy, dz);
+            this.moveCamera(dx * delta, dy * delta, dz * delta);
         }
         if (this.pressedMovementKeys.contains(InputConstants.KEY_Q)) {
-            this.cameraController.rotateYawBy(0.5F);
+            this.cameraController.rotateYawBy(2F * delta);
         }
         if (this.pressedMovementKeys.contains(InputConstants.KEY_E)) {
-            this.cameraController.rotateYawBy(-0.5F);
+            this.cameraController.rotateYawBy(-2F * delta);
         }
+    }
+
+    public void tick() {
+        this.layerHost.tick();
+        if (this.screenSession != null) {
+            this.screenSession.tick();
+        }
+
     }
 
     private void moveCamera(float dx, float dy, float dz) {

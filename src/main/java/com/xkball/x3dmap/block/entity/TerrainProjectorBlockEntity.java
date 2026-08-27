@@ -23,7 +23,7 @@ public final class TerrainProjectorBlockEntity extends BlockEntity implements IC
     public BlockPos centerPos;
     public int projectionRadius = 1;
     public int lodLevel;
-    public int yOffset;
+    public float yOffset;
     private BlockPos normalizedCenterPos = BlockPos.ZERO;
     private List<BlockPos> modelPositions = List.of();
 
@@ -32,11 +32,11 @@ public final class TerrainProjectorBlockEntity extends BlockEntity implements IC
         this.centerPos = pos.atY(0);
     }
 
-    public void setParameters(BlockPos centerPos, int projectionRadius, int lodLevel, int yOffset) {
+    public void setParameters(BlockPos centerPos, int projectionRadius, int lodLevel, float yOffset) {
         this.centerPos = centerPos.atY(0);
         this.projectionRadius = Math.clamp(projectionRadius, 0, 32);
         this.lodLevel = Math.clamp(lodLevel, 0, 4);
-        this.yOffset = Math.clamp(yOffset, -2048, 2048);
+        this.yOffset = Math.clamp(yOffset, -2048.0F, 2048.0F);
         this.rebuildClientData();
         this.setChanged();
     }
@@ -79,7 +79,7 @@ public final class TerrainProjectorBlockEntity extends BlockEntity implements IC
         this.centerPos = input.read("center", BlockPos.CODEC).orElse(this.worldPosition).atY(0);
         this.projectionRadius = Math.clamp(input.getIntOr("radius", 1), 0, 32);
         this.lodLevel = Math.clamp(input.getIntOr("lod", 0), 0, 4);
-        this.yOffset = Math.clamp(input.getIntOr("y_offset", 0), -2048, 2048);
+        this.yOffset = Math.clamp(input.getFloatOr("y_offset", 0), -2048.0F, 2048.0F);
         this.rebuildClientData();
     }
 
@@ -87,7 +87,7 @@ public final class TerrainProjectorBlockEntity extends BlockEntity implements IC
         output.store("center", BlockPos.CODEC, this.centerPos);
         output.putInt("radius", this.projectionRadius);
         output.putInt("lod", this.lodLevel);
-        output.putInt("y_offset", this.yOffset);
+        output.putFloat("y_offset", this.yOffset);
     }
 
     @Override
