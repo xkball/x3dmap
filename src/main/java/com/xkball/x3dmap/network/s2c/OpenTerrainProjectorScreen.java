@@ -28,10 +28,18 @@ public record OpenTerrainProjectorScreen(BlockPos pos) implements CustomPacketPa
 
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
-            var level = Minecraft.getInstance().level;
-            if (level != null && level.getBlockEntity(this.pos) instanceof TerrainProjectorBlockEntity blockEntity) {
-                Minecraft.getInstance().setScreen(new TerrainProjectorScreen(blockEntity));
-            }
+            Handler.run(this.pos);
         });
     }
+    
+    public static class Handler {
+        
+        public static void run(BlockPos pos){
+            var level = Minecraft.getInstance().level;
+            if (level != null && level.getBlockEntity(pos) instanceof TerrainProjectorBlockEntity blockEntity) {
+                Minecraft.getInstance().setScreen(new TerrainProjectorScreen(blockEntity));
+            }
+        }
+    }
+    
 }

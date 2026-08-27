@@ -95,7 +95,7 @@ public final class MinimapHudRenderer {
         var player = mc.player;
         var blockPos = player.blockPosition();
         var targetY = MinimapRenderHelper.getCameraTargetY(player.getY(), blockPos.getX(), blockPos.getZ(), mc.level.getMinY());
-        var rotateWithPlayer = ClientConfig.MINIMAP_ROTATE_WITH_PLAYER.get();
+        boolean rotateWithPlayer = ClientConfig.MINIMAP_ROTATE_WITH_PLAYER.get();
         var yRot = rotateWithPlayer ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
         var camera = new MapCameraState(
                 (float) player.getX(),
