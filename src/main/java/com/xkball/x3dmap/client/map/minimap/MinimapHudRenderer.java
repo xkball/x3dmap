@@ -125,7 +125,7 @@ public final class MinimapHudRenderer {
                 float dx = (float) (player.getX() - lastRenderPlayerX);
                 float dz = (float) (player.getZ() - lastRenderPlayerZ);
 
-                float cameraLength = ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue();
+                float cameraLength = (float) Math.max(ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue(),0.1);
                 float fov = ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue();
                 float worldCoverage = (float) (2 * (cameraLength + 100) * Math.tan(Math.toRadians(fov / 2)));
                 float pixelsPerWorld = realMapSize / worldCoverage;
