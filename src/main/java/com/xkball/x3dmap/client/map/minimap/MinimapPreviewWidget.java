@@ -88,15 +88,9 @@ public class MinimapPreviewWidget extends ContainerWidget {
         if (this.viewport.handle(new MapInputEvent.MouseScrolled(x, y, scrollX, scrollY)) != MapInputResult.PASS) {
             return true;
         }
-        var fov = ClientConfig.MINIMAP_CAMERA_FOV.get().floatValue();
         var cameraLength = ClientConfig.MINIMAP_CAMERA_LENGTH.get().floatValue();
-        if (fov > 90 - 1e-6) {
-            cameraLength = Math.max(cameraLength - (float) (scrollY * Math.log10(cameraLength + 10f)), 0);
-            ClientConfig.MINIMAP_CAMERA_LENGTH.set((double) cameraLength);
-        }
-        if (ClientConfig.MINIMAP_CAMERA_LENGTH.get() < 1e-6) {
-            ClientConfig.MINIMAP_CAMERA_FOV.set(Math.clamp(fov - scrollY, 5, 90));
-        }
+        cameraLength = Math.max(cameraLength - (float) (scrollY * Math.log10(cameraLength + 10F)), 0.1F);
+        ClientConfig.MINIMAP_CAMERA_LENGTH.set((double) cameraLength);
         this.calculateNewPipState();
         return true;
     }
