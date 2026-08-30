@@ -1,5 +1,6 @@
 package com.xkball.x3dmap.network.c2s;
 
+import com.xkball.x3dmap.ServerConfig;
 import com.xkball.x3dmap.X3dMap;
 import com.xkball.x3dmap.network.s2c.SentChunkToClient;
 import com.xkball.x3dmap.server.ChunkBatcher;
@@ -45,7 +46,7 @@ public record RequestServerChunk(List<ChunkPos> pos, boolean generate) implement
     }
     
     public void handle(IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player) || !(context.player().level() instanceof ServerLevel level))
+        if (!(context.player() instanceof ServerPlayer player) || !(context.player().level() instanceof ServerLevel level) || !ServerConfig.ALLOW_SERVER_SENT_CHUNK.get())
             return;
         context.enqueueWork(() -> ChunkBatcher.submitRequest(new ChunkRequest(this.pos, X3dMap.MAP_GEOMATICS.get(), generate ? ChunkStatus.FULL : ChunkStatus.EMPTY, player, level) {
             @Override
