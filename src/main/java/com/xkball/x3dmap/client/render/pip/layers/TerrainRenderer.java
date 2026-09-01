@@ -211,6 +211,7 @@ public class TerrainRenderer implements IMap3dLayer {
         var childModels = new MapNodeModel[8];
         var childGpuModels = new GpuNodeModel[8];
         var pending = false;
+        var allEmpty = true;
         var minX = model.x << model.depth;
         var minY = model.y << model.depth;
         var minZ = model.z << model.depth;
@@ -224,6 +225,7 @@ public class TerrainRenderer implements IMap3dLayer {
                 pending = true;
                 break;
             } else {
+                allEmpty &= childModel.isEmpty();
                 var childGpuModel = mapLevel.getGpuNodeAsync(childPos, childLodLevel).getNow(null);
                 if (childGpuModel == null){
                     pending = true;
@@ -236,7 +238,7 @@ public class TerrainRenderer implements IMap3dLayer {
             }
         }
         
-        if (pending) {
+        if (pending || allEmpty) {
             if (gpuModel.allocation() == null) return;
             renderNodes.add(new RenderCandidate(pos, lodLevel, gpuModel));
             return;
