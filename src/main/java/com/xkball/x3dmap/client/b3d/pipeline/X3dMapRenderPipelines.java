@@ -15,7 +15,6 @@ import com.xkball.xklibmc.client.b3d.uniform.UpdatableUBO;
 import com.xkball.xklibmc.client.b3d.uniform.XKLibUniforms;
 import com.xkball.xklibmc.x3d.backend.b3d.pipeline.B3dRenderPipelines;
 import com.xkball.xklibmc.x3d.backend.b3d.vertex.B3dVertexFormats;
-import net.minecraft.core.Direction;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -34,6 +33,20 @@ public class X3dMapRenderPipelines {
             .build();
     
     public static final RenderPipeline LINE = B3dRenderPipelines.LINE;
+
+    public static final ExtendedRenderPipeline LINE_NO_DEPTH = ExtendedRenderPipeline.builder()
+            .withLocation(VanillaUtils.modRL("line_no_depth"))
+            .withVertexShader(VanillaUtils.modRL("core/line_width"))
+            .withFragmentShader(VanillaUtils.resourceLocationOf("xklibmc", "core/pos_color"))
+            .withVertexFormat(B3dVertexFormats.LINE, VertexFormat.Mode.TRIANGLES)
+            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+            .withUniform("ScreenSize", UniformType.UNIFORM_BUFFER)
+            .bindUniform("ScreenSize", XKLibUniforms.SCREEN_SIZE)
+            .withShaderDefine("LINE_WIDTH",4)
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withCull(false)
+            .buildExtended();
     
     public static final ExtendedRenderPipeline WORLD_TERRAIN_PIP = ExtendedRenderPipeline.builder()
             .withLocation(VanillaUtils.modRL("world_terrain_pip"))
