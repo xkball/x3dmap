@@ -22,35 +22,19 @@ public abstract class MixinLevelRenderer {
         TerrainProjectorBlockEntityRenderer.renderPending();
     }
 
-    @Inject(
-            method = "lambda$addLateDebugPass$0",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/Minecraft;getInstance()Lnet/minecraft/client/Minecraft;"
-            )
-    )
+    @Inject(method = "lambda$addLateDebugPass$0",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;getInstance()Lnet/minecraft/client/Minecraft;"))
     private void x3dmap$beginAlwaysOnTopRendering(CallbackInfo callbackInfo) {
         RenderSystem.pushPipelineModifier(X3dMapPipelineModifiers.NO_DEPTH_TEST);
     }
 
-    @Redirect(
-            method = "lambda$addLateDebugPass$0",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lcom/mojang/blaze3d/systems/CommandEncoder;clearDepthTexture(Lcom/mojang/blaze3d/textures/GpuTexture;D)V"
-            )
-    )
+    @Redirect(method = "lambda$addLateDebugPass$0",
+            at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/CommandEncoder;clearDepthTexture(Lcom/mojang/blaze3d/textures/GpuTexture;D)V"))
     private void x3dmap$preserveMainDepth(CommandEncoder commandEncoder, GpuTexture depthTexture, double clearDepth) {
     }
 
-    @Inject(
-            method = "lambda$addLateDebugPass$0",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;endLastBatch()V",
-                    shift = At.Shift.AFTER
-            )
-    )
+    @Inject(method = "lambda$addLateDebugPass$0",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;endLastBatch()V", shift = At.Shift.AFTER))
     private void x3dmap$endAlwaysOnTopRendering(CallbackInfo callbackInfo) {
         RenderSystem.popPipelineModifier();
     }

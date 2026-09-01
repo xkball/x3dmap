@@ -6,6 +6,8 @@ import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
 import com.xkball.x3dmap.api.client.render.IMapLayerContext;
 import com.xkball.x3dmap.api.client.render.MapViewportPresets;
+import com.xkball.x3dmap.utils.VanillaUtils;
+import com.xkball.xklib.resource.ResourceLocation;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 import mtr.client.ClientData;
@@ -19,6 +21,7 @@ import java.util.List;
 @NonNullByDefault
 public final class MtrStationLayer implements IMap2dLayer {
 
+    private static final ResourceLocation ROUTE_ICON = VanillaUtils.modrl("icon/route");
     private final IMapLayerContext layerContext;
 
     public MtrStationLayer(IMapLayerContext layerContext) {
@@ -28,7 +31,10 @@ public final class MtrStationLayer implements IMap2dLayer {
     @Override
     public @Nullable IMap2dRenderCommand extract(IMapFrame frame) {
         var labels = new ArrayList<StationLabel>();
-        for (var station : List.copyOf(ClientData.STATIONS)) {
+        for (var station : ClientData.STATIONS) {
+            if (!ClientData.DATA_CACHE.stationIdToRoutes.containsKey(station.id)) {
+                continue;
+            }
             var center = station.getCenter();
             labels.add(new StationLabel(
                     IGui.textOrUntitled(station.name),
@@ -50,36 +56,30 @@ public final class MtrStationLayer implements IMap2dLayer {
             return;
         }
         var minimap = context.frame().preset().equals(MapViewportPresets.MINIMAP);
-        var textHeight = minimap ? 7.0f : 14.0f;
-        var padding = minimap ? 1.0f : 2.0f;
-        var markerRadius = minimap ? 1.5f : 3.0f;
+        var scale = minimap ? 1.0f : graphics.scale / 2;
+        var textHeight = (minimap ? 7.0f : 14.0f) * scale;
+        var iconSize = (minimap ? 7.0f : 14.0f) * scale;
+        var labelHeight = (minimap ? 9.0f : 16.0f) * scale;
+        var textOffsetX = (minimap ? 9.0f : 16.0f) * scale;
         for (var label : labels) {
             var screenPosition = context.frame().worldToScreen(label.position());
             if (screenPosition == null) {
                 continue;
             }
             var textWidth = graphics.defaultFont().width(label.name(), textHeight);
-            var labelWidth = textWidth + padding * 2;
-            var labelHeight = textHeight + padding * 2;
-            var labelX = screenPosition.x - labelWidth / 2;
-            var labelY = screenPosition.y - labelHeight - markerRadius - 2;
+            var labelWidth = textOffsetX + textWidth + (minimap ? 1.0f : 2.0f) * scale;
+            var labelX = screenPosition.x;
+            var labelY = screenPosition.y - (minimap ? 9.0f : 16.0f);
             graphics.fillRounded(
                     labelX,
                     labelY,
                     labelX + labelWidth,
                     labelY + labelHeight,
-                    0xA0000000,
+                    minimap ? 0xA0000000 : 0x88000000,
                     minimap ? 2.0f : 4.0f
             );
-            graphics.drawString(label.name(), labelX + padding, labelY + padding, 0xFFFFFFFF, textHeight);
-            graphics.fillRounded(
-                    screenPosition.x - markerRadius,
-                    screenPosition.y - markerRadius,
-                    screenPosition.x + markerRadius,
-                    screenPosition.y + markerRadius,
-                    0xFFFFFFFF,
-                    markerRadius
-            );
+            graphics.blitSprite(ROUTE_ICON, labelX + scale, labelY + scale, iconSize, iconSize, 0xFFFFFFFF);
+            graphics.drawString(label.name(), labelX + textOffsetX, labelY + (minimap ? 1.0f : 2.0f) * scale, 0xFFFFFFFF, textHeight);
         }
     }
     

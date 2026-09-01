@@ -6,7 +6,7 @@ version = "${mod_version}"
 displayName = "x3d map compatibility for NeoMTR"
 authors = "xkball"
 description = '''
-Displays NeoMTR stations and routes on the x3d map.
+Displays NeoMTR stations on the x3d map.
 '''
 
 [[dependencies.x3d_map_compat_mtr]]
