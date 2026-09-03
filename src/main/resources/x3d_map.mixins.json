@@ -3,6 +3,7 @@
   "package": "com.xkball.x3dmap.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "MixinLabel",
     "MixinLevelChunk"
   ],
   "client": [

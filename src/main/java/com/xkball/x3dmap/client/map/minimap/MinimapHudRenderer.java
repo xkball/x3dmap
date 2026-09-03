@@ -73,11 +73,13 @@ public final class MinimapHudRenderer {
         var guiScaledHeight = window.getGuiScaledHeight();
         var guiScaledWidth = window.getGuiScaledWidth();
         float sizePercent = ClientConfig.MINIMAP_SIZE.get() / 100.0f;
-        float paddingPercent = ClientConfig.MINIMAP_PADDING.get() / 100.0f;
+        float paddingXPercent = ClientConfig.MINIMAP_PADDING_X.get() / 100.0f;
+        float paddingYPercent = ClientConfig.MINIMAP_PADDING_Y.get() / 100.0f;
         int mapSize = (int) (guiScaledHeight * sizePercent);
-        int padding = (int) (guiScaledHeight * paddingPercent);
-        int x0 = guiScaledWidth - mapSize - padding;
-        int y0 = padding;
+        int paddingX = (int) (guiScaledWidth * paddingXPercent);
+        int paddingY = (int) (guiScaledHeight * paddingYPercent);
+        int x0 = guiScaledWidth - mapSize - paddingX;
+        int y0 = paddingY;
         int x1 = x0 + mapSize;
         int y1 = y0 + mapSize;
         var realMapSize = mapSize * scale;

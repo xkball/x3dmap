@@ -30,7 +30,8 @@ public class ClientConfig {
     public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_FOV;
     public static final ModConfigSpec.DoubleValue MINIMAP_CAMERA_LENGTH;
     public static final ModConfigSpec.IntValue MINIMAP_SIZE;
-    public static final ModConfigSpec.IntValue MINIMAP_PADDING;
+    public static final ModConfigSpec.IntValue MINIMAP_PADDING_X;
+    public static final ModConfigSpec.IntValue MINIMAP_PADDING_Y;
     public static final ModConfigSpec.IntValue MINIMAP_RENDER_INTERVAL;
     public static final ModConfigSpec.IntValue AUTO_SAVE_INTERVAL;
     public static final ModConfigSpec.IntValue DRAW_NEW_CHUNK_INTERVAL;
@@ -70,9 +71,12 @@ public class ClientConfig {
         MINIMAP_SIZE = builder
                 .comment("Minimap size as percentage of screen height. Default: 15.")
                 .defineInRange("minimapSize", 25, 1, 50);
-        MINIMAP_PADDING = builder
-                .comment("Minimap padding from screen edge as percentage of screen height. Default: 5.")
-                .defineInRange("minimapPadding", 5, 0, 25);
+        MINIMAP_PADDING_X = builder
+                .comment("Minimap horizontal padding from screen edge as percentage of screen width. Default: 5.")
+                .defineInRange("minimapPaddingX", 5, 0, 100);
+        MINIMAP_PADDING_Y = builder
+                .comment("Minimap vertical padding from screen edge as percentage of screen height. Default: 5.")
+                .defineInRange("minimapPaddingY", 5, 0, 100);
         MINIMAP_RENDER_INTERVAL = builder
                 .comment("Interval in frames between minimap re-renders. Higher values improve performance at the cost of update latency. Default: 10.")
                 .defineInRange("minimapRenderInterval", 10, 1, 20);
