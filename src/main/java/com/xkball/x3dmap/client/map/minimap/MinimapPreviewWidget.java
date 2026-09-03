@@ -65,8 +65,6 @@ public class MinimapPreviewWidget extends ContainerWidget {
             MinimapRenderHelper.drawBorder(inner, x0, y0, x1, y1);
             var player = Minecraft.getInstance().player;
             if (player != null) {
-                var yRot = rotateWithPlayer.get() ? MinimapPlayerMarker.mapYawForPlayerUp(player.getYRot()) : 0.0f;
-                CompassRenderer.render(b3dGuiGraphics, x0 + 2, y0 + 2, x1, y1, yRot, 0, 24f);
                 MinimapPlayerMarker.render(b3dGuiGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer.get());
             }
         }

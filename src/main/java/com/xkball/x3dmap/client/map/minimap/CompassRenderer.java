@@ -8,6 +8,7 @@ public final class CompassRenderer {
     private static final int N_COLOR = 0xFFFF5555;
     private static final int LABEL_COLOR = 0xFFFFFFFF;
     private static final int BG_COLOR = 0x90505050;
+    private static final float BACKGROUND_PADDING = 1f;
     
     private CompassRenderer() {
     }
@@ -17,6 +18,9 @@ public final class CompassRenderer {
         float cy = (y0 + y1) / 2f;
         float halfW = (x1 - x0) / 2f - margin;
         float halfH = (y1 - y0) / 2f - margin;
+        var labelInset = fontHeight / 2f + BACKGROUND_PADDING;
+        halfW -= labelInset;
+        halfH -= labelInset;
         if (halfW <= 10 || halfH <= 10) return;
         
         var yRotClamped = ((yRot % 360) + 360) % 360;
@@ -44,12 +48,11 @@ public final class CompassRenderer {
         var font = Minecraft.getInstance().font;
         var scale = fontHeight / (float) font.lineHeight;
         var textWidth = font.width(label) * scale;
-        var bgX0 = (int) (x - textWidth / 2f - 1);
-        var bgY0 = (int) (textY - 1);
-        var bgX1 = (int) (x + textWidth / 2f);
-        var bgY1 = (int) (textY + fontHeight);
-        graphics.getInner().fill(bgX0, bgY0, bgX1, bgY1, BG_COLOR);
-        
-        graphics.drawCenteredString(label, x, textY, color, fontHeight);
+        var bgX0 = x - textWidth / 2f - BACKGROUND_PADDING;
+        var bgY0 = textY - BACKGROUND_PADDING;
+        var bgX1 = x + textWidth / 2f + BACKGROUND_PADDING;
+        var bgY1 = textY + fontHeight + BACKGROUND_PADDING;
+        graphics.fill(bgX0, bgY0, bgX1, bgY1, BG_COLOR);
+        graphics.drawCenteredString(label, x, textY, color, true, fontHeight);
     }
 }

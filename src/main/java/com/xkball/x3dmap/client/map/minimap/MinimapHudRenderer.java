@@ -180,12 +180,10 @@ public final class MinimapHudRenderer {
             Map2dLayerRenderer.render(displayLayers, Map2dLayerPhase.CONTENT, context);
             b3dGraphics.disableScissor();
             MinimapRenderHelper.drawBorder(graphics, x0, y0, x1, y1);
-            CompassRenderer.render(b3dGraphics, x0, y0, x1, y1, yRot, 0, 8f);
             MinimapPlayerMarker.render(b3dGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer);
             Map2dLayerRenderer.render(displayLayers, Map2dLayerPhase.FOREGROUND, context);
         } else {
             MinimapRenderHelper.drawBorder(graphics, x0, y0, x1, y1);
-            CompassRenderer.render(b3dGraphics, x0, y0, x1, y1, yRot, 0, 8f);
             MinimapPlayerMarker.render(b3dGraphics, x0, y0, x1, y1, player.getYRot(), rotateWithPlayer);
         }
         var coords = "%d %d %d".formatted(blockPos.getX(), blockPos.getY(), blockPos.getZ());
@@ -194,7 +192,7 @@ public final class MinimapHudRenderer {
         var font = Minecraft.getInstance().font;
         var cw = font.width(coords);
         var ch = font.lineHeight;
-        graphics.fill((int) (textX - cw / 2f - 1), textY - 1, (int) (textX + cw / 2f + 1), textY + ch + 1, 0x90505050);
+        b3dGraphics.fill(textX - cw / 2f - 1f, textY - 1f, textX + cw / 2f + 1f, textY + ch + 1f, 0x90505050);
         b3dGraphics.drawCenteredString(coords, textX, textY, 0xCCFFFFFF);
     }
 

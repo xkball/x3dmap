@@ -4,7 +4,9 @@ import com.xkball.x3dmap.api.client.render.IMap2dLayer;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderCommand;
 import com.xkball.x3dmap.api.client.render.IMap2dRenderContext;
 import com.xkball.x3dmap.api.client.render.IMapFrame;
+import com.xkball.x3dmap.api.client.render.MapViewportPresets;
 import com.xkball.x3dmap.client.map.minimap.CompassRenderer;
+import com.xkball.xklib.ui.css.property.value.CssLengthUnit;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
 import com.xkball.xklibmc.x3d.backend.b3d.B3dGuiGraphics;
 
@@ -20,15 +22,16 @@ public final class CompassMapLayer implements IMap2dLayer {
     private void render(IMap2dRenderContext context, float yRotation) {
         if (context.graphics() instanceof B3dGuiGraphics graphics) {
             var frame = context.frame();
+            var minimap = frame.preset().equals(MapViewportPresets.MINIMAP);
             CompassRenderer.render(
                     graphics,
-                    frame.viewportX() + 8,
-                    frame.viewportY() + 10,
+                    frame.viewportX() + (minimap ? 0 : 18 * CssLengthUnit.rpxScaleWorkaround),
+                    frame.viewportY() + (minimap ? 0 : 35 * CssLengthUnit.rpxScaleWorkaround),
                     frame.viewportX() + frame.viewportWidth(),
                     frame.viewportY() + frame.viewportHeight(),
                     yRotation,
-                    6,
-                    24f
+                    0,
+                    minimap ? 8f : 8 * CssLengthUnit.rpxScaleWorkaround
             );
         }
     }
