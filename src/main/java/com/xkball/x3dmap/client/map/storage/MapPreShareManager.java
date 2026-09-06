@@ -14,12 +14,15 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @NonNullByDefault
 public final class MapPreShareManager {
@@ -44,7 +47,7 @@ public final class MapPreShareManager {
         if (targets.isEmpty() || !matches(targets, target)) {
             return;
         }
-        copyMapFiles(sourceDirectory, FMLPaths.GAMEDIR.get().resolve("x3dmap").resolve(target.encodedName()));
+        extractMapArchives(sourceDirectory, FMLPaths.GAMEDIR.get().resolve("x3dmap").resolve(target.encodedName()));
     }
 
     private static @Nullable TargetContext currentTarget() {
@@ -117,31 +120,54 @@ public final class MapPreShareManager {
         return false;
     }
 
-    private static void copyMapFiles(Path sourceDirectory, Path targetDirectory) {
-        try (Stream<Path> paths = Files.walk(sourceDirectory)) {
+    private static void extractMapArchives(Path sourceDirectory, Path targetDirectory) {
+        try (Stream<Path> paths = Files.list(sourceDirectory)) {
             paths.filter(Files::isRegularFile)
-                    .filter(path -> !path.equals(sourceDirectory.resolve("meta.json")))
-                    .forEach(path -> copyMapFile(sourceDirectory, targetDirectory, path));
+                    .filter(MapPreShareManager::isZipArchive)
+                    .sorted()
+                    .forEach(path -> extractMapArchive(path, targetDirectory));
         } catch (IOException e) {
-            LOGGER.error("Failed to enumerate pre-share files in {}", sourceDirectory.toAbsolutePath(), e);
+            LOGGER.error("Failed to enumerate pre-share archives in {}", sourceDirectory.toAbsolutePath(), e);
         }
     }
 
-    private static void copyMapFile(Path sourceDirectory, Path targetDirectory, Path source) {
+    private static boolean isZipArchive(Path path) {
+        var fileName = path.getFileName().toString();
+        return fileName.regionMatches(true, fileName.length() - 4, ".zip", 0, 4);
+    }
+
+    private static void extractMapArchive(Path archive, Path targetDirectory) {
+        var targetRoot = targetDirectory.toAbsolutePath().normalize();
+        try (var input = new ZipInputStream(Files.newInputStream(archive))) {
+            ZipEntry entry;
+            while ((entry = input.getNextEntry()) != null) {
+                extractMapEntry(archive, input, entry, targetRoot);
+                input.closeEntry();
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to extract pre-share archive {}", archive.toAbsolutePath(), e);
+        }
+    }
+
+    private static void extractMapEntry(Path archive, ZipInputStream input, ZipEntry entry, Path targetRoot) {
         try {
-            var target = targetDirectory.resolve(sourceDirectory.relativize(source));
+            var target = targetRoot.resolve(entry.getName()).normalize();
+            if (!target.startsWith(targetRoot)) {
+                LOGGER.error("Rejected unsafe entry {} in pre-share archive {}", entry.getName(), archive.toAbsolutePath());
+                return;
+            }
+            if (entry.isDirectory()) {
+                Files.createDirectories(target);
+                return;
+            }
             if (Files.exists(target)) {
                 return;
             }
-            var parent = target.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            if (Files.notExists(target)) {
-                Files.copy(source, target);
-            }
+            Files.createDirectories(target.getParent());
+            Files.copy(input, target);
+        } catch (FileAlreadyExistsException ignored) {
         } catch (Exception e) {
-            LOGGER.error("Failed to copy pre-share file {}", source.toAbsolutePath(), e);
+            LOGGER.error("Failed to extract entry {} from pre-share archive {}", entry.getName(), archive.toAbsolutePath(), e);
         }
     }
 

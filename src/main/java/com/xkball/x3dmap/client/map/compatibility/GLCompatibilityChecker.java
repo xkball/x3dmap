@@ -19,8 +19,8 @@ public class GLCompatibilityChecker {
             if (!caps.GL_ARB_multi_draw_indirect) {
                 missing.add("GL_ARB_multi_draw_indirect (MDI)");
             }
-            if (!caps.GL_ARB_sparse_texture) {
-                missing.add("GL_ARB_sparse_texture (Sparse Texture)");
+            if (!caps.GL_ARB_gpu_shader_int64) {
+                missing.add("GL_ARB_gpu_shader_int64 (Int64)");
             }
             if (!caps.GL_ARB_shader_storage_buffer_object) {
                 missing.add("GL_ARB_shader_storage_buffer_object (SSBO)");
