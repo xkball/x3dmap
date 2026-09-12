@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "x3d_map:item/terrain_projector"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "x3d_map:block/terrain_projector"
+    }
+  }
+}

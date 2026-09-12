@@ -1,7 +1,6 @@
 package com.xkball.x3dmap.block;
 
 import com.mojang.serialization.MapCodec;
-import com.xkball.x3dmap.X3dMap;
 import com.xkball.x3dmap.block.entity.TerrainProjectorBlockEntity;
 import com.xkball.x3dmap.network.s2c.OpenTerrainProjectorScreen;
 import com.xkball.xklibmc.annotation.NonNullByDefault;
@@ -15,17 +14,18 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.jspecify.annotations.Nullable;
 
 @NonNullByDefault
 public final class TerrainProjectorBlock extends BaseEntityBlock {
 
     public static final MapCodec<TerrainProjectorBlock> CODEC = simpleCodec(TerrainProjectorBlock::new);
+    private static final VoxelShape SHAPE = Block.box(0.0, 0.0, 0.0, 16.0, 4.0, 16.0);
 
     public TerrainProjectorBlock(Block.Properties properties) {
         super(properties);
@@ -49,8 +49,8 @@ public final class TerrainProjectorBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected RenderShape getRenderShape(BlockState state) {
-        return RenderShape.INVISIBLE;
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
     }
 
     @Override
@@ -69,7 +69,7 @@ public final class TerrainProjectorBlock extends BaseEntityBlock {
     }
 
     @Override
-    public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new TerrainProjectorBlockEntity(pos, state);
     }
 

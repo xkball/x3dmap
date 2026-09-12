@@ -79,7 +79,6 @@ public class WorldTerrainWidget extends ContainerWidget {
                         IconCheckBox {
                             size: 14rpx 14rpx;
                             margin-top: 1rpx;
-                         
                             iconcheckbox-bg-color: 0xAA666666;
                             flex-shrink: 0;
                         }
