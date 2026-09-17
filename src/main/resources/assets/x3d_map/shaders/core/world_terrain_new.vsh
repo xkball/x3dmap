@@ -1,5 +1,4 @@
 #version 460 core
-#extension GL_ARB_gpu_shader_int64 : require
 
 layout(std140) uniform DynamicTransforms {
     mat4 ModelViewMat;
@@ -13,7 +12,8 @@ layout(std140) uniform Projection {
 };
 
 struct PosColor{
-    uint64_t packed_pos;
+    int packed_pos_low;
+    int packed_pos_high;
     int color_ssbo;
     uint mask;
 };
@@ -52,9 +52,9 @@ out gl_PerVertex {
 void main() {
     cmddata cmd = cmd_data[gl_BaseInstance];
     PosColor pc = posColor[cmd.offset + gl_InstanceID];
-    int x = int(int64_t(pc.packed_pos) >> 38);
-    int y = int(int64_t(pc.packed_pos << 52) >> 52);
-    int z = int(int64_t(pc.packed_pos << 26) >> 38);
+    int x = bitfieldExtract(pc.packed_pos_high, 6, 26);
+    int y = bitfieldExtract(pc.packed_pos_low, 0, 12);
+    int z = bitfieldExtract(int(uint(pc.packed_pos_low) >> 12u | uint(pc.packed_pos_high) << 20u), 0, 26);
     vec3 blockPosition = vec3(x, y, z);
     gl_Position = ProjMat * ModelViewMat * vec4(Position * float(BLOCK_SIZE) + blockPosition, 1.0);
     gl_CullDistance[0] = (uint(pc.mask) & (1u << uint(cmd.dir))) != 0u ? 1.0 : -1.0;
